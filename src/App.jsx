@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { createBrowserRouter, RouterProvider } from "react-router";
+import CssBaseline from '@mui/material/CssBaseline';
 
 import AppTheme from "./shared-themes/AppTheme";
 import HomePage from "./pages/HomePage";
@@ -20,6 +21,7 @@ const router = createBrowserRouter([
 export default function App(props) {
   return (
     <AppTheme {...props} themeComponents={themeComponents}>
+      <CssBaseline enableColorScheme />
       <RouterProvider router={router} />
     </AppTheme>
   );
