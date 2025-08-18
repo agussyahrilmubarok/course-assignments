@@ -1,6 +1,4 @@
-# Courses Submissions
-
-##
+# 🌱 Course Assignments
 
 ## References
 
