@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 public class TicketReplyStoreRequest {
 
-    @Size(max = 500, message = "Content must not exceed 500 characters")
+    @Size(min = 10, max = 500, message = "Content must be between 10 and 500 characters")
     private String content;
 }

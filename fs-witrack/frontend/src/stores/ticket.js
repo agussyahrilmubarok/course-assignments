@@ -66,5 +66,19 @@ export const useTicketStore = defineStore("ticket", {
         this.loading = false;
       }
     },
+
+    async createTicketReply(code, payload) {
+      this.loading = true;
+      try {
+        const response = await axiosWithToken.post(`/tickets/${code}/reply`, payload);
+        this.success = true;
+        return response.data;
+      } catch (error) {
+        this.error = handleError(error);
+        toastError(this.error);
+      } finally {
+        this.loading = false;
+      }
+    },
   },
 });

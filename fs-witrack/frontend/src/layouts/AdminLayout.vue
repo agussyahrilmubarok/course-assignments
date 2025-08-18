@@ -15,7 +15,7 @@ import Sidebar from '@/components/admin/Sidebar.vue';
                     <router-view></router-view>
                 </div>
             </div>
-        
+
         </main>
     </div>
 </template>
