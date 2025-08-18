@@ -7,7 +7,7 @@ import { PlusIcon, MagnifyingGlassIcon, ClockIcon, ChatBubbleLeftIcon } from '@h
 import { useTicketStore } from '@/stores/ticket';
 
 const ticketStore = useTicketStore();
-const { fetchTickets } = ticketStore;
+const { fetchMyTickets } = ticketStore;
 const { tickets } = storeToRefs(ticketStore);
 
 const filters = ref({
@@ -20,13 +20,13 @@ const filters = ref({
 watch(
     filters,
     debounce(async () => {
-        await fetchTickets(filters.value);
+        await fetchMyTickets(filters.value);
     }, 300),
     { deep: true },
 );
 
 onMounted(async () => {
-    await fetchTickets(filters.value);
+    await fetchMyTickets();
 });
 
 const capitalize = (str) => {

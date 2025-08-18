@@ -20,8 +20,18 @@ public class TicketResource {
     @GetMapping
     public ResponseEntity<List<TicketResponse>> getTickets(@RequestParam(required = false) String search,
                                                            @RequestParam(required = false) String status,
-                                                           @RequestParam(required = false) String priority) {
-        List<TicketResponse> responses = ticketService.getTickets(search, status, priority);
+                                                           @RequestParam(required = false) String priority,
+                                                           @RequestParam(required = false) String date) {
+        List<TicketResponse> responses = ticketService.getTickets(search, status, priority, date);
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<List<TicketResponse>> getMyTickets(@RequestParam(required = false) String search,
+                                                             @RequestParam(required = false) String status,
+                                                             @RequestParam(required = false) String priority,
+                                                             @RequestParam(required = false) String date) {
+        List<TicketResponse> responses = ticketService.getMyTickets(search, status, priority, date);
         return ResponseEntity.ok(responses);
     }
 

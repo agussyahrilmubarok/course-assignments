@@ -19,6 +19,22 @@ export const useTicketStore = defineStore("ticket", {
       try {
         console.log("Params yang dikirim:", params);
         const response = await axiosWithToken.get(`/tickets`, { params });
+        console.log(response);
+        this.tickets = response.data;
+      } catch (error) {
+        this.error = handleError(error);
+        toastError(this.error);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async fetchMyTickets(params) {
+      this.loading = true;
+      try {
+        console.log("Params yang dikirim:", params);
+        const response = await axiosWithToken.get(`/tickets/me`, { params });
+        console.log(response);
         this.tickets = response.data;
       } catch (error) {
         this.error = handleError(error);

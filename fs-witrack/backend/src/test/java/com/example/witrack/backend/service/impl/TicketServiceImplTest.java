@@ -6,6 +6,7 @@ import com.example.witrack.backend.domain.User;
 import com.example.witrack.backend.exception.NotFoundException;
 import com.example.witrack.backend.exception.UnauthorizedException;
 import com.example.witrack.backend.model.*;
+import com.example.witrack.backend.repository.TicketCustomRepository;
 import com.example.witrack.backend.repository.TicketReplyRepository;
 import com.example.witrack.backend.repository.TicketRepository;
 import com.example.witrack.backend.repository.UserRepository;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,6 +34,9 @@ class TicketServiceImplTest extends BaseServiceTest {
 
     @Mock
     private TicketReplyRepository ticketReplyRepository;
+
+    @Mock
+    private TicketCustomRepository ticketCustomRepository;
 
     @Mock
     private CurrentUserDetails currentUserDetails;
@@ -95,84 +100,154 @@ class TicketServiceImplTest extends BaseServiceTest {
     }
 
     @Test
-    void givenNoFilter_whenGetTickets_thenReturnAllTickets() {
-        when(ticketRepository.findAll()).thenReturn(Arrays.asList(testTicket1, testTicket2));
+    void givenKeywordAndFilters_whenGetTickets_thenReturnFilteredResponses() {
+        String keyword = "Network";
+        String status = "OPEN";
+        String priority = "LOW";
+        String date = "TODAY";
 
-        List<TicketResponse> responses = ticketService.getTickets(null, null, null);
+        when(ticketCustomRepository.searchTickets(
+                anyString(),
+                any(Ticket.Status.class),
+                any(Ticket.Priority.class),
+                any(OffsetDateTime.class),
+                any(OffsetDateTime.class)
+        )).thenReturn(List.of(testTicket1));
+
+        List<TicketResponse> responses = ticketService.getTickets(keyword, status, priority, date);
+
+        assertNotNull(responses);
+        assertEquals(1, responses.size());
+        assertEquals(testTicket1.getCode(), responses.get(0).getCode());
+        assertEquals(testTicket1.getTitle(), responses.get(0).getTitle());
+
+        verify(ticketCustomRepository, times(1)).searchTickets(
+                eq(keyword),
+                eq(Ticket.Status.OPEN),
+                eq(Ticket.Priority.LOW),
+                any(OffsetDateTime.class),
+                any(OffsetDateTime.class)
+        );
+    }
+
+    @Test
+    void givenMonthFilter_whenGetTickets_thenDateRangeIsSet() {
+        String keyword = "";
+        String status = null;
+        String priority = null;
+        String date = "MONTH";
+
+        when(ticketCustomRepository.searchTickets(
+                anyString(),
+                isNull(),
+                isNull(),
+                any(OffsetDateTime.class),
+                any(OffsetDateTime.class)
+        )).thenReturn(List.of(testTicket1, testTicket2));
+
+        List<TicketResponse> responses = ticketService.getTickets(keyword, status, priority, date);
 
         assertEquals(2, responses.size());
-        assertTrue(responses.stream().anyMatch(r -> r.getCode().equals(testTicket1.getCode())));
-
-        verify(ticketRepository, times(1)).findAll();
+        verify(ticketCustomRepository, times(1)).searchTickets(
+                eq(""),
+                isNull(),
+                isNull(),
+                any(OffsetDateTime.class),
+                any(OffsetDateTime.class)
+        );
     }
 
     @Test
-    void givenSearchFilter_whenGetTickets_thenReturnFilteredTickets() {
-        when(ticketRepository.findByCodeIgnoreCaseContainingOrTitleIgnoreCaseContainingOrDescriptionIgnoreCaseContaining(
-                eq("network"), eq("network"), eq("network")
-        )).thenReturn(Collections.singletonList(testTicket1));
+    void givenYearFilter_whenGetTickets_thenReturnEmptyListIfNoMatch() {
+        when(ticketCustomRepository.searchTickets(
+                anyString(),
+                any(),
+                any(),
+                any(),
+                any()
+        )).thenReturn(List.of());
 
-        List<TicketResponse> responses = ticketService.getTickets("network", null, null);
-
-        assertEquals(1, responses.size());
-        assertEquals(testTicket1.getCode(), responses.get(0).getCode());
-
-        verify(ticketRepository, times(1))
-                .findByCodeIgnoreCaseContainingOrTitleIgnoreCaseContainingOrDescriptionIgnoreCaseContaining(
-                        eq("network"), eq("network"), eq("network")
-                );
-    }
-
-    @Test
-    void givenStatusFilter_whenGetTickets_thenReturnFilteredTickets() {
-        when(ticketRepository.findByStatus("OPEN")).thenReturn(Collections.singletonList(testTicket1));
-
-        List<TicketResponse> responses = ticketService.getTickets(null, "OPEN", null);
-
-        assertEquals(1, responses.size());
-        assertEquals(testTicket1.getCode(), responses.get(0).getCode());
-
-        verify(ticketRepository, times(1)).findByStatus("OPEN");
-    }
-
-    @Test
-    void givenPriorityFilter_whenGetTickets_thenReturnFilteredTickets() {
-        when(ticketRepository.findByPriority("LOW")).thenReturn(Collections.singletonList(testTicket1));
-
-        List<TicketResponse> responses = ticketService.getTickets(null, null, "LOW");
-
-        assertEquals(1, responses.size());
-        assertEquals(testTicket1.getCode(), responses.get(0).getCode());
-
-        verify(ticketRepository, times(1)).findByPriority("LOW");
-    }
-
-    @Test
-    void givenStatusAndPriorityFilter_whenGetTickets_thenReturnFilteredTickets() {
-        when(ticketRepository.findByStatusAndPriority("OPEN", "LOW"))
-                .thenReturn(Collections.singletonList(testTicket1));
-
-        List<TicketResponse> responses = ticketService.getTickets(null, "OPEN", "LOW");
-
-        assertEquals(1, responses.size());
-        assertEquals(testTicket1.getCode(), responses.get(0).getCode());
-
-        verify(ticketRepository, times(1)).findByStatusAndPriority("OPEN", "LOW");
-    }
-
-    @Test
-    void givenSearchAndStatusAndPriorityFilter_whenGetTickets_thenReturnEmpty() {
-        when(ticketRepository.findByCodeIgnoreCaseContainingOrTitleIgnoreCaseContainingOrDescriptionIgnoreCaseContaining(
-                eq("network"), eq("network"), eq("network")
-        )).thenReturn(Collections.singletonList(testTicket1));
-
-        when(ticketRepository.findByStatusAndPriority("OPEN", "HIGH")).thenReturn(Collections.emptyList());
-
-        List<TicketResponse> responses = ticketService.getTickets("network", "OPEN", "HIGH");
+        List<TicketResponse> responses = ticketService.getTickets("keyword", "RESOLVED", "HIGH", "YEAR");
 
         assertTrue(responses.isEmpty());
+        verify(ticketCustomRepository, times(1)).searchTickets(
+                eq("keyword"),
+                eq(Ticket.Status.RESOLVED),
+                eq(Ticket.Priority.HIGH),
+                any(),
+                any()
+        );
+    }
 
-        verify(ticketRepository, times(1)).findByStatusAndPriority("OPEN", "HIGH");
+    @Test
+    void givenNullFilters_whenGetTickets_thenReturnAllTickets() {
+        when(ticketCustomRepository.searchTickets(
+                anyString(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull()
+        )).thenReturn(List.of(testTicket1, testTicket2));
+
+        List<TicketResponse> responses = ticketService.getTickets(null, null, null, null);
+
+        assertEquals(2, responses.size());
+        assertEquals(testTicket1.getCode(), responses.get(0).getCode());
+        assertEquals(testTicket2.getCode(), responses.get(1).getCode());
+
+        verify(ticketCustomRepository, times(1)).searchTickets(
+                eq(""),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull()
+        );
+    }
+
+    @Test
+    void givenUserLoggedIn_whenGetMyTickets_thenReturnOnlyHisTickets() {
+        when(currentUserDetails.getId()).thenReturn(testUser1.getId());
+        when(userRepository.findById(testUser1.getId())).thenReturn(Optional.of(testUser1));
+
+        when(ticketCustomRepository.searchTickets(
+                anyString(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(testUser1.getId())
+        )).thenReturn(List.of(testTicket1));
+
+        List<TicketResponse> responses = ticketService.getMyTickets(null, null, null, null);
+
+        assertNotNull(responses);
+        assertEquals(1, responses.size());
+        assertEquals(testTicket1.getCode(), responses.get(0).getCode());
+        assertEquals(testUser1.getId(), testTicket1.getUser().getId());
+
+        verify(ticketCustomRepository, times(1)).searchTickets(
+                eq(""),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(testUser1.getId())
+        );
+    }
+
+    @Test
+    void givenInvalidUserId_whenGetMyTickets_thenThrowNotFoundException() {
+        String invalidUserId = UUID.randomUUID().toString();
+
+        when(currentUserDetails.getId()).thenReturn(invalidUserId);
+        when(userRepository.findById(invalidUserId)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () ->
+                ticketService.getMyTickets(null, null, null, null)
+        );
+
+        verify(userRepository, times(1)).findById(invalidUserId);
+        verify(ticketCustomRepository, never()).searchTickets(any(), any(), any(), any(), any(), any());
     }
 
     @Test

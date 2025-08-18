@@ -6,7 +6,9 @@ import java.util.List;
 
 public interface TicketService {
 
-    List<TicketResponse> getTickets(String search, String status, String priority);
+    List<TicketResponse> getTickets(String keyword, String status, String priority, String date);
+
+    List<TicketResponse> getMyTickets(String keyword, String status, String priority, String date);
 
     TicketDetailResponse getTicketByCode(String code);
 

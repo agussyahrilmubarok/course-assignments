@@ -38,14 +38,40 @@ class TicketResourceTest extends BaseResourceTest {
                 .user(userResponse)
                 .build();
 
-        Mockito.when(ticketService.getTickets(null, null, null)).thenReturn(List.of(response));
+        Mockito.when(ticketService.getTickets(null, null, null, null)).thenReturn(List.of(response));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/tickets")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$[0].title").value(response.getTitle()));
 
-        verify(ticketService, times(1)).getTickets(null, null, null);
+        verify(ticketService, times(1)).getTickets(null, null, null, null);
+    }
+
+    @Test
+    @WithMockUser(username = "janedoe@mail.com", roles = {"USER"})
+    @SneakyThrows
+    void givenValidRequest_whenGetMyTickets_thenReturnUserTickets() {
+        UserResponse userResponse = UserResponse.fromUser(mockUser);
+        TicketResponse response = TicketResponse.builder()
+                .id(UUID.randomUUID().toString())
+                .code("TCK-002")
+                .title("My Ticket")
+                .status("RESOLVED")
+                .priority("LOW")
+                .createdAt(OffsetDateTime.now())
+                .user(userResponse)
+                .build();
+
+        when(ticketService.getMyTickets(null, null, null, null)).thenReturn(List.of(response));
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/tickets/me")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].title").value(response.getTitle()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$[0].code").value(response.getCode()));
+
+        verify(ticketService, times(1)).getMyTickets(null, null, null, null);
     }
 
     @Test

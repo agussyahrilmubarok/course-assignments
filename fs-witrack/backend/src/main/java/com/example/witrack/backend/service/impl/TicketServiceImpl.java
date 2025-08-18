@@ -6,6 +6,7 @@ import com.example.witrack.backend.domain.User;
 import com.example.witrack.backend.exception.NotFoundException;
 import com.example.witrack.backend.exception.UnauthorizedException;
 import com.example.witrack.backend.model.*;
+import com.example.witrack.backend.repository.TicketCustomRepository;
 import com.example.witrack.backend.repository.TicketReplyRepository;
 import com.example.witrack.backend.repository.TicketRepository;
 import com.example.witrack.backend.repository.UserRepository;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -28,27 +30,87 @@ public class TicketServiceImpl implements TicketService {
 
     private final TicketRepository ticketRepository;
     private final TicketReplyRepository ticketReplyRepository;
+    private final TicketCustomRepository ticketCustomRepository;
     private final CurrentUserDetails currentUserDetails;
     private final UserRepository userRepository;
 
     @Override
-    public List<TicketResponse> getTickets(String search, String status, String priority) {
-        List<Ticket> tickets;
-
-        if (search != null && !search.isEmpty()) {
-            tickets = ticketRepository
-                    .findByCodeIgnoreCaseContainingOrTitleIgnoreCaseContainingOrDescriptionIgnoreCaseContaining(
-                            search, search, search
-                    );
-        } else if (status != null && priority != null) {
-            tickets = ticketRepository.findByStatusAndPriority(status.toUpperCase(), priority.toUpperCase());
-        } else if (status != null) {
-            tickets = ticketRepository.findByStatus(status.toUpperCase());
-        } else if (priority != null) {
-            tickets = ticketRepository.findByPriority(priority.toUpperCase());
-        } else {
-            tickets = ticketRepository.findAll();
+    public List<TicketResponse> getTickets(String keyword, String status, String priority, String date) {
+        Ticket.Status statusEnum = null;
+        if (status != null && !status.isBlank()) {
+            statusEnum = Ticket.Status.valueOf(status.toUpperCase());
         }
+
+        Ticket.Priority priorityEnum = null;
+        if (priority != null && !priority.isBlank()) {
+            priorityEnum = Ticket.Priority.valueOf(priority.toUpperCase());
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime startAt = null;
+        OffsetDateTime endAt = null;
+
+        if ("TODAY".equalsIgnoreCase(date)) {
+            startAt = now.toLocalDate().atStartOfDay().atOffset(now.getOffset());
+            endAt = startAt.plusDays(1).minusNanos(1);
+        } else if ("MONTH".equalsIgnoreCase(date)) {
+            startAt = now.withDayOfMonth(1).toLocalDate().atStartOfDay().atOffset(now.getOffset());
+            endAt = startAt.plusMonths(1).minusNanos(1);
+        } else if ("YEAR".equalsIgnoreCase(date)) {
+            startAt = now.withDayOfYear(1).toLocalDate().atStartOfDay().atOffset(now.getOffset());
+            endAt = startAt.plusYears(1).minusNanos(1);
+        }
+
+        List<Ticket> tickets = ticketCustomRepository.searchTickets(
+                keyword != null ? keyword : "",
+                statusEnum,
+                priorityEnum,
+                startAt,
+                endAt
+        );
+
+        return tickets.stream()
+                .map(TicketResponse::fromTicket)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<TicketResponse> getMyTickets(String keyword, String status, String priority, String date) {
+        User user = getUserById(currentUserDetails.getId());
+
+        Ticket.Status statusEnum = null;
+        if (status != null && !status.isBlank()) {
+            statusEnum = Ticket.Status.valueOf(status.toUpperCase());
+        }
+
+        Ticket.Priority priorityEnum = null;
+        if (priority != null && !priority.isBlank()) {
+            priorityEnum = Ticket.Priority.valueOf(priority.toUpperCase());
+        }
+
+        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime startAt = null;
+        OffsetDateTime endAt = null;
+
+        if ("TODAY".equalsIgnoreCase(date)) {
+            startAt = now.toLocalDate().atStartOfDay().atOffset(now.getOffset());
+            endAt = startAt.plusDays(1).minusNanos(1);
+        } else if ("MONTH".equalsIgnoreCase(date)) {
+            startAt = now.withDayOfMonth(1).toLocalDate().atStartOfDay().atOffset(now.getOffset());
+            endAt = startAt.plusMonths(1).minusNanos(1);
+        } else if ("YEAR".equalsIgnoreCase(date)) {
+            startAt = now.withDayOfYear(1).toLocalDate().atStartOfDay().atOffset(now.getOffset());
+            endAt = startAt.plusYears(1).minusNanos(1);
+        }
+
+        List<Ticket> tickets = ticketCustomRepository.searchTickets(
+                keyword != null ? keyword : "",
+                statusEnum,
+                priorityEnum,
+                startAt,
+                endAt,
+                user.getId()
+        );
 
         return tickets.stream()
                 .map(TicketResponse::fromTicket)
