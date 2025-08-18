@@ -91,7 +91,7 @@ const capitalize = (str) => {
     <div v-if="tickets.length" class="space-y-4">
         <div v-for="ticket in tickets" :key="ticket.code"
             class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <RouterLink :to="{ name: 'app.tickets.create', params: { code: ticket.code } }" class="block p-6">
+            <RouterLink :to="{ name: 'app.tickets.detail', params: { code: ticket.code } }" class="block p-6">
                 <!-- Header Ticket -->
                 <div
                     class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-y-1 sm:gap-y-0 space-x-3">

@@ -7,6 +7,7 @@ import Register from "@/views/auth/Register.vue";
 import AppLayout from "@/layouts/AppLayout.vue";
 import AppDashboard from "@/views/app/AppDashboard.vue";
 import AppTicketCreate from "@/views/app/tickets/AppTicketCreate.vue";
+import AppTicketDetail from "@/views/app/tickets/AppTicketDetail.vue";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import AdminDashboard from "@/views/admin/AdminDashboard.vue";
 import TicketList from "@/views/admin/tickets/TicketList.vue";
@@ -47,6 +48,12 @@ const router = createRouter({
           name: "app.tickets.create",
           component: AppTicketCreate,
           meta: { title: "Create Ticket", requiresAuth: true },
+        },
+        {
+          path: "tickets/:code",
+          name: "app.tickets.detail",
+          component: AppTicketDetail,
+          meta: { title: "Detail Ticket", requiresAuth: true },
         },
       ],
     },
