@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { ArrowLeftIcon, PaperAirplaneIcon } from '@heroicons/vue/24/solid';
-
 import { useTicketStore } from '@/stores/ticket';
 
 const ticketStore = useTicketStore();

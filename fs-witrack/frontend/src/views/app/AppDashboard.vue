@@ -14,6 +14,7 @@ const filters = ref({
     search: '',
     status: '',
     priority: '',
+    date: '',
 });
 
 watch(
@@ -25,7 +26,7 @@ watch(
 );
 
 onMounted(async () => {
-    await fetchMyTickets();
+    await fetchMyTickets(filters.value);
 });
 
 const capitalize = (str) => {

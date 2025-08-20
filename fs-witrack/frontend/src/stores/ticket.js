@@ -56,9 +56,22 @@ export const useTicketStore = defineStore("ticket", {
     async createTicket(payload) {
       this.loading = true;
       try {
-        const response = await axiosWithToken.post("/tickets", payload);
+        const response = await axiosWithToken.post(`/tickets/${code}`, payload);
         toastSuccess(`Ticket code ${response.data.code} has been created`);
         router.push({ name: "app.dashboard" });
+      } catch (error) {
+        this.error = handleError(error);
+        toastError(this.error);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async updateTicketByCode(code, payload) {
+      this.loading = true;
+      try {
+        const response = await axiosWithToken.put(`/tickets/${code}`, payload);
+        toastSuccess(`Ticket code ${response.data.code} has been updated`);
       } catch (error) {
         this.error = handleError(error);
         toastError(this.error);
@@ -70,7 +83,10 @@ export const useTicketStore = defineStore("ticket", {
     async createTicketReply(code, payload) {
       this.loading = true;
       try {
-        const response = await axiosWithToken.post(`/tickets/${code}/reply`, payload);
+        const response = await axiosWithToken.post(
+          `/tickets/${code}/reply`,
+          payload
+        );
         this.success = true;
         return response.data;
       } catch (error) {

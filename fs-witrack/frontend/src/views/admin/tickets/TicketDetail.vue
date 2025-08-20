@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useTicketStore } from '@/stores/ticket';
 
 const ticketStore = useTicketStore();
-const { fetchTicketByCode, createTicketReply } = ticketStore;
+const { fetchTicketByCode, updateTicketByCode, createTicketReply } = ticketStore;
 const { success, error, loading } = storeToRefs(ticketStore);
 const authStore = useAuthStore();
 const { user } = storeToRefs(authStore);
@@ -26,6 +26,28 @@ const fetchTicketDetail = async () => {
     ticket.value = response;
     form.value.status = response.status;
 }
+
+const handleUpdateStatus = async () => {
+    if (!ticket.value.code) return;
+    await updateTicketByCode(ticket.value.code, {
+        title: ticket.value.title,
+        description: ticket.value.description,
+        status: ticket.value.status,
+        priority: ticket.value.priority,
+    });
+    await fetchTicketDetail();
+};
+
+const handleUpdatePriority = async () => {
+    if (!ticket.value.code) return;
+    await updateTicketByCode(ticket.value.code, {
+        title: ticket.value.title,
+        description: ticket.value.description,
+        status: ticket.value.status,
+        priority: ticket.value.priority,
+    });
+    await fetchTicketDetail();
+};
 
 const handleSubmit = async () => {
     error.value = null
@@ -48,7 +70,7 @@ const capitalize = (str) => {
     <div class="min-h-screen bg-gray-50 flex flex-col">
         <!-- Back link -->
         <div class="mb-6">
-            <RouterLink :to="{ name: 'app.dashboard' }"
+            <RouterLink :to="{ name: 'admin.tickets' }"
                 class="inline-flex items-center text-sm text-gray-600 hover:text-gray-800">
                 <ArrowLeftIcon class="w-4 h-4 mr-2" />
                 Back to Ticket List
@@ -64,21 +86,33 @@ const capitalize = (str) => {
                             {{ ticket.title }}
                         </h1>
                         <div class="mt-2 flex items-center space-x-4">
-                            <span class="px-3 py-1 text-xs font-medium rounded-lg" :class="{
-                                'text-blue-700 bg-blue-100': ticket.status?.toLowerCase() === 'open',
-                                'text-yellow-700 bg-yellow-100': ticket.status?.toLowerCase() === 'onprogress',
-                                'text-green-700 bg-green-100': ticket.status?.toLowerCase() === 'resolved',
-                                'text-red-700 bg-red-100': ticket.status?.toLowerCase() === 'rejected',
-                            }">
-                                {{ capitalize(ticket.status) }}
-                            </span>
-                            <span class="px-3 py-1 text-xs font-medium rounded-lg" :class="{
-                                'text-red-700 bg-red-100': ticket.priority?.toLowerCase() === 'high',
-                                'text-yellow-700 bg-yellow-100': ticket.priority?.toLowerCase() === 'medium',
-                                'text-green-700 bg-green-100': ticket.priority?.toLowerCase() === 'low',
-                            }">
-                                {{ capitalize(ticket.priority) }}
-                            </span>
+                            <!-- Status -->
+                            <select v-model="ticket.status" @change="handleUpdateStatus"
+                                class="px-3 py-1 text-xs font-medium rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                :class="{
+                                    'text-blue-700 bg-blue-100': ticket.status?.toLowerCase() === 'open',
+                                    'text-yellow-700 bg-yellow-100': ticket.status?.toLowerCase() === 'onprogress',
+                                    'text-green-700 bg-green-100': ticket.status?.toLowerCase() === 'resolved',
+                                    'text-red-700 bg-red-100': ticket.status?.toLowerCase() === 'rejected',
+                                }">
+                                <option value="OPEN">Open</option>
+                                <option value="ONPROGRESS">On Progress</option>
+                                <option value="RESOLVED">Resolved</option>
+                                <option value="REJECTED">Rejected</option>
+                            </select>
+                            <!-- Priority -->
+                            <select v-model="ticket.priority" @change="handleUpdatePriority"
+                                class="px-3 py-1 text-xs font-medium rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                :class="{
+                                    'text-red-700 bg-red-100': ticket.priority?.toLowerCase() === 'high',
+                                    'text-yellow-700 bg-yellow-100': ticket.priority?.toLowerCase() === 'medium',
+                                    'text-green-700 bg-green-100': ticket.priority?.toLowerCase() === 'low',
+                                }">
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="HIGH">High</option>
+                                <option value="CRITICAL">Critical</option>
+                            </select>
                             <span class="text-sm text-gray-500"> #{{ ticket.code }} </span>
                             <div class="text-sm text-gray-500 flex items-center space-x-1">
                                 <ClockIcon class="w-4 h-4 inline-block" />
@@ -144,7 +178,7 @@ const capitalize = (str) => {
         </div>
 
         <!-- Reply Section -->
-        <div class="p-6 mt-2 rounded-xl border-t border-gray-100 bg-white">
+        <div class="p-6 mt-2 rounded-xl border-t shadow-sm border-gray-100 bg-white">
             <form @submit.prevent="handleSubmit" class="space-y-4">
                 <!-- Content -->
                 <div class="group">
