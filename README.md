@@ -1,7 +1,0 @@
-# Courses Submissions
-
-##
-
-## References
-
-- [Dicoding ]()
