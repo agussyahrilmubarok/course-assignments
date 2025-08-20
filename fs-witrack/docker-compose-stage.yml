@@ -47,6 +47,19 @@ services:
       - witrack_net
     depends_on:
       - mongo
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: on-failure
+    ports:
+      - "8080:8080"  
+    networks:
+      - witrack_net
+    depends_on:
+      - backend
 
 volumes:
   mongo_data:

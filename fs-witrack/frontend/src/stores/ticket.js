@@ -56,7 +56,7 @@ export const useTicketStore = defineStore("ticket", {
     async createTicket(payload) {
       this.loading = true;
       try {
-        const response = await axiosWithToken.post(`/tickets/${code}`, payload);
+        const response = await axiosWithToken.post('/tickets', payload);
         toastSuccess(`Ticket code ${response.data.code} has been created`);
         router.push({ name: "app.dashboard" });
       } catch (error) {
