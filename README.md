@@ -1,5 +1,0 @@
-# 🌱 Course Assignments
-
-## References
-
-- [Dicoding ]()
