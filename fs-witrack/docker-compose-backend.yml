@@ -11,7 +11,7 @@ services:
     volumes:
       - mongo_data:/data/db
     networks:
-      - infra_net
+      - backend_net
 
   mongo-express:
     image: mongo-express:1.0.2
@@ -26,7 +26,25 @@ services:
     ports:
       - "5050:8081"
     networks:
-      - infra_net
+      - backend_net
+    depends_on:
+      - mongo
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: on-failure
+    environment:
+      MONGODB_URI: mongodb://root:secret@mongo:27017/witickets?authSource=admin
+      JWT_SECRET: YXV0aGVudGljYXRlVGhpczM2Qnl0ZXNLZXkYXV0aGVudGljYXRlVGhpczM2Qnl0ZXNLZXk
+      JWT_EXPIRY_IN: 86400000
+      CLIENTS_ALLOWED: http://localhost:8080
+    ports:
+      - "8081:8081"
+    networks:
+      - backend_net
     depends_on:
       - mongo
 
@@ -34,5 +52,5 @@ volumes:
   mongo_data:
 
 networks:
-  infra_net:
+  backend_net:
     driver: bridge

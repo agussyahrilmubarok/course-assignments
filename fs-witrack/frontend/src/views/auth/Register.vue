@@ -3,7 +3,6 @@ import { ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { RouterLink } from "vue-router";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/vue/24/outline";
-
 import { useAuthStore } from '@/stores/auth';
 
 const authStore = useAuthStore();

@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from "vue-router";
-
 import { useAuthStore } from "@/stores/auth";
 import AuthLayout from "@/layouts/AuthLayout.vue";
 import Login from "@/views/auth/Login.vue";
@@ -11,6 +10,7 @@ import AppTicketDetail from "@/views/app/tickets/AppTicketDetail.vue";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import AdminDashboard from "@/views/admin/AdminDashboard.vue";
 import TicketList from "@/views/admin/tickets/TicketList.vue";
+import TicketDetail from "@/views/admin/tickets/TicketDetail.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -75,6 +75,12 @@ const router = createRouter({
             requiresAuth: true,
             title: "Tickets",
           },
+        },
+        {
+          path: "tickets/:code",
+          name: "admin.tickets.detail",
+          component: TicketDetail,
+          meta: { title: "Detail Ticket", requiresAuth: true },
         },
       ],
     },

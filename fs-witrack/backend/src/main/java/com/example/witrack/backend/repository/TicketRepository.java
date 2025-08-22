@@ -4,6 +4,7 @@ import com.example.witrack.backend.domain.Ticket;
 import com.example.witrack.backend.domain.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +22,8 @@ public interface TicketRepository extends MongoRepository<Ticket, String> {
     );
 
     Optional<Ticket> findByCode(String code);
+
+    List<Ticket> findByCreatedAtBetween(OffsetDateTime start, OffsetDateTime end);
 
     Ticket findFirstByUser(User user);
 
