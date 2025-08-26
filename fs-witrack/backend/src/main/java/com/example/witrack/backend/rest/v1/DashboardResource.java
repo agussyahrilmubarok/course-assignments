@@ -2,7 +2,6 @@ package com.example.witrack.backend.rest.v1;
 
 import com.example.witrack.backend.model.DashboardResponse;
 import com.example.witrack.backend.service.DashboardService;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

@@ -37,7 +37,7 @@ error:
       TicketCodeUnique: TICKET_CODE_UNIQUE
 
 springdoc:
-  pathsToMatch: /, /api/*
+  paths-to-match: /api/**
 
 clients:
   cors:

@@ -1,20 +1,18 @@
 package com.example.witrack.backend.service.impl;
 
+import com.example.witrack.backend.domain.Ticket;
+import com.example.witrack.backend.model.DashboardResponse;
+import com.example.witrack.backend.repository.TicketRepository;
+import com.example.witrack.backend.service.DashboardService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
-import com.example.witrack.backend.domain.Ticket;
-import com.example.witrack.backend.model.DashboardResponse;
-import com.example.witrack.backend.repository.TicketRepository;
-import com.example.witrack.backend.service.DashboardService;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
 @Slf4j
@@ -52,11 +50,11 @@ public class DashboardServiceImpl implements DashboardService {
                         Collectors.counting()));
 
         return DashboardResponse.builder()
-            .totalTickets(totalTickets)
-            .activeTickets(activeTickets)
-            .resolvedTickets(resolvedTickets)
-            .avgResolutionTime(Math.round(avgResolutionTime * 10.0) / 10.0) // 1 decimal
-            .statusDistribution(statusDistribution)
-            .build();
+                .totalTickets(totalTickets)
+                .activeTickets(activeTickets)
+                .resolvedTickets(resolvedTickets)
+                .avgResolutionTime(Math.round(avgResolutionTime * 10.0) / 10.0) // 1 decimal
+                .statusDistribution(statusDistribution)
+                .build();
     }
 }

@@ -48,6 +48,11 @@ public class SecurityConfig {
                 }) // Can be enabled if needed
                 .csrf(csrf -> csrf.disable()) // MUST be disabled for a Stateless API
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .requestMatchers("/api/v1/auth/sign-up").permitAll()
                         .requestMatchers("/api/v1/auth/sign-in").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/tickets/**").hasRole("ADMIN")
