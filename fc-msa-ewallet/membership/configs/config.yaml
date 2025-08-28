@@ -1,0 +1,15 @@
+server:
+  http:
+    addr: 0.0.0.0:8081
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:7071
+    timeout: 1s
+data:
+  database:
+    driver: mysql
+    source: membership_user:membership_pass@tcp(mysql-1:3306)/membership_db?parseTime=True&loc=Local
+  redis:
+    addr: 127.0.0.1:6379
+    read_timeout: 0.2s
+    write_timeout: 0.2s
