@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:17.5
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my-secret-pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - promotion_net
+  
+  redis:
+    image: redis:8.0.3
+    container_name: redis
+    restart: on-failure
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379" 
+    volumes:
+      - ./scripts/redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis_data:/data
+    networks:
+      - promotion_net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  promotion_net:
