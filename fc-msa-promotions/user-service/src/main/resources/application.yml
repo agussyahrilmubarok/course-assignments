@@ -1,5 +1,6 @@
 server:
   port: ${SERVER_PORT:8081}
+  shutdown: graceful
 
 spring:
   application:
@@ -22,9 +23,6 @@ spring:
             non_contextual_creation: true
         id:
           new_generator_mappings: true
-  redis:
-    host: ${SPRING_REDIS_HOST:localhost}
-    port: ${SPRING_REDIS_PORT:6379}
   eureka:
     client:
       service-url:
@@ -41,3 +39,8 @@ management:
     web:
       exposure:
         include: health,metrics
+
+jsonwebtoken:
+  secret:
+    key: ${JWT_SECRET_KEY:promotionTestSecretKey2025PromotionTestSecretKey2025}
+  expires: ${JWT_EXPIRES:3600000} # default 1 hours (ms)
