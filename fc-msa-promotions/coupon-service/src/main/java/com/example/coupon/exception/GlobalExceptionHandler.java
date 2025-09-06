@@ -1,4 +1,4 @@
-package com.example.user.exception;
+package com.example.coupon.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,22 +17,40 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(DuplicateUserException.class)
-    public ResponseEntity<Object> handleDuplicateUserException(DuplicateUserException ex) {
-        log.error("Duplicate user exception", ex);
+    @ExceptionHandler(CouponAlreadyUsedException.class)
+    public ResponseEntity<Object> handleCouponAlreadyUsedException(CouponAlreadyUsedException ex) {
+        log.error("Coupon already used exception", ex);
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<Object> handleUserNotFoundException(UserNotFoundException ex) {
-        log.error("User not found exception", ex);
+    @ExceptionHandler(CouponExpiredException.class)
+    public ResponseEntity<Object> handleCouponExpiredException(CouponExpiredException ex) {
+        log.error("Coupon expired exception", ex);
+        return buildResponse(HttpStatus.GONE, ex.getMessage());
+    }
+
+    @ExceptionHandler(CouponIssueException.class)
+    public ResponseEntity<Object> handleCouponIssueException(CouponIssueException ex) {
+        log.error("Coupon issue exception", ex);
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(CouponNotFoundException.class)
+    public ResponseEntity<Object> handleCouponNotFoundException(CouponNotFoundException ex) {
+        log.error("Coupon not found exception", ex);
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler(UnauthorizedAccessException.class)
-    public ResponseEntity<Object> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
-        log.error("Unauthorized access exception", ex);
-        return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    @ExceptionHandler(CouponNotUsedException.class)
+    public ResponseEntity<Object> handleCouponNotUsedException(CouponNotUsedException ex) {
+        log.error("Coupon not used exception", ex);
+        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    @ExceptionHandler(CouponPolicyNotFoundException.class)
+    public ResponseEntity<Object> handleCouponPolicyNotFoundException(CouponPolicyNotFoundException ex) {
+        log.error("Coupon policy not found exception", ex);
+        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -53,7 +71,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex) {
-        log.error("Unexpected error occurred", ex); // stacktrace akan tercetak di terminal
+        log.error("Unexpected error occurred", ex); // <--- stacktrace muncul di log
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error occurred");
     }
 
