@@ -4,7 +4,7 @@ server:
 
 spring:
   application:
-    name: ${SERVER_NAME:user-service}
+    name: ${SERVER_NAME:USER-SERVICE}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/promotions_userdb}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}

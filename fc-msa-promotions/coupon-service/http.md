@@ -48,8 +48,7 @@ curl -X POST http://localhost:8082/api/coupons/issue \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: 10001" \
   -d '{
-    "couponPolicyId": "99d80d8d-67e9-46b3-b700-e42c2ada07dd",
-    "orderId": "ORDER-1X"
+    "couponPolicyId": "ID"
   }' \
   -i
 ```
@@ -92,7 +91,7 @@ curl -X GET http://localhost:8082/api/coupons \
 
 # Get Coupon
 
-`GET /api/coupons/{ID`
+`GET /api/coupons/{ID}`
 
 ```bash
 curl -X GET http://localhost:8082/api/coupons/ID \
