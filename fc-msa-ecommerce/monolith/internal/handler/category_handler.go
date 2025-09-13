@@ -88,6 +88,7 @@ func (h *CategoryHandler) GetByID(c *gin.Context) {
 // @Description Create a new product category (admin only)
 // @Tags categories
 // @Accept json
+// @Security BearerAuth
 // @Produce json
 // @Param category body model.CreateCategoryRequest true "Category payload"
 // @Success 201 {object} model.SuccessResponse
@@ -121,6 +122,7 @@ func (h *CategoryHandler) Create(c *gin.Context) {
 // @Description Update an existing product category (admin only)
 // @Tags categories
 // @Accept json
+// @Security BearerAuth
 // @Produce json
 // @Param id path int true "Category ID"
 // @Param category body model.UpdateCategoryRequest true "Update Category payload"
@@ -171,6 +173,7 @@ func (h *CategoryHandler) Update(c *gin.Context) {
 // @Summary Delete a category
 // @Description Delete a product category (admin only)
 // @Tags categories
+// @Security BearerAuth
 // @Produce json
 // @Param id path int true "Category ID"
 // @Success 204 "No Content"

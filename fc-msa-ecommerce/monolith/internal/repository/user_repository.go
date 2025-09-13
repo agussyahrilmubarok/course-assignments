@@ -15,6 +15,7 @@ type IUserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*domain.User, error)
 	Save(ctx context.Context, user *domain.User) (*domain.User, error)
 	DeleteByID(ctx context.Context, id uint) error
+	ExistsByEmail(ctx context.Context, email string) bool
 }
 
 type userRepository struct {
@@ -70,4 +71,15 @@ func (r *userRepository) DeleteByID(ctx context.Context, id uint) error {
 		return err
 	}
 	return nil
+}
+
+func (r *userRepository) ExistsByEmail(ctx context.Context, email string) bool {
+	var count int64
+	if err := r.DB.WithContext(ctx).Model(&domain.Tag{}).
+		Where("email = ?", email).
+		Count(&count).Error; err != nil {
+		r.Logger.Error().Err(err).Str("email", email).Msg("failed to check tag existence by email")
+		return false
+	}
+	return count > 0
 }

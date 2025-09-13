@@ -4,6 +4,7 @@ import (
 	"context"
 	"ecommerce/internal/domain"
 	"ecommerce/internal/handler"
+	"ecommerce/internal/middleware"
 	"ecommerce/internal/repository"
 	"ecommerce/internal/service"
 	"net/http"
@@ -29,6 +30,10 @@ import (
 // @host localhost:8080
 // @BasePath /
 // @schemes http
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	// Setup Zerolog
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -61,9 +66,19 @@ func main() {
 	log.Info().Msg("database connected and migrated successfully")
 
 	// TODO: Register dependency injection
+	userRepository := repository.NewUserRepository(db, log.Logger)
 	categoryRepository := repository.NewCategoryRepository(db, log.Logger)
+	tagRepository := repository.NewTagRepository(db, log.Logger)
+
+	authService := service.NewAuthService(userRepository, log.Logger)
+	userService := service.NewUserService(userRepository, log.Logger)
 	categoryService := service.NewCategoryService(categoryRepository, log.Logger)
+	tagService := service.NewTagService(tagRepository, log.Logger)
+
+	authHandler := handler.NewAuthHandler(authService, log.Logger)
+	userHandler := handler.NewUserHandler(userService, log.Logger)
 	categoryHandler := handler.NewCategoryHandler(categoryService, log.Logger)
+	tagHandler := handler.NewTagHandler(tagService, log.Logger)
 
 	// Setup Gin
 	router := gin.Default()
@@ -77,13 +92,43 @@ func main() {
 	})
 
 	// TODO: Register API routes here (product, user, order, etc.)
+	authRoute := router.Group("/api/auth")
+	{
+		authRoute.POST("/register", authHandler.Register)
+		authRoute.POST("/login", authHandler.Login)
+		authRoute.POST("/logout", middleware.AuthRequired(), authHandler.Logout)
+	}
+
+	userRoute := router.Group("/api/users", middleware.AuthRequired())
+	{
+		userRoute.GET("/me", userHandler.GetCurrentUser)
+		userRoute.PUT("/me", userHandler.UpdateCurrentUser)
+		userRoute.GET("", middleware.AdminOnly(), userHandler.GetAll)
+		userRoute.DELETE("/:id", middleware.AdminOnly(), userHandler.Delete)
+	}
+
 	categoryRoute := router.Group("/api/categories")
 	{
 		categoryRoute.GET("", categoryHandler.GetAll)
 		categoryRoute.GET("/:id", categoryHandler.GetByID)
+	}
+	categoryRoute.Use(middleware.AuthRequired(), middleware.AdminOnly())
+	{
 		categoryRoute.POST("", categoryHandler.Create)
 		categoryRoute.PUT("/:id", categoryHandler.Update)
 		categoryRoute.DELETE("/:id", categoryHandler.Delete)
+	}
+
+	tagRoute := router.Group("/api/tags")
+	{
+		tagRoute.GET("", tagHandler.GetAll)
+		tagRoute.GET("/:id", tagHandler.GetByID)
+	}
+	tagRoute.Use(middleware.AuthRequired(), middleware.AdminOnly())
+	{
+		tagRoute.POST("", tagHandler.Create)
+		tagRoute.PUT("/:id", tagHandler.Update)
+		tagRoute.DELETE("/:id", tagHandler.Delete)
 	}
 
 	// Start server with graceful shutdown

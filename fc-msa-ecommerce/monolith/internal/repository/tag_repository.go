@@ -14,6 +14,7 @@ type ITagRepository interface {
 	FindByID(ctx context.Context, id uint) (*domain.Tag, error)
 	Save(ctx context.Context, Tag *domain.Tag) (*domain.Tag, error)
 	DeleteByID(ctx context.Context, id uint) error
+	ExistsByName(ctx context.Context, name string) bool
 }
 
 type tagRepository struct {
@@ -64,4 +65,15 @@ func (r *tagRepository) DeleteByID(ctx context.Context, id uint) error {
 		return err
 	}
 	return nil
+}
+
+func (r *tagRepository) ExistsByName(ctx context.Context, name string) bool {
+	var count int64
+	if err := r.DB.WithContext(ctx).Model(&domain.Tag{}).
+		Where("name = ?", name).
+		Count(&count).Error; err != nil {
+		r.Logger.Error().Err(err).Str("name", name).Msg("failed to check tag existence by name")
+		return false
+	}
+	return count > 0
 }
