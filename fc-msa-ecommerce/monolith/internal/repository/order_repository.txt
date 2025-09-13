@@ -1,0 +1,51 @@
+func (s *orderService) PlaceOrder(ctx context.Context, userID uint, addressID uint) (*domain.Order, error) {
+	// 1. Ambil cart user
+	cart, err := s.cartRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cart: %w", err)
+	}
+	if len(cart.Items) == 0 {
+		return nil, errors.New("cart is empty")
+	}
+
+	// 2. Hitung total
+	var totalAmount float64
+	orderItems := make([]domain.OrderItem, 0, len(cart.Items))
+
+	for _, item := range cart.Items {
+		price := item.Product.Price
+		amount := price * float64(item.Quantity)
+		totalAmount += amount
+
+		orderItem := domain.OrderItem{
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+			Price:     price, // snapshot price saat ini
+		}
+		orderItems = append(orderItems, orderItem)
+	}
+
+	// 3. Buat order
+	order := &domain.Order{
+		UserID:      userID,
+		AddressID:   addressID,
+		TotalAmount: totalAmount,
+		Status:      "pending",
+		Items:       orderItems,
+	}
+
+	// 4. Simpan order
+	savedOrder, err := s.orderRepo.Save(ctx, order)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save order: %w", err)
+	}
+
+	// 5. Hapus cart setelah order sukses
+	err = s.cartRepo.ClearCartItems(ctx, cart.ID)
+	if err != nil {
+		// NOTE: order tetap berhasil meskipun cart gagal di-clear
+		s.logger.Warn().Err(err).Msg("order placed, but failed to clear cart")
+	}
+
+	return savedOrder, nil
+}
