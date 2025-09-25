@@ -1,0 +1,53 @@
+{
+  "name": "finly-js",
+  "version": "3.0.0",
+  "description": "Invoicing Web Application",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "seeder": "node src/seeder.js",
+    "css": "postcss public/styles/tailwind.css -o public/styles/style.css",
+    "devcss": "postcss public/styles/tailwind.css -o public/styles/style.css -w",
+    "format": "prettier --write 'src/**/*.{js,ts,json}'",
+    "pm2:start": "pm2-runtime start src/ecosystem.config.js",
+    "pm2:log": "pm2 logs",
+    "pm2:stop": "pm2 stop src/ecosystem.config.js"
+  },
+  "keywords": [
+    "Example",
+    "JavaScript",
+    "Express",
+    "EJS",
+    "MongoDB"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.4",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "connect-flash": "^0.1.1",
+    "daisyui": "^5.0.50",
+    "dotenv": "^17.2.1",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.2.1",
+    "mongoose": "^8.18.0",
+    "morgan": "^1.10.1",
+    "pm2": "^6.0.8",
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.12",
+    "autoprefixer": "^10.4.21",
+    "nodemon": "^3.1.10",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "prettier": "^3.6.2",
+    "tailwindcss": "^4.1.12"
+  }
+}
