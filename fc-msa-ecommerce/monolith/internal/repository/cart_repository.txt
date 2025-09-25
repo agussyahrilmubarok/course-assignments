@@ -1,0 +1,45 @@
+func (s *cartService) AddItemToCart(ctx context.Context, userID, productID uint, quantity int) error {
+	// 1. Cek apakah cart user sudah ada
+	cart, err := s.cartRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		// Kalau belum ada cart → buat cart baru
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			cart = &domain.Cart{
+				UserID: userID,
+				Items:  []domain.CartItem{},
+			}
+			cart, err = s.cartRepo.Save(ctx, cart)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+
+	// 2. Cek apakah produk sudah ada di cart
+	var existingItem *domain.CartItem
+	for i, item := range cart.Items {
+		if item.ProductID == productID {
+			existingItem = &cart.Items[i]
+			break
+		}
+	}
+
+	if existingItem != nil {
+		// 3a. Produk sudah ada → update quantity
+		existingItem.Quantity += quantity
+	} else {
+		// 3b. Produk belum ada → tambahkan item baru
+		newItem := domain.CartItem{
+			CartID:    cart.ID,
+			ProductID: productID,
+			Quantity:  quantity,
+		}
+		cart.Items = append(cart.Items, newItem)
+	}
+
+	// 4. Simpan perubahan
+	_, err = s.cartRepo.Save(ctx, cart)
+	return err
+}

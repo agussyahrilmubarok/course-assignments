@@ -1,0 +1,12 @@
+{
+    "folders": [
+        {
+            "name": "monolith",
+            "path": "./monolith"
+        },
+        {
+            "name": "project",
+            "path": "."
+        }
+    ]
+}
