@@ -1,0 +1,629 @@
+{
+	"info": {
+		"_postman_id": "5ebdf26b-5f2f-41fe-b5c4-670b2ce8c06f",
+		"name": "fc-msa-promotions",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "38650050",
+		"_collection_link": "https://tech-research.postman.co/workspace/TECH-REASEARCH~75e7d750-113a-4f1a-9c2a-d03dff8db9f3/collection/38650050-5ebdf26b-5f2f-41fe-b5c4-670b2ce8c06f?action=share&source=collection_link&creator=38650050"
+	},
+	"item": [
+		{
+			"name": "AUTH",
+			"item": [
+				{
+					"name": "SIGN_UP_JOHN",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"johndoe@test.com\",\n    \"password\": \"P@ssw0rd!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/auth/sign-up",
+							"host": [
+								"{{BASE_URL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"sign-up"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "SIGN_UP_JOHN",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"John Doe\",\n    \"email\": \"johndoe@test.com\",\n    \"password\": \"P@ssw0rd!\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/v1/auth/sign-up",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"sign-up"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "",
+							"header": [
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-RateLimit-Remaining",
+									"value": "19"
+								},
+								{
+									"key": "X-RateLimit-Requested-Tokens",
+									"value": "1"
+								},
+								{
+									"key": "X-RateLimit-Burst-Capacity",
+									"value": "20"
+								},
+								{
+									"key": "X-RateLimit-Replenish-Rate",
+									"value": "10"
+								},
+								{
+									"key": "Content-Length",
+									"value": "0"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 06 Sep 2025 14:09:39 GMT"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				},
+				{
+					"name": "SIGN_IN_JOHN",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let response;",
+									"response = pm.response.json();",
+									"",
+									"pm.test(\"Login should return 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response should contain token\", function () {",
+									"    pm.expect(response).to.have.property(\"token\");",
+									"    pm.collectionVariables.set(\"authTokenJohn\", response.token);",
+									"});",
+									"",
+									"pm.test(\"Response should contain user.id\", function () {",
+									"    pm.expect(response).to.have.property(\"user\");",
+									"    pm.expect(response.user).to.have.property(\"id\");",
+									"    pm.collectionVariables.set(\"userIdJohn\", response.user.id);",
+									"});",
+									"",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"johndoe@test.com\",\n    \"password\": \"P@ssw0rd!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/auth/sign-in",
+							"host": [
+								"{{BASE_URL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"sign-in"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "SIGN_IN_JOHN",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\": \"johndoe@test.com\",\n    \"password\": \"P@ssw0rd!\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/v1/auth/sign-in",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"sign-in"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "",
+							"header": [
+								{
+									"key": "transfer-encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-RateLimit-Remaining",
+									"value": "19"
+								},
+								{
+									"key": "X-RateLimit-Requested-Tokens",
+									"value": "1"
+								},
+								{
+									"key": "X-RateLimit-Burst-Capacity",
+									"value": "20"
+								},
+								{
+									"key": "X-RateLimit-Replenish-Rate",
+									"value": "10"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 06 Sep 2025 14:17:03 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"token\": \"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJKT0hORE9FQFRFU1QuQ09NIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NTcxNjgyMjMsImV4cCI6MTc1NzE3MTgyM30.t2pHZVtBKaC18GUuGr3_khYzyu_BuOTqJvgDY_6Vjbyi58Z_f9S7pIm8FwPR-ubZZipmCtAgFveDO0z2TclYOQ\",\n    \"user\": {\n        \"id\": \"c91a4cb1-79a3-4527-8f3e-54073160f7fc\",\n        \"name\": \"JOHN DOE\",\n        \"email\": \"JOHNDOE@TEST.COM\",\n        \"createdAt\": \"2025-09-06T21:09:39.436551\",\n        \"updatedAt\": \"2025-09-06T21:09:39.436551\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "VALIDATE_TOKEN_JOHN",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let response;",
+									"response = pm.response.json();",
+									"",
+									"pm.test(\"Login should return 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response should contain user.id\", function () {",
+									"    pm.expect(response).to.have.property(\"user\");",
+									"    pm.expect(response.user).to.have.property(\"id\");",
+									"});",
+									"",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{authTokenJohn}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/auth/validate-token",
+							"host": [
+								"{{BASE_URL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"validate-token"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "VALIDATE_TOKEN_JOHN",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"token\": \"{{authTokenJohn}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/v1/auth/validate-token",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"v1",
+										"auth",
+										"validate-token"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": null,
+							"header": [
+								{
+									"key": "transfer-encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-RateLimit-Remaining",
+									"value": "19"
+								},
+								{
+									"key": "X-RateLimit-Requested-Tokens",
+									"value": "1"
+								},
+								{
+									"key": "X-RateLimit-Burst-Capacity",
+									"value": "20"
+								},
+								{
+									"key": "X-RateLimit-Replenish-Rate",
+									"value": "10"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 06 Sep 2025 14:18:42 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"token\": \"eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJKT0hORE9FQFRFU1QuQ09NIiwicm9sZSI6IlVTRVIiLCJpYXQiOjE3NTcxNjgyMjMsImV4cCI6MTc1NzE3MTgyM30.t2pHZVtBKaC18GUuGr3_khYzyu_BuOTqJvgDY_6Vjbyi58Z_f9S7pIm8FwPR-ubZZipmCtAgFveDO0z2TclYOQ\",\n    \"user\": {\n        \"id\": \"c91a4cb1-79a3-4527-8f3e-54073160f7fc\",\n        \"name\": \"JOHN DOE\",\n        \"email\": \"JOHNDOE@TEST.COM\",\n        \"createdAt\": \"2025-09-06T21:09:39.436551\",\n        \"updatedAt\": \"2025-09-06T21:09:39.436551\"\n    }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "USER",
+			"item": [
+				{
+					"name": "GET_JOHN_FAILED",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/api/v1/users/me",
+							"host": [
+								"{{BASE_URL}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "COUPON",
+			"item": [
+				{
+					"name": "CREATE_COUPON_POLICY",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"let response;",
+									"response = pm.response.json();",
+									"",
+									"pm.test(\"Response should contain coupon policy id\", function () {",
+									"    pm.expect(response).to.have.property(\"id\");",
+									"    pm.collectionVariables.set(\"couponPolicyId\", response.id);",
+									"});",
+									"",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authTokenJohn}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New Coupon\",\n    \"description\": \"Get 10% off for all items\",\n    \"discountType\": \"PERCENTAGE\",\n    \"discountValue\": 10,\n    \"minimumOrderAmount\": 50000,\n    \"maximumDiscountAmount\": 20000,\n    \"totalQuantity\": 100,\n    \"startTime\": \"2025-01-01T00:00:00\",\n    \"endTime\": \"2025-12-31T23:59:59\"\n  }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{BASE_URL}}/api/couponPolicies",
+							"host": [
+								"{{BASE_URL}}"
+							],
+							"path": [
+								"api",
+								"couponPolicies"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "CREATE_COUPON_POLICY",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"New Coupon\",\n    \"description\": \"Get 10% off for all items\",\n    \"discountType\": \"PERCENTAGE\",\n    \"discountValue\": 10,\n    \"minimumOrderAmount\": 50000,\n    \"maximumDiscountAmount\": 20000,\n    \"totalQuantity\": 100,\n    \"startTime\": \"2025-01-01T00:00:00\",\n    \"endTime\": \"2025-12-31T23:59:59\"\n  }",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{BASE_URL}}/api/couponPolicies",
+									"host": [
+										"{{BASE_URL}}"
+									],
+									"path": [
+										"api",
+										"couponPolicies"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "",
+							"header": [
+								{
+									"key": "transfer-encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Vary",
+									"value": "Origin"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Method"
+								},
+								{
+									"key": "Vary",
+									"value": "Access-Control-Request-Headers"
+								},
+								{
+									"key": "X-RateLimit-Remaining",
+									"value": "19"
+								},
+								{
+									"key": "X-RateLimit-Requested-Tokens",
+									"value": "1"
+								},
+								{
+									"key": "X-RateLimit-Burst-Capacity",
+									"value": "20"
+								},
+								{
+									"key": "X-RateLimit-Replenish-Rate",
+									"value": "10"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Date",
+									"value": "Sat, 06 Sep 2025 14:47:32 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": \"1005e8a8-8edb-4e71-927d-961c9a9444b6\",\n    \"name\": \"New Coupon\",\n    \"description\": \"Get 10% off for all items\",\n    \"discountType\": \"PERCENTAGE\",\n    \"discountValue\": 10,\n    \"minimumOrderAmount\": 50000,\n    \"maximumDiscountAmount\": 20000,\n    \"totalQuantity\": 100,\n    \"issuedQuantity\": 0,\n    \"startTime\": \"2025-01-01T00:00:00\",\n    \"endTime\": \"2025-12-31T23:59:59\",\n    \"createdAt\": \"2025-09-06T21:47:32.226149928\",\n    \"updatedAt\": \"2025-09-06T21:47:32.226149928\"\n}"
+						}
+					]
+				},
+				{
+					"name": "GET_ALL_COUPONS",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authTokenJohn}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{BASE_URL}}/api/coupons",
+							"host": [
+								"{{BASE_URL}}"
+							],
+							"path": [
+								"api",
+								"coupons"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "BASE_URL",
+			"value": "http://localhost:8080",
+			"description": {
+				"content": "",
+				"type": "text/plain"
+			}
+		},
+		{
+			"key": "authTokenJohn",
+			"value": ""
+		},
+		{
+			"key": "userIdJohn",
+			"value": ""
+		},
+		{
+			"key": "couponPolicyId",
+			"value": ""
+		},
+		{
+			"key": "couponId1",
+			"value": ""
+		},
+		{
+			"key": "coupon2Id",
+			"value": ""
+		},
+		{
+			"key": "couponId2",
+			"value": ""
+		}
+	]
+}
