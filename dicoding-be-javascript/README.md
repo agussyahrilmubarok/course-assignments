@@ -3,7 +3,7 @@
 ## Roadmap
 
 1. Learning the Basics of Cloud and Gen AI on AWS
-2. 
+2. Learning the Basics of JavaScript
 
 ## References
 
