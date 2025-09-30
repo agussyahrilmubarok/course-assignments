@@ -1,0 +1,20 @@
+# Starting App
+
+## Application
+
+- ORDER `:8080` as PRODUCER
+- PAYMENT `:8081` as CONSUMER
+
+## Run Kafka in docker
+
+```bash
+# Move to infra folder
+cd infra
+
+# Start docker compose
+docker compose up
+
+# Stop docker compose
+docker compose down
+docker volume prune -a
+```

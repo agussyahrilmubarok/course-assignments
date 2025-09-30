@@ -1,0 +1,369 @@
+# Handling Kafka Messages with Spring Boot
+
+## Introduction
+
+Apache Kafka is a **distributed event streaming platform** designed for high-throughput, fault-tolerant, and scalable messaging.
+It is commonly used for:
+
+* **Event-driven architecture** (e.g., order events, user activity events).
+* **Real-time data pipelines** (streaming from applications to databases, analytics tools, or other services).
+* **Decoupling microservices** through asynchronous communication.
+
+Kafka organizes data into **topics**. Each topic is partitioned and replicated across brokers, enabling parallelism and fault tolerance.
+
+In this article, we will focus on how to **produce and consume messages** using **Spring Boot**.
+
+---
+
+## Dependency
+
+Add the following dependency in your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>org.springframework.kafka</groupId>
+    <artifactId>spring-kafka</artifactId>
+</dependency>
+```
+
+---
+
+## Producer Server
+
+### Environment Order Configuration (`application.yml`)
+
+```yml
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092, localhost:9094, localhost:9096
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    topic:
+      order:
+        events: "example.order.events"
+```
+
+### Kafka Configuration
+
+```java
+@Configuration
+public class ProducerConfig {
+
+    @Value("${spring.kafka.topic.order.events}")
+    private String orderEventsTopic;
+
+    @Bean
+    public NewTopic orderTopic() {
+        return TopicBuilder.name(orderEventsTopic)
+                .partitions(3)
+                .replicas(3)
+                .build();
+    }
+}
+```
+
+### Kafka Producer Message Model
+
+```java
+@Getter
+@Setter
+@Builder
+public class OrderEvent {
+    private UUID eventId;              // unique per event (important for idempotency)
+    private OrderEventType eventType;  // CREATED, CANCELLED
+    private OffsetDateTime eventAt;    // when the event was published
+    private OrderPayload order;        // order details related to this event
+
+    public enum OrderEventType {
+        CREATED,
+        PAID,
+        PROCESSING,
+        SHIPPED,
+        DELIVERED,
+        CANCELLED
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class OrderPayload {
+        private String orderId;
+        private String customerId;
+        private BigDecimal totalAmount;
+        private OffsetDateTime orderAt;
+
+        public static OrderPayload from(Order order) {
+            return OrderPayload.builder()
+                    .orderId(order.getId().toString())
+                    .customerId(order.getCustomerId())
+                    .totalAmount(order.getTotalAmount())
+                    .orderAt(order.getOrderAt())
+                    .build();
+        }
+    }
+}
+```
+
+### Kafka Producer
+
+```java
+@Component
+@Slf4j
+public class OrderEventProducer {
+
+    @Value("${spring.kafka.topic.order.events}")
+    private String topic;
+
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+
+    public OrderEventProducer(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Serialize OrderEvent and send it asynchronously to Kafka.
+     */
+    public CompletableFuture<SendResult<String, String>> sendEvent(OrderEvent event) throws JsonProcessingException {
+        String key = event.getOrder().getOrderId(); // partition key based on orderId
+        String value = objectMapper.writeValueAsString(event);
+
+        ProducerRecord<String, String> record = buildRecord(key, value, topic);
+
+        CompletableFuture<SendResult<String, String>> future = kafkaTemplate.send(record);
+
+        future.whenComplete((result, ex) -> {
+            if (ex != null) {
+                handleFailure(key, value, ex);
+            } else {
+                handleSuccess(key, value, result);
+            }
+        });
+
+        return future;
+    }
+
+    /**
+     * Build Kafka ProducerRecord with topic, key, and value.
+     */
+    private ProducerRecord<String, String> buildRecord(String key, String value, String topic) {
+        List<Header> headers = List.of(
+                new RecordHeader("event-type", "OrderEvent".getBytes(StandardCharsets.UTF_8)),
+                new RecordHeader("event-source", "order-service".getBytes(StandardCharsets.UTF_8)),
+                new RecordHeader("correlation-id", UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)),
+                new RecordHeader("trace-id", UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)),
+                new RecordHeader("timestamp", String.valueOf(System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8)),
+                new RecordHeader("content-type", "application/json".getBytes(StandardCharsets.UTF_8)),
+                new RecordHeader("initiator", "system-user".getBytes(StandardCharsets.UTF_8))
+        );
+
+        return new ProducerRecord<>(topic, null, key, value, headers);
+    }
+
+    /**
+     * Handle failure case when sending message to Kafka fails.
+     */
+    private void handleFailure(String key, String value, Throwable throwable) {
+        log.error("Failed to send OrderEvent. key={}, value={}, error={}", key, value, throwable.getMessage(), throwable);
+    }
+
+    /**
+     * Handle success case when Kafka acknowledges the message.
+     */
+    private void handleSuccess(String key, String value, SendResult<String, String> sendResult) {
+        log.info("Successfully sent OrderEvent. key={}, value={}, topic={}, partition={}, offset={}",
+                key,
+                value,
+                sendResult.getRecordMetadata().topic(),
+                sendResult.getRecordMetadata().partition(),
+                sendResult.getRecordMetadata().offset()
+        );
+    }
+}
+```
+
+---
+
+## Consumer Server
+
+### Environment Payment Configuration (`application.yml`)
+
+```yml
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092, localhost:9094, localhost:9096
+    consumer:
+      group-id: payment-consumer-group
+      auto-offset-reset: earliest
+    listener:
+      concurrency: 3
+      ack-mode: record
+      batch-listener: false
+    topic:
+      order:
+        events: "example.order.events"
+```
+
+### Kafka Consumer Configuration
+
+```java
+@Configuration
+@EnableKafka
+public class KafkaConfig {
+
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
+    @Value("${spring.kafka.consumer.group-id:payment-consumer-group}")
+    private String groupId;
+
+    @Value("${spring.kafka.consumer.auto-offset-reset:earliest}")
+    private String autoOffsetReset;
+
+    @Value("${spring.kafka.listener.concurrency:3}")
+    private Integer partitions;
+
+    @Value("${spring.kafka.listener.ack-mode:record}")
+    private ContainerProperties.AckMode ackMode;
+
+    @Value("${spring.kafka.listener.batch-listener:false}")
+    private boolean batchListener;
+
+    @Bean
+    public ConsumerFactory<String, String> consumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
+
+        return new DefaultKafkaConsumerFactory<>(props);
+    }
+
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        factory.setConcurrency(partitions); // parallelism = #partitions
+        factory.getContainerProperties().setAckMode(ackMode);
+        return factory;
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> batchListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        factory.setBatchListener(batchListener); // enable batch listener
+        return factory;
+    }
+}
+```
+
+### Kafka Message Model
+
+```java
+@Getter
+@Setter
+@Builder
+public class OrderEvent {
+    private UUID eventId;              // unique per event (important for idempotency)
+    private OrderEventType eventType;  // CREATED, CANCELLED
+    private OffsetDateTime eventAt;    // when the event was published
+    private OrderPayload order;        // order details related to this event
+
+    public enum OrderEventType {
+        CREATED,
+        PAID,
+        PROCESSING,
+        SHIPPED,
+        DELIVERED,
+        CANCELLED
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class OrderPayload {
+        private String orderId;
+        private String customerId;
+        private BigDecimal totalAmount;
+        private OffsetDateTime orderAt;
+    }
+}
+```
+
+### Kafka Consumer
+
+```java
+@Component
+@Slf4j
+public class OrderEventConsumer {
+
+    private final ObjectMapper objectMapper;
+    private final PaymentService paymentService;
+
+    public OrderEventConsumer(ObjectMapper objectMapper, PaymentService paymentService) {
+        this.objectMapper = objectMapper;
+        this.paymentService = paymentService;
+    }
+
+    @KafkaListener(
+            topics = "${spring.kafka.topic.order.events}",
+            groupId = "${spring.kafka.consumer.group-id:payment-service-consumer}",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    public void consume(ConsumerRecord<String, String> record, Consumer<String, String> consumer) {
+        try {
+            processOrderEvent(record);
+            TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
+            OffsetAndMetadata offsetAndMetadata = new OffsetAndMetadata(record.offset() + 1);
+            consumer.commitSync(Collections.singletonMap(topicPartition, offsetAndMetadata));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void processOrderEvent(ConsumerRecord<String, String> consumerRecord) throws JsonProcessingException {
+        OrderEvent event = objectMapper.readValue(consumerRecord.value(), OrderEvent.class);
+
+        switch (event.getEventType()) {
+            case OrderEvent.OrderEventType.CREATED:
+                PaymentDTO paymentDTO = new PaymentDTO();
+                paymentDTO.setOrderId(event.getOrder().getOrderId());
+                paymentDTO.setCustomerId(event.getOrder().getCustomerId());
+                paymentDTO.setAmount(event.getOrder().getTotalAmount());
+                paymentDTO.setStatus(Payment.Status.PENDING.name());
+                paymentService.create(paymentDTO);
+                break;
+            default:
+                log.info("Invalid Order Event Type");
+        }
+    }
+}
+```
+
+---
+
+## Conclusion
+
+With the above configuration and implementation, we have demonstrated how to:
+
+1. **Produce messages** into Kafka topics using Spring Boot.
+2. **Consume messages** from the same topic asynchronously.
+
+By leveraging **Spring Boot and Spring Kafka**, we can integrate with Kafka using minimal configuration while keeping the focus on business logic. This approach enables the development of an **event-driven microservices architecture**, where services communicate reliably and asynchronously through Kafka topics instead of direct synchronous calls.
+
+As the next step, you can further enhance the system by:
+
+* Adding **error handling** and **retry mechanisms** in consumers.
+* Using **message schemas** (e.g., Avro or Protobuf) to ensure data consistency.
+* Implementing **idempotency checks** in consumers to avoid duplicate processing.
+* Securing and monitoring Kafka communication for production readiness.
+
+This foundation allows your system to scale, remain fault-tolerant, and handle real-time event-driven workflows efficiently.
