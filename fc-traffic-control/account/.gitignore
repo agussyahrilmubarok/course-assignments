@@ -1,0 +1,65 @@
+# Binaries and build artifacts
+/bin/
+/build/
+/dist/
+/out/
+/coverage/
+/tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go modules
+vendor/
+go.sum
+!go.mod
+
+# Logs
+*.log
+logs/
+*.tmp
+
+# Config files (keep example files)
+*.env
+*.env.*
+!*.env.example
+
+# IDE / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+.env.docker
+
+# Go coverage / profiling
+*.cover
+*.prof
+*.pb.go
+*.gen.go
+
+# Migrations (compiled files)
+migrations/*.bin
+
+# Cache and test data
+.cache/
+*.testdata/
+test-results/
+
+# Build artifacts from go build
+*.a
+
+# Air live-reload files (if using Air)
+.air.toml
+.tmp/

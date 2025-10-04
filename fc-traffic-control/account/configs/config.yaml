@@ -1,0 +1,19 @@
+app:
+  name: ACCOUNT_SERVICE
+  port: 8080
+  level: info
+
+postgres:
+  host: localhost
+  port: 5432
+  name: account_db
+  user: account_user
+  password: account_pass
+  ssl_mode: disable
+  time_zone: UTC
+  max_open_conns: 50
+  max_idle_conns: 10
+  conn_max_lifetime: 300
+
+logging:
+  level: debug
