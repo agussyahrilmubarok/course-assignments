@@ -23,14 +23,15 @@ spring:
             non_contextual_creation: true
         id:
           new_generator_mappings: true
-  eureka:
-    client:
-      service-url:
-        defaultZone: ${EUREKA_CLIENT_URL:http://localhost:8761/eureka/}
-      registerWithEureka: true
-      fetchRegistry: true
-    instance:
-      instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_URL:http://localhost:8761/eureka/}
+    registerWithEureka: true
+    fetchRegistry: true
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
 
 management:
   server:
@@ -44,3 +45,7 @@ jsonwebtoken:
   secret:
     key: ${JWT_SECRET_KEY:promotionTestSecretKey2025PromotionTestSecretKey2025}
   expires: ${JWT_EXPIRES:3600000} # default 1 hours (ms)
+
+springdoc:
+  swagger-ui:
+    path=/swagger-ui.html
