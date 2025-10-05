@@ -1,7 +1,7 @@
-package com.example.coupon.rest;
+package com.example.coupon.rest.v1;
 
 import com.example.coupon.model.CouponPolicyDTO;
-import com.example.coupon.service.CouponPolicyService;
+import com.example.coupon.service.v1.CouponPolicyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RestController
-@RequestMapping(value = "/api/couponPolicies", produces = MediaType.APPLICATION_JSON_VALUE)
+@RestController("CouponPolicyResourceV1")
+@RequestMapping(value = "/api/v1/couponPolicies", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class CouponPolicyResource {
 

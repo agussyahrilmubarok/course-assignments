@@ -1,4 +1,4 @@
-package com.example.coupon.service;
+package com.example.coupon.service.v1;
 
 import com.example.coupon.domain.CouponPolicy;
 import com.example.coupon.model.CouponPolicyDTO;

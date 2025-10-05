@@ -1,4 +1,4 @@
-package com.example.coupon.service;
+package com.example.coupon.service.v1;
 
 import com.example.coupon.domain.CouponPolicy;
 import com.example.coupon.exception.CouponPolicyNotFoundException;
@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Service
+@Service("CouponPolicyServiceImplV1")
 @Slf4j
 @RequiredArgsConstructor
 public class CouponPolicyServiceImpl implements CouponPolicyService {

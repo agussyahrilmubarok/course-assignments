@@ -4,6 +4,7 @@ import com.example.coupon.domain.CouponPolicy;
 import com.example.coupon.exception.CouponPolicyNotFoundException;
 import com.example.coupon.model.CouponPolicyDTO;
 import com.example.coupon.repos.CouponPolicyRepository;
+import com.example.coupon.service.v1.CouponPolicyServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

@@ -1,4 +1,4 @@
-package com.example.coupon.service;
+package com.example.coupon.service.v1;
 
 import com.example.coupon.domain.Coupon;
 import com.example.coupon.domain.CouponPolicy;
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
+@Service("CouponServiceImplV1")
 @Slf4j
 @RequiredArgsConstructor
 public class CouponServiceImpl implements CouponService {

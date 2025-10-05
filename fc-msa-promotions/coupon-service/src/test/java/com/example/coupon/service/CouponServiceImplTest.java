@@ -7,6 +7,7 @@ import com.example.coupon.exception.CouponNotFoundException;
 import com.example.coupon.model.CouponDTO;
 import com.example.coupon.repos.CouponPolicyRepository;
 import com.example.coupon.repos.CouponRepository;
+import com.example.coupon.service.v1.CouponServiceImpl;
 import com.example.coupon.utils.UserIdInterceptor;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.BeforeEach;
