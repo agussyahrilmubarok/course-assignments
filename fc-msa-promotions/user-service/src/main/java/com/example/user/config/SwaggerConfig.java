@@ -4,11 +4,8 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.*;
-import io.swagger.v3.oas.models.security.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
@@ -31,13 +28,7 @@ public class SwaggerConfig {
                                 .addProperty("message", new StringSchema())
                                 .addProperty("property", new StringSchema())
                                 .addProperty("rejectedValue", new ObjectSchema())
-                                .addProperty("path", new StringSchema()))
-                        .addSecuritySchemes("bearerAuth", new SecurityScheme()
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT")
-                                .in(SecurityScheme.In.HEADER)
-                                .name("Authorization")));
+                                .addProperty("path", new StringSchema())));
     }
 }
 
