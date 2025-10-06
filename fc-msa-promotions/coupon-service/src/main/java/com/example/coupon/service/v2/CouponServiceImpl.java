@@ -27,6 +27,7 @@ public class CouponServiceImpl implements CouponService {
 
     private final CouponRepository couponRepository;
     private final CouponPolicyRepository couponPolicyRepository;
+    private final CouponIssuerService couponIssuerService;
 
     /**
      * Retrieves a paginated list of coupons for the current user based on status.
@@ -113,32 +114,7 @@ public class CouponServiceImpl implements CouponService {
     @Transactional
     public Coupon issueCoupon(CouponDTO.IssueRequest request) {
         log.info("Issuing coupon for policy ID: {}", request.getCouponPolicyId());
-        CouponPolicy couponPolicy = couponPolicyRepository.findById(request.getCouponPolicyId())
-                .orElseThrow(() -> {
-                    log.error("Coupon policy not found: {}", request.getCouponPolicyId());
-                    return new CouponIssueException("Coupon policy not found.");
-                });
-
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(couponPolicy.getStartTime()) || now.isAfter(couponPolicy.getEndTime())) {
-            log.warn("Coupon issuance attempted outside the allowed period. Policy ID: {}", couponPolicy.getId());
-            throw new CouponIssueException("Not within coupon issuance period.");
-        }
-
-        long issuedCouponCount = couponRepository.countByCouponPolicyId(couponPolicy.getId());
-        if (issuedCouponCount >= couponPolicy.getTotalQuantity()) {
-            log.warn("All coupons exhausted for policy ID: {}", couponPolicy.getId());
-            throw new CouponIssueException("All coupons have been issued.");
-        }
-
-        Coupon coupon = new Coupon();
-        coupon.setId(UUID.randomUUID().toString());
-        coupon.setCode(generateCouponCode());
-        coupon.setStatus(Coupon.Status.AVAILABLE);
-        coupon.setUserId(UserIdInterceptor.getCurrentUserId());
-        coupon.setCouponPolicy(couponPolicy);
-
-        return couponRepository.save(coupon);
+        return couponIssuerService.issueCoupon(request);
     }
 
     /**

@@ -1,6 +1,5 @@
 package com.example.coupon.config;
 
-
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
