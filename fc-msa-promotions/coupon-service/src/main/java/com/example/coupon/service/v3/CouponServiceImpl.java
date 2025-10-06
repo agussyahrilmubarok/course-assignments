@@ -1,4 +1,4 @@
-package com.example.coupon.service.v1;
+package com.example.coupon.service.v3;
 
 import com.example.coupon.domain.Coupon;
 import com.example.coupon.domain.CouponPolicy;
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service("CouponServiceImplV1")
+@Service("CouponServiceImplV3")
 @Slf4j
 @RequiredArgsConstructor
 public class CouponServiceImpl implements CouponService {
@@ -113,7 +113,7 @@ public class CouponServiceImpl implements CouponService {
     @Transactional
     public Coupon issueCoupon(CouponDTO.IssueRequest request) {
         log.info("Issuing coupon for policy ID: {}", request.getCouponPolicyId());
-        CouponPolicy couponPolicy = couponPolicyRepository.findByIdWithLock(request.getCouponPolicyId())
+        CouponPolicy couponPolicy = couponPolicyRepository.findById(request.getCouponPolicyId())
                 .orElseThrow(() -> {
                     log.error("Coupon policy not found: {}", request.getCouponPolicyId());
                     return new CouponIssueException("Coupon policy not found.");

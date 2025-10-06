@@ -1,8 +1,8 @@
-package com.example.coupon.rest.v1;
+package com.example.coupon.rest.v2;
 
 import com.example.coupon.domain.Coupon;
 import com.example.coupon.model.CouponDTO;
-import com.example.coupon.service.v1.CouponService;
+import com.example.coupon.service.v2.CouponService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController("CouponResourceV1")
-@RequestMapping(value = "/api/v1/coupons", produces = MediaType.APPLICATION_JSON_VALUE)
+@RestController("CouponResourceV2")
+@RequestMapping(value = "/api/v2/coupons", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class CouponResource {
 

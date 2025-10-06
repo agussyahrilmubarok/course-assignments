@@ -15,7 +15,7 @@ public class SwaggerConfig {
     public OpenAPI openApiSpec() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("User Service API in Promotions")
+                        .title("Coupon Service API in Promotions")
                         .version("1.0.0"))
                 .components(new Components()
                         .addSchemas("ApiErrorResponse", new ObjectSchema()

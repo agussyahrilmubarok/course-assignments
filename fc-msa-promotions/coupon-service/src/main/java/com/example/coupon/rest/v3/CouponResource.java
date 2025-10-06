@@ -1,4 +1,4 @@
-package com.example.coupon.rest.v1;
+package com.example.coupon.rest.v3;
 
 import com.example.coupon.domain.Coupon;
 import com.example.coupon.model.CouponDTO;
@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController("CouponResourceV1")
-@RequestMapping(value = "/api/v1/coupons", produces = MediaType.APPLICATION_JSON_VALUE)
+@RestController("CouponResourceV3")
+@RequestMapping(value = "/api/v3/coupons", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class CouponResource {
 
