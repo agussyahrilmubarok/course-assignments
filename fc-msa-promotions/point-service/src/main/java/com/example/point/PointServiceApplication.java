@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class PointServiceApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(PointServiceApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(PointServiceApplication.class, args);
+    }
 
 }

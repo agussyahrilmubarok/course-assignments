@@ -27,9 +27,40 @@ services:
     networks:
       - promotion_net
 
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin
+    restart: on-failure
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: my-secret-pw
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - promotion_net
+    depends_on:
+      - postgres
+  
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: redis-insight
+    restart: on-failure
+    ports:
+      - "5051:5540"
+    volumes:
+      - redis_insight_data:/db
+    networks:
+      - promotion_net
+    depends_on:
+      - redis
+
 volumes:
   postgres_data:
   redis_data:
+  pgadmin_data:
+  redis_insight_data:
 
 networks:
   promotion_net:

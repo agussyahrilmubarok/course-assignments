@@ -5,8 +5,10 @@
 * service-registry,8761
 * user-service,8081,7071
 * coupon-service,8082,7072
+
 * postgres,5432
 * redis,6379
+* pgadmin,5050
 
 # Insight
 
