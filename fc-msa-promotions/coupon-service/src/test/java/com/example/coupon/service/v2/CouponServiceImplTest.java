@@ -2,7 +2,6 @@ package com.example.coupon.service.v2;
 
 import com.example.coupon.domain.Coupon;
 import com.example.coupon.domain.CouponPolicy;
-import com.example.coupon.exception.CouponIssueException;
 import com.example.coupon.exception.CouponNotFoundException;
 import com.example.coupon.model.CouponDTO;
 import com.example.coupon.repos.CouponPolicyRepository;

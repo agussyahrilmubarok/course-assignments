@@ -1,3 +1,4 @@
-1. Fix when get coupons return null but in records it's exists.
-2. Buil docker containers
-3. Add postman test collection
+1. FIX: coupon-feature v2
+    - Still fail when issue coupon.
+    - Check Quantity in DB and Redis.
+    - Sync flow state.

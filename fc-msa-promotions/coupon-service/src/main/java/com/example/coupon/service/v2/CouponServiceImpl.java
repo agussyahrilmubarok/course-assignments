@@ -1,7 +1,6 @@
 package com.example.coupon.service.v2;
 
 import com.example.coupon.domain.Coupon;
-import com.example.coupon.domain.CouponPolicy;
 import com.example.coupon.exception.CouponIssueException;
 import com.example.coupon.exception.CouponNotFoundException;
 import com.example.coupon.model.CouponDTO;
@@ -15,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;

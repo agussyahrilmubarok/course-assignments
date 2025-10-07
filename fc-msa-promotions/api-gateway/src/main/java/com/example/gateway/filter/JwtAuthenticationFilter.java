@@ -52,6 +52,7 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
     }
 
     private Mono<String> validateToken(String token) {
+        log.info("Validating token: {}", token);
         return webClient.post()
                 .uri("/api/v1/auth/validate-token")
                 .bodyValue("{\"token\":\"" + token + "\"}")
@@ -59,10 +60,12 @@ public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAut
                 .retrieve()
                 .bodyToMono(Map.class)
                 .flatMap(response -> {
+                    log.info("Received response from token validation: {}", response);
                     Object userObj = response.get("user");
                     if (userObj instanceof Map<?, ?> userMap) {
                         Object idObj = userMap.get("id");
                         if (idObj != null) {
+                            log.info("Extracted userId from response: {}", idObj);
                             return Mono.just(idObj.toString());
                         }
                     }

@@ -5,6 +5,7 @@ import com.example.coupon.domain.CouponPolicy;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -25,6 +26,7 @@ public interface CouponRepository extends JpaRepository<Coupon, String> {
 
     Page<Coupon> findByUserIdAndStatusOrderByCreatedAtDesc(String userId, Coupon.Status status, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"couponPolicy"})
     Optional<Coupon> findByIdAndUserId(String id, String userId);
 
     Coupon findFirstByCouponPolicy(CouponPolicy couponPolicy);

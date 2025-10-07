@@ -9,14 +9,6 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-  eureka:
-    client:
-      service-url:
-        defaultZone: ${EUREKA_CLIENT_URL:http://localhost:8761/eureka/}
-      registerWithEureka: true
-      fetchRegistry: true
-    instance:
-      instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
   cloud:
     gateway:
       server:
@@ -54,13 +46,53 @@ spring:
             - id: coupon-service
               uri: lb://COUPON-SERVICE
               predicates:
-                - Path=/api/coupons/**, /api/couponPolicies/**
+                - Path=/api/coupons, /api/coupons/**, /api/couponPolicies, /api/couponPolicies/**
               filters:
                 - name: CircuitBreaker
                   args:
                     name: couponServiceBreaker
                     fallbackUri: forward:/fallback/coupons
                 - name: JwtAuthenticationFilter
+            - id: coupon-service-v1
+              uri: lb://COUPON-SERVICE
+              predicates:
+                - Path=/api/v1/coupons, /api/v1/coupons/**, /api/v1/couponPolicies, /api/v1/couponPolicies/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: couponServiceBreaker
+                    fallbackUri: forward:/fallback/coupons
+                - name: JwtAuthenticationFilter
+            - id: coupon-service-v2
+              uri: lb://COUPON-SERVICE
+              predicates:
+                - Path=/api/v2/coupons, /api/v2/coupons/**, /api/v2/couponPolicies, /api/v2/couponPolicies/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: couponServiceBreaker
+                    fallbackUri: forward:/fallback/coupons
+                - name: JwtAuthenticationFilter
+            - id: coupon-service-v3
+              uri: lb://COUPON-SERVICE
+              predicates:
+                - Path=/api/v3/coupons, /api/v3/coupons/**, /api/v3/couponPolicies, /api/v3/couponPolicies/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: couponServiceBreaker
+                    fallbackUri: forward:/fallback/coupons
+                - name: JwtAuthenticationFilter
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_URL:http://localhost:8761/eureka/}
+    registerWithEureka: true
+    fetchRegistry: true
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
 
 resilience4j:
   circuitbreaker:
@@ -89,3 +121,8 @@ management:
 
 clients:
   url: ${CLIENTS_URL:http://localhost:4000}
+
+logging:
+  level:
+    root: INFO
+    com.example.gateway.filter: INFO
