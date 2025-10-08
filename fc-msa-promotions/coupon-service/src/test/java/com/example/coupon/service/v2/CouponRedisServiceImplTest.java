@@ -11,13 +11,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.redisson.api.RAtomicLong;
-import org.redisson.api.RBucket;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,6 +48,9 @@ class CouponRedisServiceImplTest {
 
     @Mock
     private RLock mockLock;
+
+    @Mock
+    private RKeys mockKeys;
 
     private CouponPolicy couponPolicy;
     private Coupon coupon;
@@ -149,6 +151,49 @@ class CouponRedisServiceImplTest {
 
         assertEquals(TEST_QUANTITY, result);
         verify(mockAtomicLong).get();
+    }
+
+    @Test
+    void givenCouponQuantitiesInRedis_whenGetAllCouponPolicyQuantities_thenReturnAllQuantities() {
+        String key1 = "coupon:quantity:POLICY1";
+        String key2 = "coupon:quantity:POLICY2";
+
+        when(redissonClient.getKeys()).thenReturn(mockKeys);
+        when(mockKeys.getKeysByPattern("coupon:quantity:*")).thenReturn(Set.of(key1, key2));
+        RAtomicLong atomicLong1 = mock(RAtomicLong.class);
+        RAtomicLong atomicLong2 = mock(RAtomicLong.class);
+        when(redissonClient.getAtomicLong(key1)).thenReturn(atomicLong1);
+        when(redissonClient.getAtomicLong(key2)).thenReturn(atomicLong2);
+        when(atomicLong1.get()).thenReturn(50L);
+        when(atomicLong2.get()).thenReturn(25L);
+
+        Map<String, Long> quantities = couponRedisService.getAllCouponPolicyQuantities();
+
+        assertEquals(2, quantities.size());
+        assertEquals(50L, quantities.get("POLICY1"));
+        assertEquals(25L, quantities.get("POLICY2"));
+    }
+
+    @Test
+    void givenPolicyId_whenDecrementAndGetQuantity_thenReturnDecrementedValue() {
+        when(redissonClient.getAtomicLong("coupon:quantity:" + TEST_POLICY_ID)).thenReturn(mockAtomicLong);
+        when(mockAtomicLong.decrementAndGet()).thenReturn(TEST_QUANTITY - 1);
+
+        Long result = couponRedisService.decrementAndGetCouponPolicyQuantity(TEST_POLICY_ID);
+
+        assertEquals(TEST_QUANTITY - 1, result);
+        verify(mockAtomicLong).decrementAndGet();
+    }
+
+    @Test
+    void givenPolicyId_whenIncrementAndGetQuantity_thenReturnIncrementedValue() {
+        when(redissonClient.getAtomicLong("coupon:quantity:" + TEST_POLICY_ID)).thenReturn(mockAtomicLong);
+        when(mockAtomicLong.incrementAndGet()).thenReturn(TEST_QUANTITY + 1);
+
+        Long result = couponRedisService.incrementAndGetCouponPolicyQuantity(TEST_POLICY_ID);
+
+        assertEquals(TEST_QUANTITY + 1, result);
+        verify(mockAtomicLong).incrementAndGet();
     }
 
     @Test

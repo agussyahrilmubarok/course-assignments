@@ -52,6 +52,9 @@ class CouponServiceImplTest {
     @Mock
     private CouponIssuerService couponIssuerService;
 
+    @Mock
+    private CouponRedisService couponRedisService;
+
     private CouponPolicy couponPolicy;
     private Coupon coupon;
 
@@ -173,6 +176,7 @@ class CouponServiceImplTest {
             assertThat(usedCoupon.getStatus()).isEqualTo(Coupon.Status.USED);
             assertThat(usedCoupon.getOrderId()).isEqualTo(TEST_ORDER_ID);
             verify(couponRepository).save(usedCoupon);
+            verify(couponRedisService).setCouponState(any(CouponDTO.Response.class));
         }
     }
 
@@ -220,6 +224,8 @@ class CouponServiceImplTest {
 
             assertEquals(Coupon.Status.CANCELED, canceled.getStatus());
             verify(couponRepository).save(canceled);
+            verify(couponRedisService).incrementAndGetCouponPolicyQuantity(couponPolicy.getId());
+            verify(couponRedisService).setCouponState(any(CouponDTO.Response.class));
         }
     }
 

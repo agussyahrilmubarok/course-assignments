@@ -57,6 +57,6 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
         CouponPolicy savedCouponPolicy = couponPolicyRepository.save(couponPolicy);
         couponRedisService.setCouponPolicyQuantity(savedCouponPolicy);
 
-        return couponPolicyRepository.save(savedCouponPolicy);
+        return savedCouponPolicy;
     }
 }

@@ -25,7 +25,7 @@ public class CouponResource {
                                                                @RequestParam(required = false) Integer page,
                                                                @RequestParam(required = false) Integer size,
                                                                @Parameter(name = "X-USER-ID", description = "User ID", required = true)
-                                                                   @RequestHeader("X-USER-ID") String userId) {
+                                                               @RequestHeader("X-USER-ID") String userId) {
         CouponDTO.ListRequest request = CouponDTO.ListRequest.builder()
                 .status(status).page(page).size(size).build();
         List<CouponDTO.Response> responses = couponService.findCoupons(request);

@@ -86,14 +86,15 @@ class CouponIssuerServiceImplTest {
         when(redissonClient.getLock("coupon:lock:" + TEST_POLICY_ID)).thenReturn(mockLock);
         when(mockLock.tryLock(anyLong(), anyLong(), any(TimeUnit.class))).thenReturn(true);
         when(mockLock.isHeldByCurrentThread()).thenReturn(true);
-        when(redissonClient.getAtomicLong("coupon:quantity:" + TEST_POLICY_ID)).thenReturn(mockAtomicLong);
-        when(mockAtomicLong.decrementAndGet()).thenReturn(99L);
+        when(couponRedisService.decrementAndGetCouponPolicyQuantity(TEST_POLICY_ID)).thenReturn(99L);
         when(couponPolicyService.findById(TEST_POLICY_ID)).thenReturn(couponPolicy);
         when(couponRepository.save(any(Coupon.class))).thenAnswer(invocation -> {
             Coupon c = invocation.getArgument(0);
             c.setId(TEST_COUPON_ID);
             return c;
         });
+
+        doNothing().when(couponRedisService).setCouponState(any());
 
         try (MockedStatic<UserIdInterceptor> mockedStatic = mockStatic(UserIdInterceptor.class)) {
             mockedStatic.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
@@ -145,11 +146,28 @@ class CouponIssuerServiceImplTest {
         when(mockLock.tryLock(anyLong(), anyLong(), any())).thenReturn(true);
         when(mockLock.isHeldByCurrentThread()).thenReturn(true);
         when(couponPolicyService.findById(TEST_POLICY_ID)).thenReturn(couponPolicy);
-        when(redissonClient.getAtomicLong("coupon:quantity:" + TEST_POLICY_ID)).thenReturn(mockAtomicLong);
-        when(mockAtomicLong.decrementAndGet()).thenReturn(-1L);
+        when(couponRedisService.decrementAndGetCouponPolicyQuantity(TEST_POLICY_ID)).thenReturn(-1L);
+        when(couponRedisService.incrementAndGetCouponPolicyQuantity(TEST_POLICY_ID)).thenReturn(0L);
+
+        CouponIssueException exception = assertThrows(CouponIssueException.class, () ->
+                couponIssuerService.issueCoupon(request)
+        );
+
+        verify(couponRedisService).incrementAndGetCouponPolicyQuantity(TEST_POLICY_ID); // rollback
+        verify(mockLock).unlock();
+    }
+
+    @Test
+    void givenInterruptedException_whenIssueCoupon_thenThrowCouponIssueException() throws InterruptedException {
+        CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
+                .couponPolicyId(TEST_POLICY_ID)
+                .build();
+
+        when(redissonClient.getLock("coupon:lock:" + TEST_POLICY_ID)).thenReturn(mockLock);
+        when(mockLock.tryLock(anyLong(), anyLong(), any())).thenThrow(new InterruptedException());
+        when(mockLock.isHeldByCurrentThread()).thenReturn(true);
 
         assertThrows(CouponIssueException.class, () -> couponIssuerService.issueCoupon(request));
-        verify(mockAtomicLong).incrementAndGet(); // rollback
         verify(mockLock).unlock();
     }
 }

@@ -8,11 +8,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RAtomicLong;
 import org.redisson.api.RBucket;
+import org.redisson.api.RKeys;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 @Service("CouponRedisServiceImplV2")
 @Slf4j
@@ -70,6 +74,7 @@ public class CouponRedisServiceImpl implements CouponRedisService {
 
     /**
      * Sets the available quantity of a coupon policy in Redis.
+     * Redis is the source of truth for coupon quantity.
      *
      * @param couponPolicy the coupon policy entity to cache
      */
@@ -84,6 +89,7 @@ public class CouponRedisServiceImpl implements CouponRedisService {
 
     /**
      * Retrieves the remaining quantity of a coupon policy from Redis.
+     * Redis is the source of truth for coupon quantity.
      *
      * @param couponPolicyId the ID of the coupon policy
      * @return remaining quantity of coupons
@@ -93,6 +99,56 @@ public class CouponRedisServiceImpl implements CouponRedisService {
         String quantityKey = COUPON_QUANTITY_KEY + couponPolicyId;
         RAtomicLong atomicQuantity = redissonClient.getAtomicLong(quantityKey);
         return atomicQuantity.get();
+    }
+
+    /**
+     * Retrieves all coupon policy quantities from Redis.
+     * Returns a Map with key = couponPolicyId and value = quantity.
+     *
+     * @return Map<String, Long> all coupon policy quantities stored in Redis
+     */
+    @Override
+    public Map<String, Long> getAllCouponPolicyQuantities() {
+        Map<String, Long> result = new HashMap<>();
+        RKeys keys = redissonClient.getKeys();
+
+        Iterator<String> iter = keys.getKeysByPattern(COUPON_QUANTITY_KEY + "*").iterator();
+        while (iter.hasNext()) {
+            String fullKey = iter.next();
+            String couponPolicyId = fullKey.substring(COUPON_QUANTITY_KEY.length());
+            RAtomicLong atomicQuantity = redissonClient.getAtomicLong(fullKey);
+            long quantity = atomicQuantity.get();
+            result.put(couponPolicyId, quantity);
+        }
+
+        log.debug("Retrieved all coupon policy quantities from Redis: {}", result);
+        return result;
+    }
+
+    /**
+     * Increments the available coupon quantity for a given coupon policy in Redis.
+     * Should be called when a coupon is canceled or released.
+     *
+     * @param couponPolicyId the ID of the coupon policy
+     */
+    @Override
+    public Long incrementAndGetCouponPolicyQuantity(String couponPolicyId) {
+        String quantityKey = COUPON_QUANTITY_KEY + couponPolicyId;
+        RAtomicLong atomicQuantity = redissonClient.getAtomicLong(quantityKey);
+        return atomicQuantity.incrementAndGet();
+    }
+
+    /**
+     * Decrements the available coupon quantity for a given coupon policy in Redis.
+     * Should be called when a coupon is issued.
+     *
+     * @param couponPolicyId the ID of the coupon policy
+     */
+    @Override
+    public Long decrementAndGetCouponPolicyQuantity(String couponPolicyId) {
+        String quantityKey = COUPON_QUANTITY_KEY + couponPolicyId;
+        RAtomicLong atomicQuantity = redissonClient.getAtomicLong(quantityKey);
+        return atomicQuantity.decrementAndGet();
     }
 
     /**

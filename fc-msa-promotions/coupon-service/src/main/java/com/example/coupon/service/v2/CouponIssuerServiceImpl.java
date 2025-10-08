@@ -8,7 +8,6 @@ import com.example.coupon.repos.CouponRepository;
 import com.example.coupon.utils.UserIdInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RAtomicLong;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
@@ -60,12 +59,10 @@ public class CouponIssuerServiceImpl implements CouponIssuerService {
                 throw new IllegalStateException("It is not within the coupon issuance period.");
             }
 
-            RAtomicLong atomicQuantity = redissonClient.getAtomicLong(quantityKey);
-            long remainingQuantity = atomicQuantity.decrementAndGet();
-
+            Long remainingQuantity = couponRedisService.decrementAndGetCouponPolicyQuantity(request.getCouponPolicyId());
             if (remainingQuantity < 0) {
-                atomicQuantity.incrementAndGet();
-                log.info("Coupon exhausted for policy: {}", request.getCouponPolicyId());
+                Long quantity = couponRedisService.incrementAndGetCouponPolicyQuantity(request.getCouponPolicyId());
+                log.info("Coupon exhausted for policy: {} quantity: {}", request.getCouponPolicyId(), quantity);
                 throw new CouponIssueException("All coupons have been issued.");
             }
 

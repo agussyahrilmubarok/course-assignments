@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service("CouponServiceImplV2")
@@ -26,6 +25,7 @@ public class CouponServiceImpl implements CouponService {
     private final CouponRepository couponRepository;
     private final CouponPolicyRepository couponPolicyRepository;
     private final CouponIssuerService couponIssuerService;
+    private final CouponRedisService couponRedisService;
 
     /**
      * Retrieves a paginated list of coupons for the current user based on status.
@@ -136,9 +136,11 @@ public class CouponServiceImpl implements CouponService {
                 });
 
         coupon.use(orderId);
+        Coupon usedCoupon = couponRepository.save(coupon);
+        couponRedisService.setCouponState(CouponDTO.Response.from(usedCoupon));
         log.info("Coupon ID: {} used successfully for order ID: {}", couponId, orderId);
 
-        return couponRepository.save(coupon);
+        return usedCoupon;
     }
 
     /**
@@ -161,12 +163,11 @@ public class CouponServiceImpl implements CouponService {
                 });
 
         coupon.cancel();
+        Coupon canceledCoupon = couponRepository.save(coupon);
+        couponRedisService.incrementAndGetCouponPolicyQuantity(canceledCoupon.getCouponPolicy().getId());
+        couponRedisService.setCouponState(CouponDTO.Response.from(canceledCoupon));
         log.info("Coupon ID: {} canceled successfully", couponId);
 
-        return couponRepository.save(coupon);
-    }
-
-    private String generateCouponCode() {
-        return UUID.randomUUID().toString().substring(0, 8);
+        return canceledCoupon;
     }
 }
