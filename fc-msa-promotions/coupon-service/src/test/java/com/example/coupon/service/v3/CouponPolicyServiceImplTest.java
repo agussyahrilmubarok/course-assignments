@@ -18,6 +18,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,6 +29,9 @@ class CouponPolicyServiceImplTest {
 
     @Mock
     private CouponPolicyRepository couponPolicyRepository;
+
+    @Mock
+    private CouponRedisService couponRedisService;
 
     private CouponPolicy couponPolicy;
 
@@ -92,5 +96,6 @@ class CouponPolicyServiceImplTest {
         assertThat(result.getId()).isEqualTo("abc123");
         assertThat(result.getName()).isEqualTo("Summer Sale");
         assertThat(result.getDiscountValue()).isEqualTo(10);
+        verify(couponRedisService).setCouponPolicyQuantity(savedPolicy);
     }
 }

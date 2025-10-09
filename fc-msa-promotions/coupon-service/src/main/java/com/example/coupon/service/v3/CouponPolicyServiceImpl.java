@@ -17,6 +17,7 @@ import java.util.List;
 public class CouponPolicyServiceImpl implements CouponPolicyService {
 
     private final CouponPolicyRepository couponPolicyRepository;
+    private final CouponRedisService couponRedisService;
 
     /**
      * Retrieves all coupon policies.
@@ -53,6 +54,9 @@ public class CouponPolicyServiceImpl implements CouponPolicyService {
     @Transactional
     public CouponPolicy create(CouponPolicyDTO.CreateRequest request) {
         CouponPolicy couponPolicy = request.toEntity();
-        return couponPolicyRepository.save(couponPolicy);
+        CouponPolicy savedCouponPolicy = couponPolicyRepository.save(couponPolicy);
+        couponRedisService.setCouponPolicyQuantity(savedCouponPolicy);
+
+        return savedCouponPolicy;
     }
 }

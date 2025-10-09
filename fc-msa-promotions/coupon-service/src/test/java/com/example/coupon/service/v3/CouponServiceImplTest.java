@@ -2,7 +2,6 @@ package com.example.coupon.service.v3;
 
 import com.example.coupon.domain.Coupon;
 import com.example.coupon.domain.CouponPolicy;
-import com.example.coupon.exception.CouponIssueException;
 import com.example.coupon.exception.CouponNotFoundException;
 import com.example.coupon.model.CouponDTO;
 import com.example.coupon.repos.CouponPolicyRepository;
@@ -49,6 +48,12 @@ class CouponServiceImplTest {
 
     @Mock
     private CouponPolicyRepository couponPolicyRepository;
+
+    @Mock
+    private CouponIssuerService couponIssuerService;
+
+    @Mock
+    private CouponRedisService couponRedisService;
 
     private CouponPolicy couponPolicy;
     private Coupon coupon;
@@ -149,57 +154,13 @@ class CouponServiceImplTest {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(couponPolicy.getId())
                 .build();
-        when(couponPolicyRepository.findById(any())).thenReturn(Optional.of(couponPolicy));
-        when(couponRepository.countByCouponPolicyId(any())).thenReturn(0L);
-        when(couponRepository.save(any())).thenReturn(coupon);
 
-        try (MockedStatic<UserIdInterceptor> mockedStatic = mockStatic(UserIdInterceptor.class)) {
-            mockedStatic.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
+        when(couponIssuerService.issueCoupon(any())).thenReturn(coupon);
 
-            Coupon result = couponService.issueCoupon(request);
+        Coupon result = couponService.issueCoupon(request);
 
-            assertThat(result.getId()).isEqualTo(TEST_COUPON_ID);
-            assertThat(result.getUserId()).isEqualTo(TEST_USER_ID);
-            verify(couponRepository).save(any());
-        }
-    }
-
-    @Test
-    void givenNotFoundPolicy_whenIssueCoupon_thenThrowException() {
-        CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
-                .couponPolicyId(couponPolicy.getId())
-                .build();
-        when(couponPolicyRepository.findById(any())).thenReturn(Optional.empty());
-
-        try (MockedStatic<UserIdInterceptor> mockedStatic = mockStatic(UserIdInterceptor.class)) {
-            mockedStatic.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
-
-            CouponIssueException exception = assertThrows(CouponIssueException.class,
-                    () -> couponService.issueCoupon(request));
-
-            assertEquals("Coupon policy not found.", exception.getMessage());
-        }
-    }
-
-    @Test
-    void givenCouponOutOfIssuancePeriod_whenIssueCoupon_thenThrowException() {
-        CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
-                .couponPolicyId(couponPolicy.getId())
-                .build();
-        CouponPolicy policy = new CouponPolicy();
-        policy.setId(couponPolicy.getId());
-        policy.setStartTime(LocalDateTime.now().plusDays(1));
-        policy.setEndTime(LocalDateTime.now().plusDays(2));
-        when(couponPolicyRepository.findById(couponPolicy.getId())).thenReturn(Optional.of(policy));
-
-        try (MockedStatic<UserIdInterceptor> mockedStatic = mockStatic(UserIdInterceptor.class)) {
-            mockedStatic.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
-
-            CouponIssueException exception = assertThrows(CouponIssueException.class,
-                    () -> couponService.issueCoupon(request));
-
-            assertEquals("Not within coupon issuance period.", exception.getMessage());
-        }
+        assertThat(result.getId()).isEqualTo(TEST_COUPON_ID);
+        assertThat(result.getUserId()).isEqualTo(TEST_USER_ID);
     }
 
     @Test
@@ -215,6 +176,7 @@ class CouponServiceImplTest {
             assertThat(usedCoupon.getStatus()).isEqualTo(Coupon.Status.USED);
             assertThat(usedCoupon.getOrderId()).isEqualTo(TEST_ORDER_ID);
             verify(couponRepository).save(usedCoupon);
+            verify(couponRedisService).setCouponState(any(CouponDTO.Response.class));
         }
     }
 
@@ -262,6 +224,8 @@ class CouponServiceImplTest {
 
             assertEquals(Coupon.Status.CANCELED, canceled.getStatus());
             verify(couponRepository).save(canceled);
+            verify(couponRedisService).incrementAndGetCouponPolicyQuantity(couponPolicy.getId());
+            verify(couponRedisService).setCouponState(any(CouponDTO.Response.class));
         }
     }
 

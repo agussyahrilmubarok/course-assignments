@@ -13,6 +13,10 @@ public interface CouponService {
 
     Coupon issueCoupon(CouponDTO.IssueRequest request);
 
+    void requestIssueCoupon(CouponDTO.IssueRequest request);
+
+    void processIssueCoupon(CouponDTO.IssueMessage message);
+
     Coupon useCoupon(String couponId, String orderId);
 
     Coupon cancelCoupon(String couponId);

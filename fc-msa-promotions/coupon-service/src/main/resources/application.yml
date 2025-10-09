@@ -28,6 +28,19 @@ spring:
       host: ${SPRING_REDIS_HOST:localhost}
       port: ${SPRING_REDIS_PORT:6379}
 
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: coupon-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 100
+    producer:
+      acks: all
+      retries: 3
+      max-in-flight-requests-per-connection: 1
+    concurrency: 3
+
 eureka:
   client:
     service-url:

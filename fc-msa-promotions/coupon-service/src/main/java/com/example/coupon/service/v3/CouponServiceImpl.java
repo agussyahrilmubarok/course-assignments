@@ -1,7 +1,6 @@
 package com.example.coupon.service.v3;
 
 import com.example.coupon.domain.Coupon;
-import com.example.coupon.domain.CouponPolicy;
 import com.example.coupon.exception.CouponIssueException;
 import com.example.coupon.exception.CouponNotFoundException;
 import com.example.coupon.model.CouponDTO;
@@ -15,9 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service("CouponServiceImplV3")
@@ -27,6 +24,8 @@ public class CouponServiceImpl implements CouponService {
 
     private final CouponRepository couponRepository;
     private final CouponPolicyRepository couponPolicyRepository;
+    private final CouponIssuerService couponIssuerService;
+    private final CouponRedisService couponRedisService;
 
     /**
      * Retrieves a paginated list of coupons for the current user based on status.
@@ -113,32 +112,17 @@ public class CouponServiceImpl implements CouponService {
     @Transactional
     public Coupon issueCoupon(CouponDTO.IssueRequest request) {
         log.info("Issuing coupon for policy ID: {}", request.getCouponPolicyId());
-        CouponPolicy couponPolicy = couponPolicyRepository.findById(request.getCouponPolicyId())
-                .orElseThrow(() -> {
-                    log.error("Coupon policy not found: {}", request.getCouponPolicyId());
-                    return new CouponIssueException("Coupon policy not found.");
-                });
+        return couponIssuerService.issueCoupon(request);
+    }
 
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(couponPolicy.getStartTime()) || now.isAfter(couponPolicy.getEndTime())) {
-            log.warn("Coupon issuance attempted outside the allowed period. Policy ID: {}", couponPolicy.getId());
-            throw new CouponIssueException("Not within coupon issuance period.");
-        }
+    @Override
+    public void requestIssueCoupon(CouponDTO.IssueRequest request) {
 
-        long issuedCouponCount = couponRepository.countByCouponPolicyId(couponPolicy.getId());
-        if (issuedCouponCount >= couponPolicy.getTotalQuantity()) {
-            log.warn("All coupons exhausted for policy ID: {}", couponPolicy.getId());
-            throw new CouponIssueException("All coupons have been issued.");
-        }
+    }
 
-        Coupon coupon = new Coupon();
-        coupon.setId(UUID.randomUUID().toString());
-        coupon.setCode(generateCouponCode());
-        coupon.setStatus(Coupon.Status.AVAILABLE);
-        coupon.setUserId(UserIdInterceptor.getCurrentUserId());
-        coupon.setCouponPolicy(couponPolicy);
+    @Override
+    public void processIssueCoupon(CouponDTO.IssueMessage message) {
 
-        return couponRepository.save(coupon);
     }
 
     /**
@@ -162,9 +146,11 @@ public class CouponServiceImpl implements CouponService {
                 });
 
         coupon.use(orderId);
+        Coupon usedCoupon = couponRepository.save(coupon);
+        couponRedisService.setCouponState(CouponDTO.Response.from(usedCoupon));
         log.info("Coupon ID: {} used successfully for order ID: {}", couponId, orderId);
 
-        return couponRepository.save(coupon);
+        return usedCoupon;
     }
 
     /**
@@ -187,12 +173,11 @@ public class CouponServiceImpl implements CouponService {
                 });
 
         coupon.cancel();
+        Coupon canceledCoupon = couponRepository.save(coupon);
+        couponRedisService.incrementAndGetCouponPolicyQuantity(canceledCoupon.getCouponPolicy().getId());
+        couponRedisService.setCouponState(CouponDTO.Response.from(canceledCoupon));
         log.info("Coupon ID: {} canceled successfully", couponId);
 
-        return couponRepository.save(coupon);
-    }
-
-    private String generateCouponCode() {
-        return UUID.randomUUID().toString().substring(0, 8);
+        return canceledCoupon;
     }
 }
