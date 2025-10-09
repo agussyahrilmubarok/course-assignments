@@ -31,12 +31,12 @@ public class PointResource {
     }
 
     @GetMapping("/users/{userId}/balance")
-    public ResponseEntity<PointDTO.BalanceResponse> getBalance(@PathVariable Long userId) {
+    public ResponseEntity<PointDTO.BalanceResponse> getBalance(@PathVariable String userId) {
         throw new RuntimeException();
     }
 
     @GetMapping("/users/{userId}/history")
-    public ResponseEntity<Page<PointDTO.Response>> getPointHistory(@PathVariable Long userId,
+    public ResponseEntity<Page<PointDTO.Response>> getPointHistory(@PathVariable String userId,
                                                                    Pageable pageable) {
         throw new RuntimeException();
     }

@@ -1,4 +1,6 @@
 - feature
+FT: point-service V1
+    - Implement api v1
 
 - fixing
 1. FIX: coupon-feature v2
@@ -8,6 +10,3 @@ B250710: api-gateway
     - When forward request sometime got method not found.
     - But request still process to the target api.
     - Then data still saved.
-
-B250710: coupon-service
-    - When issue coupon policy on same user can produce duplicate coupon on same coupon policy
