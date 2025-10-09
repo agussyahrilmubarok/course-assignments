@@ -10,4 +10,4 @@ B250710: api-gateway
     - Then data still saved.
 
 B250710: coupon-service
-    - When issue coupon policy on same user can produce duplicate coupon 
+    - When issue coupon policy on same user can produce duplicate coupon on same coupon policy

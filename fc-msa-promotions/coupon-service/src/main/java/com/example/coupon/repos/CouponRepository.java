@@ -36,4 +36,5 @@ public interface CouponRepository extends JpaRepository<Coupon, String> {
 
     boolean existsByCodeIgnoreCase(String code);
 
+    boolean existsByUserIdAndCouponPolicyId(String userId, String couponPolicyId);
 }

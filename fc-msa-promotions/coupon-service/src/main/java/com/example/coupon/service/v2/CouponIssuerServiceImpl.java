@@ -59,6 +59,13 @@ public class CouponIssuerServiceImpl implements CouponIssuerService {
                 throw new IllegalStateException("It is not within the coupon issuance period.");
             }
 
+            String userId = UserIdInterceptor.getCurrentUserId();
+            boolean alreadyIssued = couponRepository.existsByUserIdAndCouponPolicyId(userId, request.getCouponPolicyId());
+            if (alreadyIssued) {
+                log.warn("User {} already has a coupon for policy {}", userId, request.getCouponPolicyId());
+                throw new CouponIssueException("You have already received this coupon.");
+            }
+
             Long remainingQuantity = couponRedisService.decrementAndGetCouponPolicyQuantity(request.getCouponPolicyId());
             if (remainingQuantity < 0) {
                 Long quantity = couponRedisService.incrementAndGetCouponPolicyQuantity(request.getCouponPolicyId());
