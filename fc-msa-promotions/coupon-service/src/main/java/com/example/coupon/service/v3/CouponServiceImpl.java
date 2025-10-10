@@ -1,10 +1,8 @@
 package com.example.coupon.service.v3;
 
 import com.example.coupon.domain.Coupon;
-import com.example.coupon.exception.CouponIssueException;
 import com.example.coupon.exception.CouponNotFoundException;
 import com.example.coupon.model.CouponDTO;
-import com.example.coupon.repos.CouponPolicyRepository;
 import com.example.coupon.repos.CouponRepository;
 import com.example.coupon.utils.UserIdInterceptor;
 import lombok.RequiredArgsConstructor;
@@ -23,15 +21,14 @@ import java.util.stream.Collectors;
 public class CouponServiceImpl implements CouponService {
 
     private final CouponRepository couponRepository;
-    private final CouponPolicyRepository couponPolicyRepository;
     private final CouponIssuerService couponIssuerService;
     private final CouponRedisService couponRedisService;
 
     /**
-     * Retrieves a paginated list of coupons for the current user based on status.
+     * Retrieves a paginated list of coupons for the current user filtered by status.
      *
-     * @param request filter and pagination parameters
-     * @return list of Coupon entities
+     * @param request contains pagination and filter parameters
+     * @return list of coupon DTOs belonging to the current user
      */
     @Override
     @Transactional(readOnly = true)
@@ -57,15 +54,12 @@ public class CouponServiceImpl implements CouponService {
     }
 
     /**
-     * Retrieves a specific coupon for the current user by its ID.
+     * Retrieves a specific coupon by ID for the current user.
+     * Ensures that the coupon belongs to the user and prevents unauthorized access.
      *
-     * <p>This method ensures that the coupon belongs to the current user
-     * (based on {@link UserIdInterceptor}) and prevents unauthorized access
-     * to other users' coupons.</p>
-     *
-     * @param couponId the ID of the coupon to retrieve
-     * @return the coupon mapped to {@link CouponDTO.Response}
-     * @throws CouponNotFoundException if coupon is not found or does not belong to the current user
+     * @param couponId ID of the coupon to retrieve
+     * @return coupon DTO if found
+     * @throws CouponNotFoundException if the coupon does not exist or belongs to another user
      */
     @Override
     @Transactional(readOnly = true)
@@ -82,56 +76,37 @@ public class CouponServiceImpl implements CouponService {
     }
 
     /**
-     * Issues a coupon for the specified policy if within the valid time frame and quantity limits.
+     * Issues a coupon asynchronously by sending a request to the Kafka-backed issuer service.
      *
-     * <p><strong>Technical Limitations Based on Current Implementation:</strong></p>
-     * <ul>
-     *   <li><strong>1. Race Condition Risk:</strong><br>
-     *   The number of issued coupons is checked using <code>countByCouponPolicyId</code> before issuing.
-     *   However, there's no lock or atomic control between this check and saving the coupon.
-     *   Under concurrent access, multiple transactions can pass the check and exceed <code>totalQuantity</code>.</li>
-     *
-     *   <li><strong>2. Performance Concern:</strong><br>
-     *   The <code>countByCouponPolicyId</code> query runs for every request.
-     *   As issued coupons grow, this count query may become a performance bottleneck.</li>
-     *
-     *   <li><strong>3. No Locking or Isolation Enforcement:</strong><br>
-     *   The method does not use pessimistic or optimistic locking,
-     *   making it vulnerable in high-concurrency environments where multiple coupons are issued simultaneously.</li>
-     *
-     *   <li><strong>4. Quantity Inaccuracy in Distributed Systems:</strong><br>
-     *   Without a distributed locking mechanism or atomic counter,
-     *   ensuring the total issuance stays within the limit is difficult when running across multiple instances.</li>
-     * </ul>
-     *
-     * @param request DTO containing coupon policy ID
-     * @return issued Coupon entity
-     * @throws CouponIssueException if policy is invalid, expired, or quota exceeded
+     * @param request contains the coupon policy ID to issue a coupon from
      */
     @Override
-    @Transactional
-    public Coupon issueCoupon(CouponDTO.IssueRequest request) {
-        log.info("Issuing coupon for policy ID: {}", request.getCouponPolicyId());
-        return couponIssuerService.issueCoupon(request);
-    }
-
-    @Override
     public void requestIssueCoupon(CouponDTO.IssueRequest request) {
-
-    }
-
-    @Override
-    public void processIssueCoupon(CouponDTO.IssueMessage message) {
-
+        couponIssuerService.issueCoupon(request);
+        log.info("Coupon issue request processed for policyId={}, userId={}",
+                request.getCouponPolicyId(), UserIdInterceptor.getCurrentUserId());
     }
 
     /**
-     * Marks a coupon as used for a specific order by the current user.
+     * Processes the actual coupon issuance, typically called by a Kafka consumer.
+     * Delegates the task to CouponIssuerService.
+     *
+     * @param message contains the coupon policy ID and user ID
+     */
+    @Override
+    public void processIssueCoupon(CouponDTO.IssueMessage message) {
+        log.info("Processing coupon issue message for user={}, policy={}", message.getUserId(), message.getCouponPolicyId());
+        couponIssuerService.processIssueCoupon(message);
+    }
+
+    /**
+     * Marks a coupon as used by the current user for a specific order.
+     * Saves the updated coupon state and caches it.
      *
      * @param couponId the ID of the coupon to use
-     * @param orderId  the ID of the order
-     * @return updated Coupon entity
-     * @throws CouponNotFoundException if coupon not found or doesn't belong to user
+     * @param orderId  the order ID associated with the coupon usage
+     * @return the updated Coupon entity
+     * @throws CouponNotFoundException if the coupon does not exist or does not belong to the user
      */
     @Override
     @Transactional
@@ -154,11 +129,12 @@ public class CouponServiceImpl implements CouponService {
     }
 
     /**
-     * Cancels a previously used coupon by the current user.
+     * Cancels a coupon usage for the current user, marking it as unused again.
+     * Also rolls back the available quota in Redis.
      *
      * @param couponId the ID of the coupon to cancel
-     * @return updated Coupon entity
-     * @throws CouponNotFoundException if coupon not found or doesn't belong to user
+     * @return the updated Coupon entity after cancellation
+     * @throws CouponNotFoundException if the coupon does not exist or does not belong to the user
      */
     @Override
     @Transactional
@@ -174,7 +150,11 @@ public class CouponServiceImpl implements CouponService {
 
         coupon.cancel();
         Coupon canceledCoupon = couponRepository.save(coupon);
+
+        // Return the coupon quota in Redis
         couponRedisService.incrementAndGetCouponPolicyQuantity(canceledCoupon.getCouponPolicy().getId());
+
+        // Update Redis cache with latest state
         couponRedisService.setCouponState(CouponDTO.Response.from(canceledCoupon));
         log.info("Coupon ID: {} canceled successfully", couponId);
 

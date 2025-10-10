@@ -11,8 +11,6 @@ public interface CouponService {
 
     CouponDTO.Response findCoupon(String couponId);
 
-    Coupon issueCoupon(CouponDTO.IssueRequest request);
-
     void requestIssueCoupon(CouponDTO.IssueRequest request);
 
     void processIssueCoupon(CouponDTO.IssueMessage message);

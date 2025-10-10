@@ -3,6 +3,7 @@ package com.example.coupon.config;
 import com.example.coupon.model.CouponDTO;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,8 +11,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +50,7 @@ public class KafkaConfig {
     @Value("${spring.kafka.concurrency:1}")
     private int concurrency;
 
-    // ProducerFactory for CouponDTO.IssueMessage use JsonSerializer
+    // ProducerFactory using JsonSerializer for CouponDTO.IssueMessage
     @Bean
     public ProducerFactory<String, CouponDTO.IssueMessage> couponProducerFactory() {
         Map<String, Object> config = new HashMap<>();
@@ -67,7 +71,7 @@ public class KafkaConfig {
         return new KafkaTemplate<>(couponProducerFactory());
     }
 
-    // ConsumerFactory for CouponDTO.IssueMessage use JsonDeserializer
+    // ConsumerFactory using JsonDeserializer for CouponDTO.IssueMessage
     @Bean
     public ConsumerFactory<String, CouponDTO.IssueMessage> couponConsumerFactory() {
         Map<String, Object> config = new HashMap<>();
@@ -87,11 +91,29 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(config, new StringDeserializer(), jsonDeserializer);
     }
 
+    // DeadLetterPublishingRecoverer to send failed messages to DLQ
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, CouponDTO.IssueMessage> couponKafkaListenerContainerFactory() {
+    public DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(KafkaTemplate<String, CouponDTO.IssueMessage> kafkaTemplate) {
+        return new DeadLetterPublishingRecoverer(kafkaTemplate,
+                (record, ex) -> new TopicPartition(record.topic() + ".DLT", record.partition()));
+    }
+
+    // DefaultErrorHandler with retry and dead letter support
+    @Bean
+    public DefaultErrorHandler errorHandler(DeadLetterPublishingRecoverer recoverer) {
+        // Retry max 3 times with 1 second interval
+        return new DefaultErrorHandler(recoverer, new FixedBackOff(1000L, 3));
+    }
+
+    // KafkaListenerContainerFactory using the error handler for DLQ support
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, CouponDTO.IssueMessage> couponKafkaListenerContainerFactory(
+            ConsumerFactory<String, CouponDTO.IssueMessage> consumerFactory,
+            DefaultErrorHandler errorHandler) {
         ConcurrentKafkaListenerContainerFactory<String, CouponDTO.IssueMessage> factory = new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(couponConsumerFactory());
+        factory.setConsumerFactory(consumerFactory);
         factory.setConcurrency(concurrency);
+        factory.setCommonErrorHandler(errorHandler); // set error handler with DLQ
         return factory;
     }
 }

@@ -2,7 +2,7 @@ package com.example.coupon.rest.v3;
 
 import com.example.coupon.domain.Coupon;
 import com.example.coupon.model.CouponDTO;
-import com.example.coupon.service.v1.CouponService;
+import com.example.coupon.service.v3.CouponService;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,8 +44,8 @@ public class CouponResource {
     public ResponseEntity<CouponDTO.Response> issueCoupon(@RequestBody @Valid CouponDTO.IssueRequest payload,
                                                           @Parameter(name = "X-USER-ID", description = "User ID", required = true)
                                                           @RequestHeader("X-USER-ID") String userId) {
-        CouponDTO.Response response = CouponDTO.Response.from(couponService.issueCoupon(payload));
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        couponService.requestIssueCoupon(payload);
+        return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/{couponId}/use")
