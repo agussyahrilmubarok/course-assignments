@@ -4,6 +4,7 @@ import com.example.coupon.domain.Coupon;
 import com.example.coupon.domain.CouponPolicy;
 import com.example.coupon.exception.CouponIssueException;
 import com.example.coupon.model.CouponDTO;
+import com.example.coupon.repos.CouponPolicyRepository;
 import com.example.coupon.repos.CouponRepository;
 import com.example.coupon.utils.UserIdInterceptor;
 import lombok.RequiredArgsConstructor;
@@ -21,55 +22,63 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CouponIssuerServiceImpl implements CouponIssuerService {
 
-    private static final String COUPON_QUANTITY_KEY = "coupon:quantity:";
     private static final String COUPON_LOCK_KEY = "coupon:lock:";
     private static final long LOCK_WAIT_TIME = 3;
     private static final long LOCK_LEASE_TIME = 5;
 
     private final RedissonClient redissonClient;
     private final CouponRepository couponRepository;
-    private final CouponPolicyService couponPolicyService;
+    private final CouponPolicyRepository couponPolicyRepository;
     private final CouponRedisService couponRedisService;
 
     /**
-     * Issues a coupon for the specified policy, ensuring no over-issuance using distributed locking.
+     * Issues a coupon safely with distributed lock and quota checks.
      *
-     * @param request DTO containing coupon policy ID
-     * @return the Coupon used for issuance
-     * @throws CouponIssueException if lock not acquired, expired, or quota exceeded
+     * @param request Coupon issue request DTO containing policy ID
+     * @return issued Coupon entity
+     * @throws CouponIssueException when locking, quota, or policy validations fail
      */
     @Override
     public Coupon issueCoupon(CouponDTO.IssueRequest request) {
-        String quantityKey = COUPON_QUANTITY_KEY + request.getCouponPolicyId();
-        String lockKey = COUPON_LOCK_KEY + request.getCouponPolicyId();
-        RLock lock = redissonClient.getLock(lockKey);
+        final String couponPolicyId = request.getCouponPolicyId();
+        final String lockKey = COUPON_LOCK_KEY + couponPolicyId;
+        final RLock lock = redissonClient.getLock(lockKey);
+
+        // Retrieve current user once
+        final String userId = UserIdInterceptor.getCurrentUserId();
 
         try {
             boolean isLocked = lock.tryLock(LOCK_WAIT_TIME, LOCK_LEASE_TIME, TimeUnit.SECONDS);
             if (!isLocked) {
-                log.warn("Lock acquisition failed for coupon policy: {}", request.getCouponPolicyId());
+                log.warn("Failed to acquire lock for coupon policy: {}", couponPolicyId);
                 throw new CouponIssueException("Too many coupon requests. Please try again later.");
             }
 
-            CouponPolicy couponPolicy = couponPolicyService.findById(request.getCouponPolicyId());
+            final CouponPolicy couponPolicy = couponPolicyRepository.findById(couponPolicyId)
+                    .orElseThrow(() -> {
+                        log.warn("Coupon policy not found: {}", couponPolicyId);
+                        return new CouponIssueException("Coupon policy does not exist.");
+                    });
 
-            LocalDateTime now = LocalDateTime.now();
-            if (now.isBefore(couponPolicy.getStartTime()) || now.isAfter(couponPolicy.getEndTime())) {
-                log.warn("Coupon issuance attempt outside valid period: {}", request.getCouponPolicyId());
-                throw new IllegalStateException("It is not within the coupon issuance period.");
+            final LocalDateTime now = LocalDateTime.now();
+            final LocalDateTime startTime = couponPolicy.getStartTime();
+            final LocalDateTime endTime = couponPolicy.getEndTime();
+
+            if ((startTime != null && now.isBefore(startTime)) || (endTime != null && now.isAfter(endTime))) {
+                log.warn("Coupon issuance outside valid period for policy: {}", couponPolicyId);
+                throw new IllegalStateException("Coupon issuance is not within the valid period.");
             }
 
-            String userId = UserIdInterceptor.getCurrentUserId();
-            boolean alreadyIssued = couponRepository.existsByUserIdAndCouponPolicyId(userId, request.getCouponPolicyId());
+            boolean alreadyIssued = couponRepository.existsByUserIdAndCouponPolicyId(userId, couponPolicyId);
             if (alreadyIssued) {
-                log.warn("User {} already has a coupon for policy {}", userId, request.getCouponPolicyId());
+                log.warn("User {} has already received a coupon for policy {}", userId, couponPolicyId);
                 throw new CouponIssueException("You have already received this coupon.");
             }
 
-            Long remainingQuantity = couponRedisService.decrementAndGetCouponPolicyQuantity(request.getCouponPolicyId());
+            final Long remainingQuantity = couponRedisService.decrementAndGetCouponPolicyQuantity(couponPolicyId);
             if (remainingQuantity < 0) {
-                Long quantity = couponRedisService.incrementAndGetCouponPolicyQuantity(request.getCouponPolicyId());
-                log.info("Coupon exhausted for policy: {} quantity: {}", request.getCouponPolicyId(), quantity);
+                couponRedisService.incrementAndGetCouponPolicyQuantity(couponPolicyId);
+                log.info("Coupons exhausted for policy {}. Current quantity: {}", couponPolicyId, remainingQuantity);
                 throw new CouponIssueException("All coupons have been issued.");
             }
 
@@ -78,22 +87,22 @@ public class CouponIssuerServiceImpl implements CouponIssuerService {
             coupon.setCouponPolicy(couponPolicy);
             coupon.setCode(generateCouponCode());
             coupon.setStatus(Coupon.Status.AVAILABLE);
-            coupon.setUserId(UserIdInterceptor.getCurrentUserId());
-            couponRepository.save(coupon);
-            log.info("Save New Coupon. Coupon id: {}", coupon.getId());
+            coupon.setUserId(userId);
 
+            couponRepository.save(coupon);
             couponRedisService.setCouponState(CouponDTO.Response.from(coupon));
 
-            log.info("Coupon issued. Remaining: {} for policy: {}", remainingQuantity, request.getCouponPolicyId());
+            log.info("Coupon issued successfully. CouponId: {}, Remaining: {} for policy: {}", coupon.getId(), remainingQuantity, couponPolicyId);
+
             return coupon;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Coupon issue interrupted for policy: {}", request.getCouponPolicyId(), e);
-            throw new CouponIssueException("An error occurred while issuing the coupon.");
+            log.error("Coupon issuance interrupted for policy: {}", couponPolicyId, e);
+            throw new CouponIssueException("Coupon issuance interrupted.");
         } finally {
             if (lock.isHeldByCurrentThread()) {
                 lock.unlock();
-                log.debug("Lock released for policy: {}", request.getCouponPolicyId());
+                log.debug("Lock released for coupon policy: {}", couponPolicyId);
             }
         }
     }

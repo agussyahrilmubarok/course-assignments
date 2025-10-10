@@ -4,7 +4,6 @@ import com.example.coupon.domain.Coupon;
 import com.example.coupon.exception.CouponIssueException;
 import com.example.coupon.exception.CouponNotFoundException;
 import com.example.coupon.model.CouponDTO;
-import com.example.coupon.repos.CouponPolicyRepository;
 import com.example.coupon.repos.CouponRepository;
 import com.example.coupon.utils.UserIdInterceptor;
 import lombok.RequiredArgsConstructor;
@@ -23,15 +22,14 @@ import java.util.stream.Collectors;
 public class CouponServiceImpl implements CouponService {
 
     private final CouponRepository couponRepository;
-    private final CouponPolicyRepository couponPolicyRepository;
     private final CouponIssuerService couponIssuerService;
     private final CouponRedisService couponRedisService;
 
     /**
-     * Retrieves a paginated list of coupons for the current user based on status.
+     * Retrieve paginated coupons for the current user filtered by status.
      *
-     * @param request filter and pagination parameters
-     * @return list of Coupon entities
+     * @param request filter and pagination info
+     * @return list of coupons mapped to DTO responses
      */
     @Override
     @Transactional(readOnly = true)
@@ -57,15 +55,11 @@ public class CouponServiceImpl implements CouponService {
     }
 
     /**
-     * Retrieves a specific coupon for the current user by its ID.
+     * Retrieve a single coupon for current user by ID.
      *
-     * <p>This method ensures that the coupon belongs to the current user
-     * (based on {@link UserIdInterceptor}) and prevents unauthorized access
-     * to other users' coupons.</p>
-     *
-     * @param couponId the ID of the coupon to retrieve
-     * @return the coupon mapped to {@link CouponDTO.Response}
-     * @throws CouponNotFoundException if coupon is not found or does not belong to the current user
+     * @param couponId coupon identifier
+     * @return coupon mapped to response DTO
+     * @throws CouponNotFoundException if coupon not found or not owned by current user
      */
     @Override
     @Transactional(readOnly = true)
@@ -76,98 +70,79 @@ public class CouponServiceImpl implements CouponService {
         return couponRepository.findByIdAndUserId(couponId, currentUserId)
                 .map(CouponDTO.Response::from)
                 .orElseThrow(() -> {
-                    log.error("Coupon not found or unauthorized access. Coupon ID: {}", couponId);
-                    return new CouponNotFoundException("Coupon not found or no access permission.");
+                    log.warn("Coupon not found or unauthorized access attempt. Coupon ID: {}", couponId);
+                    return new CouponNotFoundException("Coupon not found or access denied.");
                 });
     }
 
     /**
-     * Issues a coupon for the specified policy if within the valid time frame and quantity limits.
+     * Issue a coupon based on the provided coupon policy.
+     * Delegates issuance to CouponIssuerService which handles concurrency and quota logic.
      *
-     * <p><strong>Technical Limitations Based on Current Implementation:</strong></p>
-     * <ul>
-     *   <li><strong>1. Race Condition Risk:</strong><br>
-     *   The number of issued coupons is checked using <code>countByCouponPolicyId</code> before issuing.
-     *   However, there's no lock or atomic control between this check and saving the coupon.
-     *   Under concurrent access, multiple transactions can pass the check and exceed <code>totalQuantity</code>.</li>
-     *
-     *   <li><strong>2. Performance Concern:</strong><br>
-     *   The <code>countByCouponPolicyId</code> query runs for every request.
-     *   As issued coupons grow, this count query may become a performance bottleneck.</li>
-     *
-     *   <li><strong>3. No Locking or Isolation Enforcement:</strong><br>
-     *   The method does not use pessimistic or optimistic locking,
-     *   making it vulnerable in high-concurrency environments where multiple coupons are issued simultaneously.</li>
-     *
-     *   <li><strong>4. Quantity Inaccuracy in Distributed Systems:</strong><br>
-     *   Without a distributed locking mechanism or atomic counter,
-     *   ensuring the total issuance stays within the limit is difficult when running across multiple instances.</li>
-     * </ul>
-     *
-     * @param request DTO containing coupon policy ID
+     * @param request DTO with coupon policy ID
      * @return issued Coupon entity
-     * @throws CouponIssueException if policy is invalid, expired, or quota exceeded
+     * @throws CouponIssueException if policy invalid, expired, or quota exceeded
      */
     @Override
     @Transactional
     public Coupon issueCoupon(CouponDTO.IssueRequest request) {
-        log.info("Issuing coupon for policy ID: {}", request.getCouponPolicyId());
+        log.info("Request to issue coupon for policy ID: {}", request.getCouponPolicyId());
         return couponIssuerService.issueCoupon(request);
     }
 
     /**
-     * Marks a coupon as used for a specific order by the current user.
+     * Mark a coupon as used for a specific order by current user.
      *
-     * @param couponId the ID of the coupon to use
-     * @param orderId  the ID of the order
-     * @return updated Coupon entity
-     * @throws CouponNotFoundException if coupon not found or doesn't belong to user
+     * @param couponId coupon identifier
+     * @param orderId  order identifier
+     * @return updated coupon entity
+     * @throws CouponNotFoundException if coupon not found or not owned by user
      */
     @Override
     @Transactional
     public Coupon useCoupon(String couponId, String orderId) {
         String currentUserId = UserIdInterceptor.getCurrentUserId();
-        log.info("User {} is attempting to use coupon ID: {}", currentUserId, couponId);
+        log.info("User {} attempting to use coupon ID: {}", currentUserId, couponId);
 
         Coupon coupon = couponRepository.findByIdAndUserId(couponId, currentUserId)
                 .orElseThrow(() -> {
-                    log.error("Coupon not found or unauthorized access. Coupon ID: {}", couponId);
+                    log.warn("Coupon not found or unauthorized use attempt. Coupon ID: {}", couponId);
                     return new CouponNotFoundException("Coupon not found or no access permission.");
                 });
 
         coupon.use(orderId);
-        Coupon usedCoupon = couponRepository.save(coupon);
-        couponRedisService.setCouponState(CouponDTO.Response.from(usedCoupon));
-        log.info("Coupon ID: {} used successfully for order ID: {}", couponId, orderId);
+        Coupon updatedCoupon = couponRepository.save(coupon);
+        couponRedisService.setCouponState(CouponDTO.Response.from(updatedCoupon));
 
-        return usedCoupon;
+        log.info("Coupon ID: {} used successfully for order ID: {}", couponId, orderId);
+        return updatedCoupon;
     }
 
     /**
-     * Cancels a previously used coupon by the current user.
+     * Cancel a previously used coupon by current user.
      *
-     * @param couponId the ID of the coupon to cancel
-     * @return updated Coupon entity
-     * @throws CouponNotFoundException if coupon not found or doesn't belong to user
+     * @param couponId coupon identifier
+     * @return updated coupon entity
+     * @throws CouponNotFoundException if coupon not found or not owned by user
      */
     @Override
     @Transactional
     public Coupon cancelCoupon(String couponId) {
         String currentUserId = UserIdInterceptor.getCurrentUserId();
-        log.info("User {} is attempting to cancel coupon ID: {}", currentUserId, couponId);
+        log.info("User {} attempting to cancel coupon ID: {}", currentUserId, couponId);
 
         Coupon coupon = couponRepository.findByIdAndUserId(couponId, currentUserId)
                 .orElseThrow(() -> {
-                    log.error("Coupon not found or unauthorized access. Coupon ID: {}", couponId);
+                    log.warn("Coupon not found or unauthorized cancel attempt. Coupon ID: {}", couponId);
                     return new CouponNotFoundException("Coupon not found or no access permission.");
                 });
 
         coupon.cancel();
-        Coupon canceledCoupon = couponRepository.save(coupon);
-        couponRedisService.incrementAndGetCouponPolicyQuantity(canceledCoupon.getCouponPolicy().getId());
-        couponRedisService.setCouponState(CouponDTO.Response.from(canceledCoupon));
-        log.info("Coupon ID: {} canceled successfully", couponId);
+        Coupon updatedCoupon = couponRepository.save(coupon);
+        couponRedisService.incrementAndGetCouponPolicyQuantity(updatedCoupon.getCouponPolicy().getId());
+        couponRedisService.setCouponState(CouponDTO.Response.from(updatedCoupon));
 
-        return canceledCoupon;
+        log.info("Coupon ID: {} canceled successfully", couponId);
+        return updatedCoupon;
     }
 }
