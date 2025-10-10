@@ -3,7 +3,7 @@
 `POST /api/couponPolicies`
 
 ```bash
-curl -X POST http://localhost:8082/api/v2/couponPolicies \
+curl -X POST http://localhost:8082/api/v3/couponPolicies \
   -H "Content-Type: application/json" \
   -d '{
     "name": "New Coupon",
@@ -24,7 +24,7 @@ curl -X POST http://localhost:8082/api/v2/couponPolicies \
 `GET /api/couponPolicies`
 
 ```bash
-curl -X GET http://localhost:8082/api/v2/couponPolicies \
+curl -X GET http://localhost:8082/api/v3/couponPolicies \
   -H "Content-Type: application/json" \
   -i
 ```
@@ -34,7 +34,7 @@ curl -X GET http://localhost:8082/api/v2/couponPolicies \
 `GET /api/couponPolicies/{id}`
 
 ```bash
-curl -X GET http://localhost:8082/api/v2/couponPolicies/ID \
+curl -X GET http://localhost:8082/api/v3/couponPolicies/ID \
   -H "Content-Type: application/json" \
   -i
 ```
@@ -44,7 +44,7 @@ curl -X GET http://localhost:8082/api/v2/couponPolicies/ID \
 `POST /api/coupons/issue`
 
 ```bash
-curl -X POST http://localhost:8082/api/v2/coupons/issue \
+curl -X POST http://localhost:8082/api/v3/coupons/issue \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: 10001" \
   -d '{
@@ -58,7 +58,7 @@ curl -X POST http://localhost:8082/api/v2/coupons/issue \
 `POST /api/coupons/{ID}/use`
 
 ```bash
-curl -X POST http://localhost:8082/api/v2/coupons/ID/use \
+curl -X POST http://localhost:8082/api/v3/coupons/ID/use \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: 10001" \
   -d '{
@@ -72,7 +72,7 @@ curl -X POST http://localhost:8082/api/v2/coupons/ID/use \
 `POST /api/coupons/{ID}/cancel`
 
 ```bash
-curl -X POST http://localhost:8082/api/v2/coupons/ID/cancel \
+curl -X POST http://localhost:8082/api/v3/coupons/ID/cancel \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: 10001" \
   -i
@@ -83,7 +83,7 @@ curl -X POST http://localhost:8082/api/v2/coupons/ID/cancel \
 `GET /api/coupons`
 
 ```bash
-curl -X GET http://localhost:8082/api/v2/coupons \
+curl -X GET http://localhost:8082/api/v3/coupons \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: 10001" \
   -i
@@ -94,7 +94,7 @@ curl -X GET http://localhost:8082/api/v2/coupons \
 `GET /api/coupons/{ID}`
 
 ```bash
-curl -X GET http://localhost:8082/api/v2/coupons/ID \
+curl -X GET http://localhost:8082/api/v3/coupons/ID \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: 10001" \
   -i
