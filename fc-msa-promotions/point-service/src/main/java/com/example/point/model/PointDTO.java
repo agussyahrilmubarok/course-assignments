@@ -4,9 +4,7 @@ import com.example.point.domain.Point;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -16,7 +14,10 @@ public class PointDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class EarnRequest {
+        @NotBlank(message = "User id must not be blank")
         private String userId;
 
         @NotNull(message = "Amount must not be null")
@@ -29,9 +30,9 @@ public class PointDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class UseRequest {
-        private String userId;
-
         @NotNull(message = "Amount must not be null")
         @Min(value = 1, message = "Amount must be greater than 0")
         private Long amount;
@@ -42,6 +43,8 @@ public class PointDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class CancelRequest {
         @NotNull(message = "Point id must not be null")
         private String pointId;
@@ -61,7 +64,7 @@ public class PointDTO {
         private Long balanceSnapshot;
         private LocalDateTime createdAt;
 
-        public static Response from(Point point) {
+        public static PointDTO.Response from(Point point) {
             return Response.builder()
                     .id(point.getId())
                     .userId(point.getUserId())

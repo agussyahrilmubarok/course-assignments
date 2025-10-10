@@ -1,6 +1,7 @@
 package com.example.point.rest.v1;
 
 import com.example.point.model.PointDTO;
+import com.example.point.service.v1.PointService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(value = "/api/v1/points", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class PointResource {
+
+    private final PointService pointService;
 
     @PostMapping("/earn")
     public ResponseEntity<PointDTO.Response> earnPoints(@RequestBody @Valid PointDTO.EarnRequest payload) {
