@@ -1,10 +1,10 @@
-package com.example.point.batch.point.model;
+package com.example.point.batch.point;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Getter
+@Data
 @NoArgsConstructor
 public class PointSummary {
 

@@ -9,16 +9,18 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+import java.util.Map;
+
 @SpringBootApplication
 @EnableBatchProcessing
 public class PointServiceBatchApplication {
 
     private final JobLauncher jobLauncher;
-    private final Job pointBalanceSyncJob;
+    private final Map<String, Job> jobs;
 
-    public PointServiceBatchApplication(JobLauncher jobLauncher, Job pointBalanceSyncJob) {
+    public PointServiceBatchApplication(JobLauncher jobLauncher, Map<String, Job> jobs) {
         this.jobLauncher = jobLauncher;
-        this.pointBalanceSyncJob = pointBalanceSyncJob;
+        this.jobs = jobs;
     }
 
     public static void main(String[] args) {
@@ -28,12 +30,15 @@ public class PointServiceBatchApplication {
     @Bean
     public ApplicationRunner runner() {
         return args -> {
-            jobLauncher.run(
-                    pointBalanceSyncJob,
-                    new JobParametersBuilder()
-                            .addLong("timestamp", System.currentTimeMillis())
-                            .toJobParameters()
-            );
+            for (Job job : jobs.values()) {
+                jobLauncher.run(
+                        job,
+                        new JobParametersBuilder()
+                                .addLong("timestamp", System.currentTimeMillis())
+                                .toJobParameters()
+                );
+            }
+            ;
         };
     }
 }
