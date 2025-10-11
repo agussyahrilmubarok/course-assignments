@@ -1,4 +1,4 @@
-package com.example.point.service.v2;
+package com.example.point.service;
 
 import com.example.point.domain.Point;
 import com.example.point.model.PointDTO;

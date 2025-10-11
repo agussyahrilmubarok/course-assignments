@@ -22,4 +22,9 @@ public class FallbackController {
     public Mono<Map<String, Object>> couponFallback() {
         return Mono.just(Map.of("status", "down"));
     }
+
+    @GetMapping("/points")
+    public Mono<Map<String, Object>> pointFallback() {
+        return Mono.just(Map.of("status", "down"));
+    }
 }

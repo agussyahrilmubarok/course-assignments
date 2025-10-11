@@ -17,9 +17,6 @@ public class PointDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class EarnRequest {
-        @NotBlank(message = "User id must not be blank")
-        private String userId;
-
         @NotNull(message = "Amount must not be null")
         @Min(value = 1, message = "Amount must be greater than 0")
         private Long amount;

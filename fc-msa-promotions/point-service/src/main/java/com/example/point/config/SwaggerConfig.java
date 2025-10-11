@@ -39,4 +39,12 @@ public class SwaggerConfig {
                 .packagesToScan("com.example.point.rest.v1")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi openApiV2Spec() {
+        return GroupedOpenApi.builder()
+                .group("v2")
+                .packagesToScan("com.example.point.rest.v1")
+                .build();
+    }
 }

@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface PointRepository extends JpaRepository<Point, String> {
 
-    List<Point> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Point> findByUserIdOrderByCreatedAtDesc(String userId);
 
     @Query("SELECT p FROM Point p " +
             "LEFT JOIN FETCH p.pointBalance " +

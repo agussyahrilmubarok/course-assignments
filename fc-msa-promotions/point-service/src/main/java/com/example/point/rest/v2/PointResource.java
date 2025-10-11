@@ -1,4 +1,4 @@
-package com.example.point.rest.v1;
+package com.example.point.rest.v2;
 
 import com.example.point.domain.Point;
 import com.example.point.model.PointDTO;
@@ -13,13 +13,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RestController("PointResourceV1")
-@RequestMapping(value = "/api/v1/points", produces = MediaType.APPLICATION_JSON_VALUE)
+@RestController("PointResourceV2")
+@RequestMapping(value = "/api/v2/points", produces = MediaType.APPLICATION_JSON_VALUE)
 public class PointResource {
 
     private final PointService pointService;
 
-    public PointResource(@Qualifier("PointServiceImplV1") PointService pointService) {
+    public PointResource(@Qualifier("PointServiceImplV2") PointService pointService) {
         this.pointService = pointService;
     }
 

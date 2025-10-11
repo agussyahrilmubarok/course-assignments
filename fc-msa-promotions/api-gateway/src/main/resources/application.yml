@@ -83,7 +83,26 @@ spring:
                     name: couponServiceBreaker
                     fallbackUri: forward:/fallback/coupons
                 - name: JwtAuthenticationFilter
-
+            - id: point-service-v1
+              uri: lb://POINT-SERVICE
+              predicates:
+                - Path=/api/v1/points, /api/v1/points/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: pointServiceBreaker
+                    fallbackUri: forward:/fallback/points
+                - name: JwtAuthenticationFilter
+            - id: point-service-v2
+              uri: lb://POINT-SERVICE
+              predicates:
+                - Path=/api/v2/points, /api/v2/points/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: pointServiceBreaker
+                    fallbackUri: forward:/fallback/points
+                - name: JwtAuthenticationFilter
 
 eureka:
   client:
