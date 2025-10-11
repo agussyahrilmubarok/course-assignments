@@ -20,7 +20,8 @@ public class RedisConfig {
     @Bean
     public RedissonClient redissonClient() {
         Config config = new Config();
-        config.setCodec(new StringCodec());
+        config.setCodec(new StringCodec()); // Use it for java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Long
+        // config.setCodec(new JsonJacksonCodec());
         config.useSingleServer().setAddress("redis://" + host + ":" + port);
 
         return Redisson.create(config);

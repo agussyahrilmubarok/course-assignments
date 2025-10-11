@@ -179,7 +179,7 @@ public class PointServiceImplV2 implements PointService {
                     balance.setId(UUID.randomUUID().toString());
                     balance.setUserId(userId);
                     balance.setBalance(0L);
-                    return pointBalanceRepository.save(balance); // perbaikan
+                    return pointBalanceRepository.save(balance);
                 });
     }
 
@@ -197,19 +197,26 @@ public class PointServiceImplV2 implements PointService {
     }
 
     private void updateCacheBalance(String userId, Long balance) {
-        RMap<String, Long> balanceMap = redissonClient.getMap(POINT_BALANCE_MAP);
-        balanceMap.fastPut(userId, balance);
+        RMap<String, String> balanceMap = redissonClient.getMap(POINT_BALANCE_MAP);
+        balanceMap.fastPut(userId, String.valueOf(balance));
     }
 
     private Long getBalanceInCacheOrDb(String userId) {
-        RMap<String, Long> balanceMap = redissonClient.getMap(POINT_BALANCE_MAP);
-        Long cachedBalance = balanceMap.get(userId);
-        if (cachedBalance != null) return cachedBalance;
+        RMap<String, String> balanceMap = redissonClient.getMap(POINT_BALANCE_MAP);
+        String cachedBalanceStr = balanceMap.get(userId);
+        if (cachedBalanceStr != null) {
+            try {
+                // Use it for java.lang.ClassCastException: class java.lang.String cannot be cast to class java.lang.Long
+                return Long.parseLong(cachedBalanceStr);
+            } catch (NumberFormatException e) {
+                log.warn("Invalid cached balance for user {}: {}", userId, cachedBalanceStr);
+            }
+        }
 
         Long balance = pointBalanceRepository.findByUserId(userId)
                 .map(PointBalance::getBalance)
                 .orElse(0L);
-        balanceMap.fastPut(userId, balance);
+        balanceMap.fastPut(userId, String.valueOf(balance));
         return balance;
     }
 

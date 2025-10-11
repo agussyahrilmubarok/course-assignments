@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class PointServiceImplV1V2Test {
+class PointServiceImplV2Test {
 
     private static final String TEST_USER_ID = "USER_1";
     private static final String TEST_POINT_ID = "POINT_1";
@@ -100,7 +100,7 @@ class PointServiceImplV1V2Test {
             verify(lock).tryLock(anyLong(), anyLong(), any());
             verify(pointBalanceRepository).save(any());
             verify(pointRepository).save(any());
-            verify(balanceMap).fastPut(TEST_USER_ID, pointBalance.getBalance());
+            verify(balanceMap).fastPut(TEST_USER_ID, String.valueOf(pointBalance.getBalance()));
             verify(lock).unlock();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -126,7 +126,7 @@ class PointServiceImplV1V2Test {
             assertThat(result.getType()).isEqualTo(Point.PointType.USED);
 
             verify(pointBalanceRepository).save(any());
-            verify(balanceMap).fastPut(TEST_USER_ID, pointBalance.getBalance());
+            verify(balanceMap).fastPut(TEST_USER_ID, String.valueOf(pointBalance.getBalance()));
             verify(lock).unlock();
         }
     }
@@ -162,7 +162,7 @@ class PointServiceImplV1V2Test {
 
             assertThat(result).isNotNull();
             assertThat(result.getType()).isEqualTo(Point.PointType.CANCELED);
-            verify(balanceMap).fastPut(TEST_USER_ID, pointBalance.getBalance());
+            verify(balanceMap).fastPut(TEST_USER_ID, String.valueOf(pointBalance.getBalance()));
             verify(lock).unlock();
         }
     }
@@ -185,7 +185,7 @@ class PointServiceImplV1V2Test {
 
     @Test
     void shouldReturnCachedBalance() {
-        when(balanceMap.get(TEST_USER_ID)).thenReturn(7000L);
+        when(balanceMap.get(TEST_USER_ID)).thenReturn(String.valueOf(7000L));
         try (MockedStatic<UserIdInterceptor> mockUser = mockStatic(UserIdInterceptor.class)) {
             mockUser.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
             Long result = pointService.getBalance();
@@ -202,7 +202,7 @@ class PointServiceImplV1V2Test {
             mockUser.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
             Long result = pointService.getBalance();
             assertThat(result).isEqualTo(5000L);
-            verify(balanceMap).fastPut(TEST_USER_ID, 5000L);
+            verify(balanceMap).fastPut(TEST_USER_ID, String.valueOf(5000L));
         }
     }
 

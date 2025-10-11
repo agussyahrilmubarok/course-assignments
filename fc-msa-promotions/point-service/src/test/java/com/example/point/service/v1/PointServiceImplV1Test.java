@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class PointServiceImplV1V2Test {
+class PointServiceImplV1Test {
 
     private static final String TEST_USER_ID = "USER_1";
     private static final String TEST_POINT_ID = "POINT_1";
