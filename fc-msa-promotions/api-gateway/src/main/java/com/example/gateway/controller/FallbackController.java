@@ -27,4 +27,9 @@ public class FallbackController {
     public Mono<Map<String, Object>> pointFallback() {
         return Mono.just(Map.of("status", "down"));
     }
+
+    @GetMapping("/timeSales")
+    public Mono<Map<String, Object>> timeSaleFallback() {
+        return Mono.just(Map.of("status", "down"));
+    }
 }
