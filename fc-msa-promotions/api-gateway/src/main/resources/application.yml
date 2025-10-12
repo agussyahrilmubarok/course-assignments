@@ -103,6 +103,26 @@ spring:
                     name: pointServiceBreaker
                     fallbackUri: forward:/fallback/points
                 - name: JwtAuthenticationFilter
+            - id: timesale-service-v1
+              uri: lb://TIMESALE-SERVICE
+              predicates:
+                - Path=/api/v1/timeSales, /api/v1/timeSales/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: timeSaleServiceBreaker
+                    fallbackUri: forward:/fallback/timesales
+                - name: JwtAuthenticationFilter
+            - id: timesale-service-v2
+              uri: lb://TIMESALE-SERVICE
+              predicates:
+                - Path=/api/v2/timeSales, /api/v2/timeSales/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: timeSaleServiceBreaker
+                    fallbackUri: forward:/fallback/timesales
+                - name: JwtAuthenticationFilter
 
 eureka:
   client:
