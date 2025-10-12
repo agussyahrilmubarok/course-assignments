@@ -1,12 +1,8 @@
 - feature
-FT: point-service V1
-    - Implement api v1
+
 
 - fixing
-1. FIX: coupon-feature v2
+1. FIX: timesale-service in unit test, integration test
+2. FIX: error response from all services in api-gateway
 
 - bug
-B250710: api-gateway
-    - When forward request sometime got method not found.
-    - But request still process to the target api.
-    - Then data still saved.

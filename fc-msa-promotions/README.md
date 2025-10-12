@@ -5,10 +5,17 @@
 * service-registry,8761
 * user-service,8081,7071
 * coupon-service,8082,7072
+* point-service,8083,7073
+* timesale-service,8084,7074
 
 * postgres,5432
 * redis,6379
+* kafka,9092
 * pgadmin,5050
+* redis-insight,5051
+* kafka-ui,5052
+
+* point-service-batch,worker
 
 # Insight
 

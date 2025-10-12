@@ -33,14 +33,14 @@ public class KafkaConsumer {
 
             timeSaleAsyncService.savePurchaseResult(message.getRequestId(), "SUCCESS");
         } catch (Exception e) {
-            log.error("Failed to process coupon issue request: {}", e.getMessage(), e);
+            log.error("Failed to process timesale issue request: {}", e.getMessage(), e);
             timeSaleAsyncService.savePurchaseResult(message.getRequestId(), "FAIL");
         } finally {
             timeSaleAsyncService.removePurchaseResultFromQueue(message.getRequestId(), "FAIL");
         }
     }
 
-    @KafkaListener(topics = "time-sale-requests.DLT", groupId = "coupon-dlq-consumer")
+    @KafkaListener(topics = "time-sale-requests.DLT", groupId = "timesale-dlq-consumer")
     public void consumeFailedPurchaseRequest(TimeSaleDTO.PurchaseRequestMessage message) {
         // Log the failed message for manual investigation or automated alerting
         log.error("Received message from DLQ: {}", message);
