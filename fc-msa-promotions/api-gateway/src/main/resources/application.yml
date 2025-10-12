@@ -7,8 +7,8 @@ spring:
     name: ${SERVER_NAME:API-GATEWAY}
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: ${SPRING_REDIS_PORT:6379}
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
   cloud:
     gateway:
       server:
@@ -165,3 +165,4 @@ logging:
   level:
     root: INFO
     com.example.gateway.filter: INFO
+    org.springframework.cloud.gateway: DEBUG
