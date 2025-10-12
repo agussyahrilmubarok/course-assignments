@@ -101,7 +101,7 @@ services:
     restart: on-failure
     environment:
       - SERVER_PORT=8761
-      - SPRING_APPLICATION=service-registry
+      - SERVER_NAME=service-registry
     ports:
       - "8761:8761"
     networks:
@@ -118,7 +118,7 @@ services:
     restart: on-failure
     environment:
       - SERVER_PORT=8081
-      - SPRING_APPLICATION=USER-SERVICE
+      - SERVER_NAME=USER-SERVICE
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/promotions_userdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=my-secret-pw
@@ -140,7 +140,7 @@ services:
     restart: on-failure
     environment:
       - SERVER_PORT=8082
-      - SPRING_APPLICATION=COUPON-SERVICE
+      - SERVER_NAME=COUPON-SERVICE
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/promotions_coupondb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=my-secret-pw
@@ -163,7 +163,7 @@ services:
     restart: on-failure
     environment:
       - SERVER_PORT=8083
-      - SPRING_APPLICATION=POINT-SERVICE
+      - SERVER_NAME=POINT-SERVICE
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/promotions_pointdb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=my-secret-pw
@@ -185,7 +185,7 @@ services:
     restart: on-failure
     environment:
       - SERVER_PORT=8084
-      - SPRING_APPLICATION=TIMESALE-SERVICE
+      - SERVER_NAME=TIMESALE-SERVICE
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/promotions_timesaledb
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=my-secret-pw
@@ -208,9 +208,9 @@ services:
     restart: on-failure
     environment:
       - SERVER_PORT=8080
-      - SPRING_APPLICATION=API-GATEWAY
-      - SPRING_REDIS_HOST=redis
-      - SPRING_REDIS_PORT=6379
+      - SERVER_NAME=API-GATEWAY
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
       - EUREKA_CLIENT_URL=http://service-registry:8761/eureka/
       - SERVER_METRIC_PORT=7070
     ports:
