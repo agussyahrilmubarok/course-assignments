@@ -7,8 +7,8 @@ spring:
     name: ${SERVER_NAME:API-GATEWAY}
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
   cloud:
     gateway:
       server:
@@ -111,7 +111,7 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: timeSaleServiceBreaker
-                    fallbackUri: forward:/fallback/timesales
+                    fallbackUri: forward:/fallback/timeSales
                 - name: JwtAuthenticationFilter
             - id: timesale-service-v2
               uri: lb://TIMESALE-SERVICE
@@ -121,7 +121,7 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: timeSaleServiceBreaker
-                    fallbackUri: forward:/fallback/timesales
+                    fallbackUri: forward:/fallback/timeSales
                 - name: JwtAuthenticationFilter
 
 eureka:
