@@ -1,4 +1,31 @@
 services:
+  cassandra:
+    image: cassandra:5.0
+    container_name: cassandra
+    restart: on-failure
+    environment:
+      CASSANDRA_SEEDS: cassandra  # one node
+      CASSANDRA_CLUSTER_NAME: my-cluster
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      CASSANDRA_DC: dc1
+      CASSANDRA_RACK: rack1
+      HEAP_NEWSIZE: 128M
+      MAX_HEAP_SIZE: 1024M
+    ports:
+      - "9042:9042"   # CQL client communication (used by apps/drivers)
+      - "7000:7000"   # Intra-node communication (cluster internode traffic)
+      - "7001:7001"   # Secure internode communication (SSL-enabled)
+      - "7199:7199"   # JMX monitoring (used for metrics/tools)
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - blackfriday_net
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces" ]
+      interval: 10s
+      timeout: 10s
+      retries: 50
+
   postgres:
     image: postgres:17.6
     container_name: postgres
@@ -13,6 +40,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - blackfriday_net
+    depends_on:
+      cassandra:
+        condition: service_healthy
   
   redis:
     image: redis:8.0.3
@@ -24,30 +54,9 @@ services:
       - redis_data:/data
     networks:
       - blackfriday_net
-
-  cassandra:
-    image: cassandra:5.0
-    container_name: cassandra
-    restart: on-failure
-    environment:
-      CASSANDRA_CLUSTER_NAME: my-cluster
-      CASSANDRA_DC: dc1
-      CASSANDRA_RACK: rack1
-      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
-      CASSANDRA_SEEDS: cassandra  # one node
-      HEAP_NEWSIZE: 128M
-      MAX_HEAP_SIZE: 1024M
-    ports:
-      - "9042:9042"   # CQL client communication (used by apps/drivers)
-      - "7000:7000"   # Intra-node communication (cluster internode traffic)
-      - "7001:7001"   # Secure internode communication (SSL-enabled)
-      - "7199:7199"   # JMX monitoring (used for metrics/tools)
-    volumes:
-      # - ./scripts/cassandra/init.cql:/init.cql
-      - cassandra_data:/var/lib/cassandra
-    # entrypoint: [ "sh", "-c", "sleep 30 && cqlsh cassandra -f /init.cql" ]
-    networks:
-      - blackfriday_net
+    depends_on:
+      cassandra:
+        condition: service_healthy
   
   pgadmin:
     image: dpage/pgadmin4:9.8
