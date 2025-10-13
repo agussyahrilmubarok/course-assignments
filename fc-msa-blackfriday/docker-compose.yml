@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my-secret-pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - blackfriday_net
+  
+  redis:
+    image: redis:8.0.3
+    container_name: redis
+    restart: on-failure
+    ports:
+      - "6379:6379" 
+    volumes:
+      - redis_data:/data
+    networks:
+      - blackfriday_net
+  
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin
+    restart: on-failure
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: my-secret-pw
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - blackfriday_net
+    depends_on:
+      - postgres
+  
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: redis-insight
+    restart: on-failure
+    ports:
+      - "5051:5540"
+    volumes:
+      - redis_insight_data:/db
+    networks:
+      - blackfriday_net
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+  redis_insight_data:
+
+networks:
+  blackfriday_net:
