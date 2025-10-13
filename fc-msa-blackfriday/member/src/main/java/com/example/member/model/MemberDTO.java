@@ -1,5 +1,6 @@
 package com.example.member.model;
 
+import com.example.member.domain.User;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -43,12 +44,31 @@ public class MemberDTO {
     @Builder
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ValidateToken {
+
+        @NotBlank(message = "Token is required")
+        private String token;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PROTECTED)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public static class Response {
         private String id;
         private String username;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+
+        public static Response from(User user) {
+            return Response.builder()
+                    .id(user.getId())
+                    .username(user.getUsername())
+                    .createdAt(user.getCreatedAt())
+                    .updatedAt(user.getUpdatedAt())
+                    .build();
+        }
     }
 
     @Getter

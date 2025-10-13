@@ -1,6 +1,7 @@
 package com.example.member.rest;
 
 import com.example.member.model.MemberDTO;
+import com.example.member.service.MemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,18 +17,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class MemberResource {
 
+    private final MemberService memberService;
+
     @PostMapping("/sign-up")
     public ResponseEntity<Void> signUp(@RequestBody @Valid final MemberDTO.SignUp payload) {
+        memberService.signUp(payload);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/sign-in")
     public ResponseEntity<MemberDTO.ResponseWithToken> signUp(@RequestBody @Valid final MemberDTO.SignIn payload) {
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.ok(memberService.signIn(payload));
     }
 
     @PostMapping("/validate")
-    public ResponseEntity<MemberDTO.Response> validate(@RequestBody @Valid final MemberDTO.SignIn payload) {
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<MemberDTO.ResponseWithToken> validate(@RequestBody @Valid final MemberDTO.ValidateToken payload) {
+        return ResponseEntity.ok(memberService.validateToken(payload.getToken()));
     }
 }
