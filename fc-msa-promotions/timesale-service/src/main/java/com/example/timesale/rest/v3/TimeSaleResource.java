@@ -5,6 +5,7 @@ import com.example.timesale.model.TimeSaleDTO;
 import com.example.timesale.service.TimeSaleAsyncService;
 import com.example.timesale.service.TimeSaleService;
 import com.example.timesale.utils.UserIdInterceptor;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -29,25 +30,33 @@ public class TimeSaleResource {
     }
 
     @PostMapping
-    public ResponseEntity<TimeSaleDTO.Response> createTimeSale(@RequestBody @Valid TimeSaleDTO.CreateRequest request) {
+    public ResponseEntity<TimeSaleDTO.Response> createTimeSale(@RequestBody @Valid TimeSaleDTO.CreateRequest request,
+                                                               @Parameter(name = "X-USER-ID", description = "User ID", required = true)
+                                                               @RequestHeader("X-USER-ID") String userIdSwagger) {
         TimeSale timeSale = timeSaleService.create(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(TimeSaleDTO.Response.from(timeSale));
     }
 
     @GetMapping("/{timeSaleId}")
-    public ResponseEntity<TimeSaleDTO.Response> getTimeSale(@PathVariable String timeSaleId) {
+    public ResponseEntity<TimeSaleDTO.Response> getTimeSale(@PathVariable String timeSaleId,
+                                                            @Parameter(name = "X-USER-ID", description = "User ID", required = true)
+                                                            @RequestHeader("X-USER-ID") String userIdSwagger) {
         TimeSale timeSale = timeSaleService.findById(timeSaleId);
         return ResponseEntity.ok(TimeSaleDTO.Response.from(timeSale));
     }
 
     @GetMapping
-    public ResponseEntity<Page<TimeSaleDTO.Response>> getOngoingTimeSales(@PageableDefault Pageable pageable) {
+    public ResponseEntity<Page<TimeSaleDTO.Response>> getOngoingTimeSales(@PageableDefault Pageable pageable,
+                                                                          @Parameter(name = "X-USER-ID", description = "User ID", required = true)
+                                                                          @RequestHeader("X-USER-ID") String userIdSwagger) {
         Page<TimeSale> timeSales = timeSaleService.findAllOngoing(pageable);
         return ResponseEntity.ok(timeSales.map(TimeSaleDTO.Response::from));
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<TimeSaleDTO.AsyncPurchaseResponse> purchaseTimeSale(@RequestBody @Valid TimeSaleDTO.PurchaseRequest request) {
+    public ResponseEntity<TimeSaleDTO.AsyncPurchaseResponse> purchaseTimeSale(@RequestBody @Valid TimeSaleDTO.PurchaseRequest request,
+                                                                              @Parameter(name = "X-USER-ID", description = "User ID", required = true)
+                                                                              @RequestHeader("X-USER-ID") String userIdSwagger) {
         String userId = UserIdInterceptor.getCurrentUserId();
         String requestId = timeSaleAsyncService.purchaseRequest(request, userId);
         return ResponseEntity.ok(TimeSaleDTO.AsyncPurchaseResponse.builder()
@@ -58,7 +67,9 @@ public class TimeSaleResource {
 
     @GetMapping("/{timeSaleId}/purchase/results/{requestId}")
     public ResponseEntity<TimeSaleDTO.AsyncPurchaseResponse> getPurchaseResult(@PathVariable String timeSaleId,
-                                                                               @PathVariable String requestId) {
+                                                                               @PathVariable String requestId,
+                                                                               @Parameter(name = "X-USER-ID", description = "User ID", required = true)
+                                                                               @RequestHeader("X-USER-ID") String userIdSwagger) {
         return ResponseEntity.ok(timeSaleAsyncService.findPurchaseResult(timeSaleId, requestId));
     }
 }
