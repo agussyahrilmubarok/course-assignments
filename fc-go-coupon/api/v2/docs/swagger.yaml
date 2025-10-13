@@ -1,0 +1,22 @@
+basePath: /api/v2
+info:
+  contact: {}
+  description: Coupon API V2
+  title: Coupon API V2
+  version: "2.0"
+paths:
+  /coupons:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: List coupons
+      tags:
+      - Coupons
+swagger: "2.0"
