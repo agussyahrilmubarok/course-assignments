@@ -1,4 +1,38 @@
 services:
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my-secret-pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - blackfriday_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  redis:
+    image: redis:8.0.3
+    container_name: redis
+    restart: on-failure
+    ports:
+      - "6379:6379" 
+    volumes:
+      - redis_data:/data
+    networks:
+      - blackfriday_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
   cassandra:
     image: cassandra:5.0
     container_name: cassandra
@@ -25,39 +59,17 @@ services:
       interval: 10s
       timeout: 10s
       retries: 50
-
-  postgres:
-    image: postgres:17.6
-    container_name: postgres
-    restart: on-failure
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: my-secret-pw
-    ports:
-      - "5432:5432"
-    volumes:
-      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - postgres_data:/var/lib/postgresql/data
+  
+  cassandra-init:
+    image: cassandra:5.0
+    container_name: cassandra-init
     networks:
       - blackfriday_net
     depends_on:
       cassandra:
         condition: service_healthy
-  
-  redis:
-    image: redis:8.0.3
-    container_name: redis
-    restart: on-failure
-    ports:
-      - "6379:6379" 
-    volumes:
-      - redis_data:/data
-    networks:
-      - blackfriday_net
-    depends_on:
-      cassandra:
-        condition: service_healthy
-  
+    entrypoint: [ "sh", "-c", "cqlsh cassandra -e \"CREATE KEYSPACE IF NOT EXISTS catalog WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};\"" ]
+    
   pgadmin:
     image: dpage/pgadmin4:9.8
     container_name: pgadmin
@@ -72,7 +84,8 @@ services:
     networks:
       - blackfriday_net
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
   
   redis-insight:
     image: redis/redisinsight:2.70
@@ -87,6 +100,25 @@ services:
     depends_on:
       - redis
 
+  cassandra-web:
+    image: ipushc/cassandra-web:v1.1.6
+    container_name: cassandra-web
+    restart: unless-stopped
+    environment:
+      HOST_PORT: ":80"
+      READ_ONLY: "false"
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      CASSANDRA_USERNAME: cassandra
+      CASSANDRA_PASSWORD: cassandra
+    ports:
+      - "5052:80"
+    networks:
+      - blackfriday_net
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    
 volumes:
   postgres_data:
   redis_data:
