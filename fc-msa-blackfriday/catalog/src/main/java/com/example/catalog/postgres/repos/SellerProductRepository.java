@@ -9,4 +9,8 @@ import java.util.Optional;
 public interface SellerProductRepository extends JpaRepository<SellerProduct, String> {
 
     List<SellerProduct> findBySellerId(String sellerId);
+
+    Optional<SellerProduct> findByProductId(String productId);
+
+    void deleteByProductId(String productId);
 }

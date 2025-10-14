@@ -16,7 +16,6 @@ public class Product {
     @PrimaryKey
     private String id;
 
-    @Column("seller_id")
     private String sellerId;
 
     @Column("name")
@@ -44,5 +43,6 @@ public class Product {
         this.tags = tags;
     }
 
-    public Product() {}
+    public Product() {
+    }
 }

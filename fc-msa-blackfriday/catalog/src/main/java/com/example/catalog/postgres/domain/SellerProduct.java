@@ -16,13 +16,13 @@ import java.time.LocalDateTime;
 @Setter
 public class SellerProduct {
 
+    @Column(nullable = false)
+    public String sellerId;
+    @Column(nullable = false)
+    public String productId;
     @Id
     @Column(nullable = false, updatable = false)
     private String id;
-
-    @Column(nullable = false)
-    public String sellerId;
-
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
