@@ -22,6 +22,7 @@ public class CatalogServiceImpl implements CatalogService {
 
     private final ProductRepository productRepository;
     private final SellerProductRepository sellerProductRepository;
+    private final EventProducer eventProducer;
 
     @Override
     @Transactional
@@ -46,6 +47,13 @@ public class CatalogServiceImpl implements CatalogService {
         product.setTags(param.getTags());
         product = productRepository.save(product);
         log.info("Saved product with ID: {}", productId);
+
+        eventProducer.sendProductTagsAdded(ProductDTO.ProductTagsMessage
+                .builder()
+                .productId(productId)
+                .tags(product.getTags())
+                .build());
+        log.info("Send kafka product tags with ID: {}", productId);
 
         return ProductDTO.Response.from(product);
     }
@@ -74,8 +82,19 @@ public class CatalogServiceImpl implements CatalogService {
     @Override
     @Transactional
     public void deleteProduct(String productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> {
+                    log.error("Product with ID {} not found", productId);
+                    return new ProductNotFoundException("Product not found");
+                });
+
         productRepository.deleteById(productId);
         sellerProductRepository.deleteByProductId(productId);
+        eventProducer.sendProductTagsRemoved(ProductDTO.ProductTagsMessage
+                .builder()
+                .productId(productId)
+                .tags(product.getTags())
+                .build());
         log.info("Deleted product and associated sellerProduct for ID: {}", productId);
     }
 

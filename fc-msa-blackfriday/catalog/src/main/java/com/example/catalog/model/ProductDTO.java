@@ -51,6 +51,17 @@ public class ProductDTO {
 
     @Getter
     @Builder
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    public static class ProductTagsMessage {
+
+        private String productId;
+
+        private List<String> tags;
+    }
+
+    @Getter
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     @JsonInclude(JsonInclude.Include.ALWAYS)

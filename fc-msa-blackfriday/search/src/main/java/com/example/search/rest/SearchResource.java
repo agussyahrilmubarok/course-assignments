@@ -1,7 +1,9 @@
 package com.example.search.rest;
 
+import com.example.search.service.SearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,8 +16,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SearchResource {
 
-    @GetMapping("/search/tags/{tag}/productIds")
-    public List<String> getTagProductIds(@PathVariable String tag) {
-        throw new RuntimeException();
+    private final SearchService searchService;
+
+    @GetMapping("/tags/{tag}/productIds")
+    public ResponseEntity<List<String>> getTagProductIds(@PathVariable String tag) {
+        return ResponseEntity.ok(searchService.findProductIdsByTag(tag));
     }
 }

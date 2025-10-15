@@ -54,7 +54,7 @@ curl -X GET http://localhost:8082/api/v1/catalogs/sellers/seller-abc-123/product
 `api/v1/catalogs/products/`
 
 ```bash
-curl -X DELETE http://localhost:8082/api/v1/catalogs/products/1ca61ddb-0db9-41cd-ac1f-86d1f799f013 \
+curl -X DELETE http://localhost:8082/api/v1/catalogs/products/1eea521f-5026-4aa5-9104-6e78d92f1591 \
   -H "Content-Type: application/json" \
   -i
 ```

@@ -12,7 +12,7 @@ public class ProductDTO {
     @Builder
     @NoArgsConstructor(access = AccessLevel.PRIVATE)
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
-    public static class ResponseTag {
+    public static class ProductTagsMessage {
 
         public String productId;
 
