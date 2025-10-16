@@ -1,8 +1,16 @@
 {
     "folders": [
         {
-            "name": "app",
-            "path": "./app"
+            "name": "account",
+            "path": "./app/account"
+        },
+        {
+            "name": "catalog",
+            "path": "./app/catalog"
+        },
+        {
+            "name": "order",
+            "path": "./app/order"
         },
         {
             "name": "root",
