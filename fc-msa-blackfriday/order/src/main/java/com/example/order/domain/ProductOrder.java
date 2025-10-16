@@ -26,11 +26,18 @@ public class ProductOrder {
     @Column(nullable = false)
     private String productId;
 
+    @Column(nullable = false)
+    private Long count;
+
     @Column
     private String paymentId;
 
     @Column
     private String deliveryId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private Status orderStatus = Status.CREATED;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
