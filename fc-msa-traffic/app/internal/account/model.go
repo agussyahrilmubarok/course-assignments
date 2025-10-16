@@ -1,6 +1,11 @@
 package account
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+)
 
 type SignUpRequest struct {
 	Name     string `json:"name" validate:"required"`
@@ -8,8 +13,16 @@ type SignUpRequest struct {
 	Password string `json:"password" validate:"required,min=6"`
 }
 
-type SignUpResponse struct {
-	ID string `json:"id"`
+func (r *SignUpRequest) ToUser() *User {
+	userId := uuid.New().String()
+	hashPassword, _ := bcrypt.GenerateFromPassword([]byte(r.Password), bcrypt.DefaultCost)
+
+	return &User{
+		ID:       userId,
+		Name:     r.Name,
+		Email:    r.Email,
+		Password: string(hashPassword),
+	}
 }
 
 type SignInRequest struct {
@@ -17,15 +30,22 @@ type SignInRequest struct {
 	Password string `json:"password" validate:"required,min=6"`
 }
 
-type SignInResponse struct {
-	Token   string          `json:"token"`
-	Account AccountResponse `json:"account"`
+type ValidateRequest struct {
+	Token string `json:"token" validate:"required"`
 }
 
-type AccountResponse struct {
+type UserResponse struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (r *UserResponse) FromUser(user *User) {
+	r.ID = user.ID
+	r.Name = user.Name
+	r.Email = user.Name
+	r.CreatedAt = user.CreatedAt
+	r.UpdatedAt = user.UpdatedAt
 }
