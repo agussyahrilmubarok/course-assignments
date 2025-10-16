@@ -14,8 +14,29 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+
+	_ "example.com/cmd/account/server/docs"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
+// @title Account Service API
+// @version 1.0
+// @description This is an account service API.
+// @termsOfService http://example.com/terms/
+
+// @contact.name API Support
+// @contact.url http://www.example.com/support
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8081
+// @BasePath /api/v1/accounts
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 func main() {
 	// Load config
 	configFlag := flag.String("config", "configs/account.yaml", "Path to config file")
@@ -28,7 +49,7 @@ func main() {
 	}
 
 	// Init logger
-	logger, err := account.NewZerolog()
+	logger, err := account.NewZerolog(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
 		os.Exit(1)
@@ -50,17 +71,18 @@ func main() {
 		logger.Info().Msg("AutoMigrate executed")
 	}
 
+	// Register routes
+	store := account.NewStore(db, logger)
+	service := account.NewService(cfg, logger)
+	handler := account.NewHandler(store, service, logger)
+	customMiddleware := account.NewCustomMiddleware(service)
+
 	// Init Echo server
 	e := echo.New()
 	e.HideBanner = false
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Validator = &account.CustomValidator{Validator: validator.New()}
-
-	// Register routes
-	store := account.NewStore(db, logger)
-	service := account.NewService()
-	handler := account.NewHandler(store, service, logger)
 
 	v1 := e.Group("/api/v1/accounts")
 	{
@@ -70,14 +92,15 @@ func main() {
 				"service": "account-service",
 			})
 		})
+		v1.GET("/swagger/*", echoSwagger.WrapHandler)
 
 		v1.POST("/sign-up", handler.SignUp)
-		v1.POST("/sign-in", handler.SignIn)
+		v1.POST("/sign-in", handler.SignIn, middleware.RateLimiterWithConfig(customMiddleware.RateLimiterConfig()))
 		v1.POST("/validate", handler.Validate)
-		v1.GET("/me", handler.GetMe)
+		v1.GET("/me", handler.GetMe, customMiddleware.Auth())
 	}
 
-	// 7. Start server in goroutine
+	// Start server in goroutine
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.App.Port)
 		logger.Info().Msgf("Server running at %s", addr)
@@ -87,7 +110,7 @@ func main() {
 		}
 	}()
 
-	// 8. Graceful shutdown
+	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 

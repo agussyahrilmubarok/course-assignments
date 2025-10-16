@@ -3,6 +3,7 @@ package account
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -30,6 +31,16 @@ type Config struct {
 		MaxIdleConns    int    `mapstructure:"max_idle_conns"`
 		ConnMaxLifetime string `mapstructure:"conn_max_lifetime"` // Example: "1h", "30m"
 	} `mapstructure:"postgres"`
+
+	Jwt struct {
+		SecretKey string `mapstructure:"secret_key"`
+		ExpiresIn string `mapstructure:"expires_in"` // Example: "15m", "1h"
+	} `mapstructure:"jwt"`
+
+	Logger struct {
+		Level    string `mapstructure:"level"`    // Example: "info", "debug"
+		Filepath string `mapstructure:"filepath"` // Example: "logs/account.log"
+	}
 }
 
 // NewConfig
@@ -83,13 +94,26 @@ func NewPostgres(cfg *Config) (*gorm.DB, error) {
 }
 
 // NewZerolog
-func NewZerolog() (zerolog.Logger, error) {
-	output := zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: time.RFC3339,
+func NewZerolog(cfg *Config) (zerolog.Logger, error) {
+	logDir := filepath.Dir(cfg.Logger.Filepath)
+	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
+		return zerolog.Logger{}, fmt.Errorf("failed to create log directory: %w", err)
 	}
 
-	logger := zerolog.New(output).
+	logFile, err := os.OpenFile(cfg.Logger.Filepath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return zerolog.Logger{}, fmt.Errorf("failed to open log file: %w", err)
+	}
+
+	multi := zerolog.MultiLevelWriter(os.Stdout, logFile)
+
+	level, err := zerolog.ParseLevel(cfg.Logger.Level)
+	if err != nil {
+		level = zerolog.InfoLevel
+	}
+	zerolog.SetGlobalLevel(level)
+
+	logger := zerolog.New(multi).
 		With().
 		Timestamp().
 		Logger()

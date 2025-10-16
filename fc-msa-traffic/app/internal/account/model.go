@@ -49,3 +49,8 @@ func (r *UserResponse) FromUser(user *User) {
 	r.CreatedAt = user.CreatedAt
 	r.UpdatedAt = user.UpdatedAt
 }
+
+type AccountResponse struct {
+	Token string       `json:"token"`
+	User  UserResponse `json:"user"`
+}
