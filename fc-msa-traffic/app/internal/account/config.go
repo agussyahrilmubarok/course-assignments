@@ -40,7 +40,7 @@ type Config struct {
 	Logger struct {
 		Level    string `mapstructure:"level"`    // Example: "info", "debug"
 		Filepath string `mapstructure:"filepath"` // Example: "logs/account.log"
-	}
+	} `mapstructure:"logger"`
 }
 
 // NewConfig

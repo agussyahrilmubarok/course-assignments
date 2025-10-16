@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"example.com/internal/account"
+	"example.com/pkg/helper"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -82,7 +83,7 @@ func main() {
 	e.HideBanner = false
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Validator = &account.CustomValidator{Validator: validator.New()}
+	e.Validator = &helper.CustomValidator{Validator: validator.New()}
 
 	v1 := e.Group("/api/v1/accounts")
 	{
