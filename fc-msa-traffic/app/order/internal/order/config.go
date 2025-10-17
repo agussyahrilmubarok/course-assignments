@@ -1,13 +1,11 @@
 package order
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
@@ -90,21 +88,6 @@ func NewPostgres(cfg *Config) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(time.Duration(cfg.Postgres.MaxOpenConns))
 
 	return db, nil
-}
-
-func NewRedis(cfg *Config) (*redis.Client, error) {
-	rdbAddr := fmt.Sprintf("%v:%v", cfg.Redis.Host, cfg.Redis.Port)
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     rdbAddr,
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-
-	if err := rdb.Ping(context.Background()).Err(); err != nil {
-		return nil, err
-	}
-
-	return rdb, nil
 }
 
 func NewZerolog(cfg *Config) (zerolog.Logger, error) {

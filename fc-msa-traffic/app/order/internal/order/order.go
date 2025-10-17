@@ -10,6 +10,7 @@ const (
 	StatusShipped   OrderStatus = "SHIPPED"
 	StatusCompleted OrderStatus = "COMPLETED"
 	StatusCancelled OrderStatus = "CANCELLED"
+	StatusFailed    OrderStatus = "FAILED"
 )
 
 type Order struct {
@@ -27,7 +28,7 @@ func (o *Order) CalculateFinalAmount() float64 {
 	for _, item := range o.OrderItems {
 		total += item.TotalPrice
 	}
-	return o.FinalAmount
+	return total
 }
 
 type OrderItem struct {
