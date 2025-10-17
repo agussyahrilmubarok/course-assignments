@@ -18,7 +18,7 @@
     "host": "localhost:8082",
     "basePath": "/api/v1/catalogs",
     "paths": {
-        "/api/v1/catalogs/products": {
+        "/products": {
             "get": {
                 "description": "Retrieve list of all products",
                 "produces": [
@@ -48,7 +48,7 @@
                 }
             }
         },
-        "/api/v1/catalogs/products/release": {
+        "/products/release": {
             "post": {
                 "description": "Increase product stock by quantity",
                 "consumes": [
@@ -90,7 +90,7 @@
                 }
             }
         },
-        "/api/v1/catalogs/products/reverse": {
+        "/products/reverse": {
             "post": {
                 "description": "Decrease product stock by quantity",
                 "consumes": [
@@ -132,7 +132,7 @@
                 }
             }
         },
-        "/api/v1/catalogs/products/{id}": {
+        "/products/{id}": {
             "get": {
                 "description": "Retrieve product stock by product ID",
                 "produces": [

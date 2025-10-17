@@ -24,7 +24,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/catalogs/products": {
+        "/products": {
             "get": {
                 "description": "Retrieve list of all products",
                 "produces": [
@@ -54,7 +54,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/catalogs/products/release": {
+        "/products/release": {
             "post": {
                 "description": "Increase product stock by quantity",
                 "consumes": [
@@ -96,7 +96,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/catalogs/products/reverse": {
+        "/products/reverse": {
             "post": {
                 "description": "Decrease product stock by quantity",
                 "consumes": [
@@ -138,7 +138,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/catalogs/products/{id}": {
+        "/products/{id}": {
             "get": {
                 "description": "Retrieve product stock by product ID",
                 "produces": [

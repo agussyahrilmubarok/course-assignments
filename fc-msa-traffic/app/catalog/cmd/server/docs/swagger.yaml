@@ -53,7 +53,7 @@ info:
   title: Catalog Service API
   version: "1.0"
 paths:
-  /api/v1/catalogs/products:
+  /products:
     get:
       description: Retrieve list of all products
       produces:
@@ -73,7 +73,7 @@ paths:
       summary: Get all products
       tags:
       - products
-  /api/v1/catalogs/products/{id}:
+  /products/{id}:
     get:
       description: Retrieve product stock by product ID
       parameters:
@@ -103,7 +103,7 @@ paths:
       summary: Get product stock by ID
       tags:
       - products
-  /api/v1/catalogs/products/release:
+  /products/release:
     post:
       consumes:
       - application/json
@@ -131,7 +131,7 @@ paths:
       summary: Release product stock
       tags:
       - stock
-  /api/v1/catalogs/products/reverse:
+  /products/reverse:
     post:
       consumes:
       - application/json

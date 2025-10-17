@@ -30,7 +30,7 @@ func NewHandler(
 // @Produce      json
 // @Success      200  {array}   Product
 // @Failure      400  {object}  map[string]interface{}
-// @Router       /api/v1/catalogs/products [get]
+// @Router       /products [get]
 func (h *Handler) GetProducts(c echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -53,7 +53,7 @@ func (h *Handler) GetProducts(c echo.Context) error {
 // @Success      200  {object}  Product
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
-// @Router       /api/v1/catalogs/products/{id} [get]
+// @Router       /products/{id} [get]
 func (h *Handler) GetProduct(c echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -77,7 +77,7 @@ func (h *Handler) GetProduct(c echo.Context) error {
 // @Param        request  body      ReserveStockRequest  true  "Reverse Stock Request"
 // @Success      200      {object}  map[string]interface{}
 // @Failure      400      {object}  map[string]interface{}
-// @Router       /api/v1/catalogs/products/reverse [post]
+// @Router       /products/reverse [post]
 func (h *Handler) ReverseProductStock(c echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -116,7 +116,7 @@ func (h *Handler) ReverseProductStock(c echo.Context) error {
 // @Param        request  body      ReleaseStockRequest  true  "Release Stock Request"
 // @Success      200      {object}  map[string]interface{}
 // @Failure      400      {object}  map[string]interface{}
-// @Router       /api/v1/catalogs/products/release [post]
+// @Router       /products/release [post]
 func (h *Handler) ReleaseProductStock(c echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -155,7 +155,7 @@ func (h *Handler) ReleaseProductStock(c echo.Context) error {
 // @Success      200  {object}  map[string]interface{}
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
-// @Router       /api/v1/catalogs/products/{id} [get]
+// @Router       /products/{id} [get]
 func (h *Handler) GetProductStock(c echo.Context) error {
 	ctx := c.Request().Context()
 
