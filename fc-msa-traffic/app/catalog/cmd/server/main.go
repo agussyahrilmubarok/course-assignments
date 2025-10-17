@@ -89,7 +89,7 @@ func main() {
 		v1.GET("/products/:id", handler.GetProduct)
 		v1.POST("/products/stocks/reverse", handler.ReverseProductStock)
 		v1.POST("/products/stocks/release", handler.ReleaseProductStock)
-		v1.POST("/products/stocks/:id", handler.GetProductStock)
+		v1.GET("/products/stocks/:id", handler.GetProductStock)
 	}
 
 	go func() {
