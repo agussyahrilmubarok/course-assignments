@@ -27,11 +27,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// if err := db.AutoMigrate(&catalog.Product{}); err != nil {
-	// 	log.Fatalf("Failed to auto-migrate: %v", err)
-	// }
-
-	// Seed products
 	const numberOfProducts = 20
 	for i := 0; i < numberOfProducts; i++ {
 		// Generate random price

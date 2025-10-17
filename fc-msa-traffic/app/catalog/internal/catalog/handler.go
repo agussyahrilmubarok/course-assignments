@@ -40,6 +40,7 @@ func (h *Handler) GetProducts(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Empty products"})
 	}
 
+	h.log.Info().Int("products_count", len(products)).Msg("Returning products list")
 	return c.JSON(http.StatusOK, products)
 }
 
@@ -63,6 +64,7 @@ func (h *Handler) GetProduct(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Product not found"})
 	}
 
+	h.log.Info().Str("product_id", productID).Msg("Returning product detail")
 	return c.JSON(http.StatusOK, product)
 }
 
@@ -101,6 +103,7 @@ func (h *Handler) ReverseProductStock(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Failed to reverse product stock"})
 	}
 
+	h.log.Info().Str("product_id", req.ProductID).Int("quantity", req.Quantity).Msg("Reversed product stock successfully")
 	return c.JSON(http.StatusOK, echo.Map{"message": "Stock reversed successfully"})
 }
 
@@ -139,5 +142,30 @@ func (h *Handler) ReleaseProductStock(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Failed to release product stock"})
 	}
 
+	h.log.Info().Str("product_id", req.ProductID).Int("quantity", req.Quantity).Msg("Released product stock successfully")
 	return c.JSON(http.StatusOK, echo.Map{"message": "Stock released successfully"})
+}
+
+// GetProductStock godoc
+// @Summary      Get product stock by ID
+// @Description  Retrieve product stock by product ID
+// @Tags         products
+// @Produce      json
+// @Param        id   path      string  true  "Product ID"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]interface{}
+// @Router       /api/v1/catalogs/products/{id} [get]
+func (h *Handler) GetProductStock(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	productID := c.Param("id")
+	product, err := h.store.FindProductByID(ctx, productID)
+	if err != nil || product == nil {
+		h.log.Warn().Str("product_id", productID).Msg("Failed to find product by id")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Product not found"})
+	}
+
+	h.log.Info().Str("product_id", productID).Int("stock", product.Stock).Msg("Returning product stock")
+	return c.JSON(http.StatusOK, echo.Map{"stock": product.Stock})
 }

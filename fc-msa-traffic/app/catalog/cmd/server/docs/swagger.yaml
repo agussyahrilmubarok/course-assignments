@@ -75,7 +75,7 @@ paths:
       - products
   /api/v1/catalogs/products/{id}:
     get:
-      description: Retrieve product details by product ID
+      description: Retrieve product stock by product ID
       parameters:
       - description: Product ID
         in: path
@@ -88,7 +88,8 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/catalog.Product'
+            additionalProperties: true
+            type: object
         "400":
           description: Bad Request
           schema:
@@ -99,7 +100,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get product by ID
+      summary: Get product stock by ID
       tags:
       - products
   /api/v1/catalogs/products/release:

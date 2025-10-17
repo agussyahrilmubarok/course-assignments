@@ -2,7 +2,6 @@ package catalog
 
 import "github.com/go-playground/validator/v10"
 
-// Validator
 type CustomValidator struct {
 	Validator *validator.Validate
 }

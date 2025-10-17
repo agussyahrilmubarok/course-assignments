@@ -1,6 +1,3 @@
-//go:build catalog
-// +build catalog
-
 package main
 
 import (
@@ -37,7 +34,6 @@ import (
 // @host localhost:8082
 // @BasePath /api/v1/catalogs
 func main() {
-	// Load config
 	configFlag := flag.String("config", "configs/catalog.yaml", "Path to config file")
 	flag.Parse()
 
@@ -47,41 +43,32 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Init logger
 	logger, err := catalog.NewZerolog(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Init DB
 	db, err := catalog.NewPostgres(cfg)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to connect to database")
 		os.Exit(1)
 	}
 
-	// Auto migrate (development only)
-	if cfg.App.Env != "production" {
-		if err := db.AutoMigrate(&catalog.Product{}); err != nil {
-			logger.Fatal().Err(err).Msg("AutoMigrate failed")
-			os.Exit(1)
-		}
-		logger.Info().Msg("AutoMigrate executed")
+	if err := db.AutoMigrate(&catalog.Product{}); err != nil {
+		logger.Fatal().Err(err).Msg("AutoMigrate failed")
+		os.Exit(1)
 	}
 
-	// Init Cache
 	rdb, err := catalog.NewRedis(cfg)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to connect to cache")
 		os.Exit(1)
 	}
 
-	// Register routes
 	store := catalog.NewStore(db, rdb, logger)
 	handler := catalog.NewHandler(store, logger)
 
-	// Init Echo server
 	e := echo.New()
 	e.HideBanner = false
 	e.Use(middleware.Logger())
@@ -102,9 +89,9 @@ func main() {
 		v1.GET("/products/:id", handler.GetProduct)
 		v1.POST("/products/stocks/reverse", handler.ReverseProductStock)
 		v1.POST("/products/stocks/release", handler.ReleaseProductStock)
+		v1.POST("/products/stocks/:id", handler.GetProductStock)
 	}
 
-	// Start server in goroutine
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.App.Port)
 		logger.Info().Msgf("Server running at %s", addr)
@@ -114,11 +101,10 @@ func main() {
 		}
 	}()
 
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	<-quit // Wait for termination signal
+	<-quit 
 	logger.Info().Msg("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

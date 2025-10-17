@@ -140,14 +140,14 @@ const docTemplate = `{
         },
         "/api/v1/catalogs/products/{id}": {
             "get": {
-                "description": "Retrieve product details by product ID",
+                "description": "Retrieve product stock by product ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "products"
                 ],
-                "summary": "Get product by ID",
+                "summary": "Get product stock by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -161,7 +161,8 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/catalog.Product"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "400": {

@@ -20,4 +20,4 @@ redis:
 
 logger:
   level: "info"
-  filepath: "logs/catalog.log"
+  filepath: "logs/app.log"
