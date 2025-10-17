@@ -17,6 +17,10 @@
             "path": "./app/pricing"
         },
         {
+            "name": "gateway",
+            "path": "./app/gateway"
+        },
+        {
             "name": "root",
             "path": "."
         }

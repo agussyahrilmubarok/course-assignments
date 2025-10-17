@@ -46,6 +46,23 @@ services:
       retries: 5
       timeout: 5s
       start_period: 10s
+  
+  gateway:
+    container_name: gateway
+    image: traefik:v3.4.4
+    restart: unless-stopped
+    command:
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.file.directory=/rules
+    ports:
+      - "8080:80"
+      - "5052:8080"
+    volumes:
+      - ./gateway/rules:/rules
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traffic_net
 
   pgadmin:
     image: dpage/pgadmin4:9.8
