@@ -75,7 +75,7 @@ paths:
       - products
   /products/{id}:
     get:
-      description: Retrieve product stock by product ID
+      description: Retrieve product details by product ID
       parameters:
       - description: Product ID
         in: path
@@ -88,8 +88,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/catalog.Product'
         "400":
           description: Bad Request
           schema:
@@ -100,7 +99,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get product stock by ID
+      summary: Get product by ID
       tags:
       - products
   /products/release:
@@ -157,6 +156,36 @@ paths:
             additionalProperties: true
             type: object
       summary: Reverse product stock
+      tags:
+      - stock
+  /products/stocks/{id}:
+    get:
+      description: Retrieve product stock by product ID
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get product stock by ID
       tags:
       - stock
 swagger: "2.0"

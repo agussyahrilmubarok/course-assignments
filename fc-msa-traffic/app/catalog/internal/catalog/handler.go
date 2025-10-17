@@ -149,13 +149,13 @@ func (h *Handler) ReleaseProductStock(c echo.Context) error {
 // GetProductStock godoc
 // @Summary      Get product stock by ID
 // @Description  Retrieve product stock by product ID
-// @Tags         products
+// @Tags         stock
 // @Produce      json
 // @Param        id   path      string  true  "Product ID"
 // @Success      200  {object}  map[string]interface{}
 // @Failure      400  {object}  map[string]interface{}
 // @Failure      404  {object}  map[string]interface{}
-// @Router       /products/{id} [get]
+// @Router       /products/stocks/{id} [get]
 func (h *Handler) GetProductStock(c echo.Context) error {
 	ctx := c.Request().Context()
 

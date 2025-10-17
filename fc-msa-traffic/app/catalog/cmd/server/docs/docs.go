@@ -138,14 +138,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/products/{id}": {
+        "/products/stocks/{id}": {
             "get": {
                 "description": "Retrieve product stock by product ID",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "products"
+                    "stock"
                 ],
                 "summary": "Get product stock by ID",
                 "parameters": [
@@ -163,6 +163,49 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}": {
+            "get": {
+                "description": "Retrieve product details by product ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Get product by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/catalog.Product"
                         }
                     },
                     "400": {
