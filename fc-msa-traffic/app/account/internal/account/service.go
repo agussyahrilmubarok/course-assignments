@@ -44,10 +44,11 @@ func (s *service) GenerateJwt(userID string) (string, error) {
 
 	signedToken, err := token.SignedString([]byte(secretKey))
 	if err != nil {
-		s.log.Error().Err(err).Msg("Failed to sign JWT token")
+		s.log.Error().Err(err).Str("user_id", userID).Msg("Failed to sign JWT token")
 		return "", err
 	}
 
+	s.log.Info().Str("user_id", userID).Msg("Generate jwt for user successfully")
 	return signedToken, nil
 }
 
@@ -78,5 +79,6 @@ func (s *service) ValidateJwt(tokenString string) (string, error) {
 		return "", jwt.ErrInvalidKeyType
 	}
 
+	s.log.Info().Str("user_id", userID).Msg("Validate jwt user successfully")
 	return userID, nil
 }

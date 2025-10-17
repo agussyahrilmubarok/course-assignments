@@ -62,8 +62,7 @@ func (h *Handler) SignUp(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Email already in use"})
 	}
 
-	var user *User
-	user = req.ToUser()
+	user := req.ToUser()
 	if err := h.store.SaveUser(ctx, user); err != nil {
 		h.log.Error().Err(err).Msg("Failed to save user")
 		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to sign up"})
@@ -72,6 +71,7 @@ func (h *Handler) SignUp(c echo.Context) error {
 	var res UserResponse
 	res.FromUser(user)
 
+	h.log.Info().Str("user_id", user.ID).Msg("Sign up user successfully")
 	return c.JSON(http.StatusOK, res)
 }
 
@@ -124,6 +124,7 @@ func (h *Handler) SignIn(c echo.Context) error {
 	var userRes UserResponse
 	userRes.FromUser(user)
 
+	h.log.Info().Str("user_id", user.ID).Msg("Sign in user successfully")
 	return c.JSON(http.StatusOK, AccountResponse{
 		Token: tokenString,
 		User:  userRes,
@@ -164,6 +165,7 @@ func (h *Handler) Validate(c echo.Context) error {
 	var userRes UserResponse
 	userRes.FromUser(user)
 
+	h.log.Info().Str("user_id", user.ID).Msg("Validate user successfully")
 	return c.JSON(http.StatusOK, AccountResponse{
 		Token: req.Token,
 		User:  userRes,
@@ -199,5 +201,6 @@ func (h *Handler) GetMe(c echo.Context) error {
 	var userRes UserResponse
 	userRes.FromUser(user)
 
+	h.log.Info().Str("user_id", user.ID).Msg("Get user by id successfully")
 	return c.JSON(http.StatusOK, userRes)
 }

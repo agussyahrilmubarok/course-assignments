@@ -32,7 +32,7 @@ func main() {
 		password := "password123"
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-			log.Printf("failed to hash password: %v", err)
+			log.Printf("Failed to hash password: %v", err)
 			continue
 		}
 
@@ -46,12 +46,11 @@ func main() {
 		}
 
 		if err := db.Create(&user).Error; err != nil {
-			log.Printf("failed to create user: %v", err)
+			log.Printf("Failed to create user: %v", err)
 		} else {
 			fmt.Printf("Seeded user: %s <%s>\n", user.Name, user.Email)
 		}
 	}
 
 	fmt.Println("Seeding completed")
-
 }

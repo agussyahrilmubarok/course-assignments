@@ -20,4 +20,4 @@ jwt:
 
 logger:
   level: "info"
-  filepath: "logs/account.log"
+  filepath: "logs/app.log"

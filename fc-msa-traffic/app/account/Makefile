@@ -1,11 +1,14 @@
-dev:
+server/dev:
 	go run cmd/server/main.go --config=config.yaml
 
-build:
+server/build:
 	go build -o build/account cmd/server/main.go
 
-seeder:
-	go run cmd/server/main.go --config=config.yaml
+seeder/dev:
+	go run cmd/seeder/main.go --config=config.yaml
+
+seeder/build:
+	go build -o build/seeder cmd/seeder/main.go
 
 swagger/install:
 	go install github.com/swaggo/swag/cmd/swag@latest

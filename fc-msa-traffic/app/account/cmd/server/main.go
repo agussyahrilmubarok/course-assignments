@@ -38,7 +38,6 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	// Load config
 	configFlag := flag.String("config", "configs/account.yaml", "Path to config file")
 	flag.Parse()
 
@@ -48,14 +47,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Init logger
 	logger, err := account.NewZerolog(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Init DB
 	db, err := account.NewPostgres(cfg)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to connect to database")
@@ -63,21 +60,24 @@ func main() {
 	}
 
 	// Auto migrate (development only)
-	if cfg.App.Env != "production" {
-		if err := db.AutoMigrate(&account.User{}); err != nil {
-			logger.Fatal().Err(err).Msg("AutoMigrate failed")
-			os.Exit(1)
-		}
-		logger.Info().Msg("AutoMigrate executed")
+	// if cfg.App.Env != "production" {
+	// 	if err := db.AutoMigrate(&account.User{}); err != nil {
+	// 		logger.Fatal().Err(err).Msg("AutoMigrate failed")
+	// 		os.Exit(1)
+	// 	}
+	// 	logger.Info().Msg("AutoMigrate executed")
+	// }
+
+	if err := db.AutoMigrate(&account.User{}); err != nil {
+		logger.Fatal().Err(err).Msg("AutoMigrate failed")
+		os.Exit(1)
 	}
 
-	// Register routes
 	store := account.NewStore(db, logger)
 	service := account.NewService(cfg, logger)
 	handler := account.NewHandler(store, service, logger)
 	customMiddleware := account.NewCustomMiddleware(service)
 
-	// Init Echo server
 	e := echo.New()
 	e.HideBanner = false
 	e.Use(middleware.Logger())
@@ -100,7 +100,6 @@ func main() {
 		v1.GET("/me", handler.GetMe, customMiddleware.Auth())
 	}
 
-	// Start server in goroutine
 	go func() {
 		addr := fmt.Sprintf(":%d", cfg.App.Port)
 		logger.Info().Msgf("Server running at %s", addr)
@@ -110,11 +109,10 @@ func main() {
 		}
 	}()
 
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	<-quit // Wait for termination signal
+	<-quit
 	logger.Info().Msg("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

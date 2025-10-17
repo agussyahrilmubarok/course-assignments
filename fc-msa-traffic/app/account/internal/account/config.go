@@ -43,25 +43,22 @@ type Config struct {
 	} `mapstructure:"logger"`
 }
 
-// NewConfig
 func NewConfig(filepath string) (*Config, error) {
 	v := viper.New()
-	// e.g file path configs/account.yaml
 	v.SetConfigFile(filepath)
 
 	if err := v.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("Failed to read config file: %w", err)
+		return nil, err
 	}
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+		return nil, err
 	}
 
 	return &cfg, nil
 }
 
-// NewPostgres
 func NewPostgres(cfg *Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
@@ -77,12 +74,12 @@ func NewPostgres(cfg *Config) (*gorm.DB, error) {
 		Logger: logger.Default.LogMode(logger.Silent), // Info, Warn, Error
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to connect to PostgreSQL: %w", err)
+		return nil, err
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get raw DB from GORM: %w", err)
+		return nil, err
 	}
 
 	// Connection pool settings
@@ -93,16 +90,15 @@ func NewPostgres(cfg *Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// NewZerolog
 func NewZerolog(cfg *Config) (zerolog.Logger, error) {
 	logDir := filepath.Dir(cfg.Logger.Filepath)
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
-		return zerolog.Logger{}, fmt.Errorf("failed to create log directory: %w", err)
+		return zerolog.Logger{}, err
 	}
 
 	logFile, err := os.OpenFile(cfg.Logger.Filepath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
-		return zerolog.Logger{}, fmt.Errorf("failed to open log file: %w", err)
+		return zerolog.Logger{}, err
 	}
 
 	multi := zerolog.MultiLevelWriter(os.Stdout, logFile)

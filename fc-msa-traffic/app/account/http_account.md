@@ -49,6 +49,6 @@ curl -X POST http://localhost:8081/api/v1/accounts/validate \
 ```bash
 curl -X GET http://localhost:8081/api/v1/accounts/me \
     -H "Content-Type: application/json" \
-    -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjA2OTYyMzQsImlhdCI6MTc2MDYwOTgzNCwidXNlcl9pZCI6ImRmNzgwMWM2LWM0ZDUtNDI2YS1iYTM2LTEyMGQxZGIxODk1MiJ9.0qzNTRYcDKX5TbETPPFWpJ_zke-GiyHod66ouPm9G3c" \
+    -H "Authorization: Bearer " \
     -i
 ```
