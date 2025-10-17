@@ -1,5 +1,6 @@
 package com.example.order.model;
 
+import com.example.order.domain.ProductOrder;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -42,9 +43,6 @@ public class OrderDTO {
 
         @NotBlank(message = "Payment id cannot be blank")
         private String paymentId;
-
-        @NotBlank(message = "Delivery id cannot be blank")
-        private String deliveryId;
     }
 
     @Getter
@@ -65,8 +63,7 @@ public class OrderDTO {
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public static class StartOrderResponse {
         private String orderId;
-        private Map<String, Object> paymentMethod;
-        private Map<String, Object> address;
+        private String paymentUrl;
     }
 
     @Getter
@@ -74,63 +71,25 @@ public class OrderDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    public static class ProductOrder {
+    public static class Response {
 
         private String id;
         private String userId;
         private String productId;
         private String paymentId;
-        private String deliveryId;
         private String orderStatus;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
-        public static ProductOrder from(ProductOrder productOrder) {
-            return ProductOrder.builder()
+        public static Response from(ProductOrder productOrder) {
+            return Response.builder()
                     .id(productOrder.getProductId())
                     .userId(productOrder.getUserId())
                     .productId(productOrder.getProductId())
                     .paymentId(productOrder.getPaymentId())
-                    .deliveryId(productOrder.getDeliveryId())
-                    .orderStatus(productOrder.getOrderStatus())
+                    .orderStatus(productOrder.getOrderStatus().toString())
                     .createdAt(productOrder.getCreatedAt())
                     .updatedAt(productOrder.getUpdatedAt())
-                    .build();
-        }
-    }
-
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @JsonInclude(JsonInclude.Include.ALWAYS)
-    public static class ProductDetail {
-
-        private String orderId;
-        private String userId;
-        private String productId;
-        private String paymentId;
-        private String deliveryId;
-        private String orderStatus;
-
-        @Pattern(regexp = "PENDING|PAID|FAILED",
-                message = "Invalid payment status")
-        private String paymentStatus;
-
-        @Pattern(regexp = "PENDING|SHIPPED|DELIVERED|RETURNED",
-                message = "Invalid delivery status")
-        private String deliveryStatus;
-
-        public static ProductDetail from(ProductOrder productOrder, String paymentStatus, String deliveryStatus) {
-            return ProductDetail.builder()
-                    .orderId(productOrder.getProductId())
-                    .userId(productOrder.getUserId())
-                    .productId(productOrder.getProductId())
-                    .paymentId(productOrder.getPaymentId())
-                    .deliveryId(productOrder.getDeliveryId())
-                    .orderStatus(productOrder.getOrderStatus())
-                    .paymentStatus(paymentStatus)
-                    .deliveryStatus(deliveryStatus)
                     .build();
         }
     }

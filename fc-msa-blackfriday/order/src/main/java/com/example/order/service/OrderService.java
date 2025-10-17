@@ -10,7 +10,7 @@ public interface OrderService {
 
     OrderDTO.FinishOrderRequest finishOrder(OrderDTO.FinishOrderRequest payload);
 
-    OrderDTO.ProductDetail findById(String orderId);
+    OrderDTO.Response findById(String orderId);
 
-    List<OrderDTO.ProductOrder> findAllByUser(String userId);
+    List<OrderDTO.Response> findAllByUser(String userId);
 }

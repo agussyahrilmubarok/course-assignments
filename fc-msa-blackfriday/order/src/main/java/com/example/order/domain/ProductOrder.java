@@ -32,9 +32,6 @@ public class ProductOrder {
     @Column
     private String paymentId;
 
-    @Column
-    private String deliveryId;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Status orderStatus = Status.CREATED;

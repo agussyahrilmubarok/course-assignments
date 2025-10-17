@@ -1,6 +1,7 @@
 package com.example.order.rest;
 
 import com.example.order.model.OrderDTO;
+import com.example.order.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -14,9 +15,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderResource {
 
+    private final OrderService orderService;
+
     @PostMapping("/start")
     public ResponseEntity<OrderDTO.StartOrderResponse> startOrder(@RequestBody @Valid OrderDTO.StartOrderRequest payload) {
-        throw new RuntimeException();
+        return ResponseEntity.ok(orderService.startOrder(payload));
     }
 
     @PostMapping("/finish")
@@ -25,12 +28,12 @@ public class OrderResource {
     }
 
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderDTO.ProductDetail> findById(@PathVariable String orderId) {
+    public ResponseEntity<OrderDTO.Response> findById(@PathVariable String orderId) {
         throw new RuntimeException();
     }
 
     @GetMapping("/users/{userId}")
-    public ResponseEntity<List<OrderDTO.ProductOrder>> findAllByUser(@PathVariable String userId) {
+    public ResponseEntity<List<OrderDTO.Response>> findAllByUser(@PathVariable String userId) {
         throw new RuntimeException();
     }
 }
