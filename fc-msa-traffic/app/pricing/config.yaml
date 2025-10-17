@@ -1,0 +1,12 @@
+app:
+  name: "pricing-service"
+  port: 8084
+  env: "development"
+
+redis:
+  host: "localhost"
+  port: 6379
+
+logger:
+  level: "info"
+  filepath: "logs/app.log"

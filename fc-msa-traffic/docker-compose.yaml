@@ -13,6 +13,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - traffic_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   
   redis:
     image: redis:8.0.3
@@ -64,7 +69,8 @@ services:
     networks:
       - traffic_net
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
   
   redis-insight:
     image: redis/redisinsight:2.70

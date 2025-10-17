@@ -13,6 +13,10 @@
             "path": "./app/order"
         },
         {
+            "name": "pricing",
+            "path": "./app/pricing"
+        },
+        {
             "name": "root",
             "path": "."
         }
