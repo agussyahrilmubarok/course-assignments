@@ -1,5 +1,6 @@
 app:
   name: "catalog-service"
+  host: "127.0.0.1"
   port: 8082
   env: "development"
 
@@ -21,3 +22,7 @@ redis:
 logger:
   level: "info"
   filepath: "logs/app.log"
+
+consul:
+  address: "localhost:8500"
+  wait_time: "15s"

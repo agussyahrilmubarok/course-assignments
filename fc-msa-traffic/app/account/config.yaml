@@ -1,5 +1,6 @@
 app:
   name: "account-service"
+  host: "127.0.0.1"
   port: 8081
   env: "development"
 
@@ -21,3 +22,7 @@ jwt:
 logger:
   level: "info"
   filepath: "logs/app.log"
+
+consul:
+  address: "localhost:8500"
+  wait_time: "15s"

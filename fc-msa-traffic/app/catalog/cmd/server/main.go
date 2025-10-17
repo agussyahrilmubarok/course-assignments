@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"example.com/catalog/internal/catalog"
+	"example.com/catalog/pkg/discovery"
+	"example.com/catalog/pkg/discovery/consul"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -66,6 +68,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	instanceID := discovery.GenerateInstanceID(cfg.App.Name)
+	consulRegistry, err := consul.NewRegistry(cfg.Consul.Address)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+	if err := consulRegistry.Register(ctx, instanceID, cfg.App.Name, fmt.Sprintf("%v:%d", cfg.App.Host, cfg.App.Port)); err != nil {
+		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
+		os.Exit(1)
+	}
+
+	go func() {
+		for {
+			if err := consulRegistry.ReportHealthyState(instanceID, cfg.App.Name); err != nil {
+				logger.Info().Msg("Failed to report healthy state: " + err.Error())
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+	defer consulRegistry.Deregister(ctx, instanceID, cfg.App.Name)
+
 	store := catalog.NewStore(db, rdb, logger)
 	handler := catalog.NewHandler(store, logger)
 
@@ -104,7 +129,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
-	<-quit 
+	<-quit
 	logger.Info().Msg("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

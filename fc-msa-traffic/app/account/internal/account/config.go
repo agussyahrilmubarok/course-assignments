@@ -11,13 +11,12 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-
-	consulApi "github.com/hashicorp/consul/api"
 )
 
 type Config struct {
 	App struct {
 		Name string `mapstructure:"name"`
+		Host string `mapstructure:"host"`
 		Port int    `mapstructure:"port"`
 		Env  string `mapstructure:"env"`
 	} `json:"app"`
@@ -122,63 +121,4 @@ func NewZerolog(cfg *Config) (zerolog.Logger, error) {
 		Logger()
 
 	return logger, nil
-}
-
-func NewConsul(cfg *Config) error {
-	consulCfg := consulApi.Config{
-		Address:  cfg.Consul.Address,
-		WaitTime: 5 * time.Minute,
-	}
-
-	client, err := consulApi.NewClient(&consulCfg)
-	if err != nil {
-		return fmt.Errorf("failed to create consul client: %w", err)
-	}
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		return fmt.Errorf("failed to get hostname: %w", err)
-	}
-
-	serviceID := fmt.Sprintf("%s-%d", cfg.App.Name, cfg.App.Port)
-
-	registration := &consulApi.AgentServiceRegistration{
-		ID:      serviceID,
-		Name:    cfg.App.Name,
-		Address: hostname,
-		Port:    cfg.App.Port,
-		Tags:    []string{"go", "account-service"},
-		Check: &consulApi.AgentServiceCheck{
-			HTTP:                           fmt.Sprintf("http://%s:%d/api/v1/accounts/healthz", hostname, cfg.App.Port),
-			Interval:                       "10s",
-			Timeout:                        "5s",
-			DeregisterCriticalServiceAfter: "1m",
-		},
-	}
-
-	if err := client.Agent().ServiceRegister(registration); err != nil {
-		return fmt.Errorf("failed to register service with consul: %w", err)
-	}
-
-	return nil
-}
-
-func DeregisterConsul(cfg *Config, logger zerolog.Logger) {
-	consulAddr := cfg.Consul.Address
-	if envAddr := os.Getenv("CONSUL_ADDR"); envAddr != "" {
-		consulAddr = envAddr
-	}
-
-	consulCfg := consulApi.DefaultConfig()
-	consulCfg.Address = consulAddr
-
-	client, err := consulApi.NewClient(consulCfg)
-	if err != nil {
-		return
-	}
-
-	serviceID := fmt.Sprintf("%s-%d", cfg.App.Name, cfg.App.Port)
-	if err := client.Agent().ServiceDeregister(serviceID); err != nil {
-	} else {
-	}
 }

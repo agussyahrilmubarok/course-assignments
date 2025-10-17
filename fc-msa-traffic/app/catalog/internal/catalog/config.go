@@ -18,6 +18,7 @@ import (
 type Config struct {
 	App struct {
 		Name string `mapstructure:"name"`
+		Host string `mapstructure:"host"`
 		Port int    `mapstructure:"port"`
 		Env  string `mapstructure:"env"`
 	} `json:"app"`
@@ -43,6 +44,11 @@ type Config struct {
 		Level    string `mapstructure:"level"`    // Example: "info", "debug"
 		Filepath string `mapstructure:"filepath"` // Example: "logs/account.log"
 	} `mapstructure:"logger"`
+
+	Consul struct {
+		Address  string `mapstructure:"address"`
+		WaitTime string `mapstructure:"wait_time"` // Example: "15m", "1h"
+	}
 }
 
 func NewConfig(filepath string) (*Config, error) {

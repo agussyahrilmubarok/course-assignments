@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"example.com/order/internal/order"
+	"example.com/order/pkg/discovery"
+	"example.com/order/pkg/discovery/consul"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -59,6 +61,29 @@ func main() {
 		logger.Fatal().Err(err).Msg("AutoMigrate failed")
 		os.Exit(1)
 	}
+
+	instanceID := discovery.GenerateInstanceID(cfg.App.Name)
+	consulRegistry, err := consul.NewRegistry(cfg.Consul.Address)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+	if err := consulRegistry.Register(ctx, instanceID, cfg.App.Name, fmt.Sprintf("%v:%d", cfg.App.Host, cfg.App.Port)); err != nil {
+		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
+		os.Exit(1)
+	}
+
+	go func() {
+		for {
+			if err := consulRegistry.ReportHealthyState(instanceID, cfg.App.Name); err != nil {
+				logger.Info().Msg("Failed to report healthy state: " + err.Error())
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+	defer consulRegistry.Deregister(ctx, instanceID, cfg.App.Name)
 
 	store := order.NewStore(db, logger)
 	client := order.NewClient(cfg, logger)

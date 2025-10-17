@@ -16,6 +16,8 @@ import (
 
 	_ "example.com/account/cmd/server/docs"
 	"example.com/account/internal/account"
+	"example.com/account/pkg/discovery"
+	"example.com/account/pkg/discovery/consul"
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
@@ -68,10 +70,28 @@ func main() {
 	// 	logger.Info().Msg("AutoMigrate executed")
 	// }
 
-	if err := db.AutoMigrate(&account.User{}); err != nil {
-		logger.Fatal().Err(err).Msg("AutoMigrate failed")
+	instanceID := discovery.GenerateInstanceID(cfg.App.Name)
+	consulRegistry, err := consul.NewRegistry(cfg.Consul.Address)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
 		os.Exit(1)
 	}
+
+	ctx := context.Background()
+	if err := consulRegistry.Register(ctx, instanceID, cfg.App.Name, fmt.Sprintf("%v:%d", cfg.App.Host, cfg.App.Port)); err != nil {
+		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
+		os.Exit(1)
+	}
+
+	go func() {
+		for {
+			if err := consulRegistry.ReportHealthyState(instanceID, cfg.App.Name); err != nil {
+				logger.Info().Msg("Failed to report healthy state: " + err.Error())
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+	defer consulRegistry.Deregister(ctx, instanceID, cfg.App.Name)
 
 	store := account.NewStore(db, logger)
 	service := account.NewService(cfg, logger)
