@@ -50,5 +50,8 @@ func (s *store) SaveOrder(ctx context.Context, order *Order) error {
 		return err
 	}
 
+	s.log.Info().
+		Str("order_id", order.ID).
+		Msg("Save order successfully")
 	return nil
 }
