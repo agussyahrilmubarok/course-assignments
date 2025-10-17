@@ -1,0 +1,56 @@
+{{ define "content" }}
+
+<div class="page-container animsition">
+  <div class="login">
+    <div class="login-container">
+      <div class="login-form">
+        <div class="logo mb-5">
+          <a href="/">
+            <span class="logo-emblem"
+              ><img src="/assets/images/logo.png" alt="BA"
+            /></span>
+            <span class="logo-full">Backer Hub</span>
+          </a>
+        </div>
+
+        <form action="/login" method="POST">
+          <div class="form-group">
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="Your email address"
+              value="{{ .form.Email }}"
+              required
+            />
+            <label><i class="fas fa-user"></i></label>
+          </div>
+
+          <div class="form-group">
+            <input
+              type="password"
+              name="password"
+              placeholder="Your password credential"
+              value="{{ .form.Password }}"
+              required
+            />
+            <label><i class="fas fa-lock"></i></label>
+          </div>
+
+          <div class="row login-button">
+            <div class="col-6">
+              <a href="/forgot-password" class="forgot-password"
+                >Forgot Password?</a
+              >
+            </div>
+            <div class="col text-right">
+              <button type="submit" class="btn btn-success">Sign In</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ end }}
