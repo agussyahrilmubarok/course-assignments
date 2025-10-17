@@ -1,0 +1,45 @@
+{{ define "content" }}
+
+<div class="page-breadcrumb">
+  <div class="row">
+    <div class="col-6">
+      <h4 class="page-title">Upload an image</h4>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="/">Home</a></li>
+          <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+          <li class="breadcrumb-item">
+            <a href="/dashboard/campaigns">Campaign</a>
+          </li>
+          <li class="breadcrumb-item active" aria-current="page">Image</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="col-6">
+      <div class="text-right">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-body">
+      <form
+        action="/dashboard/campaigns/{{ .campaign.ID }}/image"
+        method="POST"
+        enctype="multipart/form-data"
+      >
+        <div class="form-group">
+          <input type="file" name="image" class="form-control" required />
+        </div>
+
+        <div>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{{ end }}

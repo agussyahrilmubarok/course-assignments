@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:9.3
+    container_name: mysql
+    restart: on-failure
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: backerhub
+      MYSQL_USER: backeruser
+      MYSQL_PASSWORD: backerpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backerhub_backend_net
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.2.2
+    container_name: phpmyadmin
+    restart: on-failure
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "5050:80"
+    depends_on:
+      - mysql
+    networks:
+      - backerhub_backend_net
+
+volumes:
+  mysql_data:
+
+networks:
+  backerhub_backend_net:
+    driver: bridge
