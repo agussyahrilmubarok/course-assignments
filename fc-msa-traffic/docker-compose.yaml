@@ -29,6 +29,23 @@ services:
       - redis_data:/data
     networks:
       - traffic_net
+  
+  consul:
+    container_name: consul
+    image: hashicorp/consul:1.9.9
+    restart: unless-stopped
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    networks:
+      - traffic_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/v1/status/leader"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+      start_period: 10s
 
   pgadmin:
     image: dpage/pgadmin4:9.8
