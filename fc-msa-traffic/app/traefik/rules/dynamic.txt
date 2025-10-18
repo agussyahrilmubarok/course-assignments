@@ -1,0 +1,13 @@
+http:
+  routers:
+    account-service:
+      rule: "PathPrefix(`/api/v1/accounts`)"
+      service: account-service
+      entryPoints:
+        - web
+
+  services:
+    account-service:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:8081" 

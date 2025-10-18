@@ -1,0 +1,208 @@
+basePath: /api/v1/orders
+definitions:
+  order.CancelOrderRequest:
+    properties:
+      order_id:
+        type: string
+      user_id:
+        type: string
+    required:
+    - order_id
+    type: object
+  order.CreateOrderRequest:
+    properties:
+      order_items:
+        items:
+          $ref: '#/definitions/order.OrderItemRequest'
+        type: array
+      user_id:
+        type: string
+    type: object
+  order.Order:
+    properties:
+      created_at:
+        type: string
+      final_amount:
+        type: number
+      id:
+        type: string
+      order_items:
+        items:
+          $ref: '#/definitions/order.OrderItem'
+        type: array
+      status:
+        $ref: '#/definitions/order.OrderStatus'
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  order.OrderItem:
+    properties:
+      created_at:
+        type: string
+      discount:
+        description: price reduction given to the buyer
+        type: number
+      id:
+        type: string
+      markup:
+        description: the amount added to the cost of a product to determine its selling
+          price
+        type: number
+      order_id:
+        type: string
+      product_id:
+        type: string
+      product_price:
+        description: base_price/unit
+        type: number
+      quantity:
+        description: total unit
+        type: integer
+      total_price:
+        description: (ProductPrice - Discount + MarkUp) * Quantity
+        type: number
+      updated_at:
+        type: string
+    type: object
+  order.OrderItemRequest:
+    properties:
+      product_id:
+        type: string
+      quantity:
+        minimum: 1
+        type: integer
+    required:
+    - product_id
+    - quantity
+    type: object
+  order.OrderStatus:
+    enum:
+    - PENDING
+    - PROCESSED
+    - SHIPPED
+    - COMPLETED
+    - CANCELLED
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusProcessed
+    - StatusShipped
+    - StatusCompleted
+    - StatusCancelled
+host: localhost:8083
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: This is an order service API.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://example.com/terms/
+  title: Order Service API
+  version: "1.0"
+paths:
+  /{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve detailed order information including items and final amount
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order details
+          schema:
+            $ref: '#/definitions/order.Order'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Order not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get order by ID
+      tags:
+      - orders
+  /cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancel an existing order and reverse its stock and pricing effects
+      parameters:
+      - description: Order cancellation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/order.CancelOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully canceled order
+          schema:
+            $ref: '#/definitions/order.Order'
+        "400":
+          description: Invalid request or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cancel an order
+      tags:
+      - orders
+  /flash:
+    post:
+      consumes:
+      - application/json
+      description: Create a new order with calculated pricing, markup, and discount
+      parameters:
+      - description: Order creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/order.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully created order
+          schema:
+            $ref: '#/definitions/order.Order'
+        "400":
+          description: Invalid request or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new order
+      tags:
+      - orders
+swagger: "2.0"

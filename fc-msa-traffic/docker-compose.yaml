@@ -1,0 +1,126 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my-secret-pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - traffic_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  redis:
+    image: redis:8.0.3
+    container_name: redis
+    restart: on-failure
+    ports:
+      - "6379:6379" 
+    volumes:
+      - redis_data:/data
+    networks:
+      - traffic_net
+  
+  consul:
+    container_name: consul
+    image: hashicorp/consul:1.9.9
+    restart: unless-stopped
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    networks:
+      - traffic_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/v1/status/leader"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+      start_period: 10s
+
+  account-service:
+    build: 
+      context: ./app/account
+    container_name: account-service
+    restart: on-failure
+    ports:
+      - "8081:8081"
+    networks:
+      - traffic_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  catalog-service:
+    build: 
+      context: ./app/catalog
+    container_name: catalog-service
+    restart: on-failure
+    ports:
+      - "8082:8082"
+    networks:
+      - traffic_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  order-service:
+    build: 
+      context: ./app/order
+    container_name: order-service
+    restart: on-failure
+    ports:
+      - "8083:8083"
+    networks:
+      - traffic_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  pricing-service:
+    build: 
+      context: ./app/pricing
+    container_name: pricing-service
+    restart: on-failure
+    ports:
+      - "8084:8084"
+    networks:
+      - traffic_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  api-gateway:
+    build: 
+      context: ./app/gateway
+    container_name: api-gateway
+    restart: on-failure
+    environment:
+      SERVER_PORT: 8080
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_CLOUD_CONSUL_HOST: consul
+      SPRING_CLOUD_CONSUL_PORT: 8500
+    ports:
+      - "8080:8080"
+    networks:
+      - traffic_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  traffic_net:

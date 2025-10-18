@@ -1,0 +1,4 @@
+CREATE DATABASE account_db;
+CREATE DATABASE catalog_db;
+CREATE DATABASE order_db;
+CREATE DATABASE pricing_db;

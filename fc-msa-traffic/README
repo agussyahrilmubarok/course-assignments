@@ -1,0 +1,8 @@
+# Demo Traffic Control in Microservice with Golang
+
+## Services
+
+- account-service,8081
+- catalog-service,8082
+- order-service,8083
+- pricing-service,8084
