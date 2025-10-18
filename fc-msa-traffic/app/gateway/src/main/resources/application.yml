@@ -1,0 +1,58 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:localhost}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      discovery:
+        register: true
+        prefer-ip-address: true
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
+            - id: account-service
+              uri: lb://account-service
+              predicates:
+                - Path=/api/v1/accounts, /api/v1/accounts/**
+            - id: catalog-service
+              uri: lb://catalog-service
+              predicates:
+                - Path=/api/v1/catalogs, /api/v1/catalogs/**
+            - id: account-service
+              uri: lb://account-service
+              predicates:
+                - Path=/api/v1/accounts, /api/v1/accounts/**
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/api/v1/orders, /api/v1/orders/**
+            - id: pricing-service
+              uri: lb://pricing-service
+              predicates:
+                - Path=/api/v1/pricings, /api/v1/pricings/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.consul: INFO

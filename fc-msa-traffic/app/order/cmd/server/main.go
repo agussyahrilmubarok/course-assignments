@@ -36,7 +36,7 @@ import (
 // @host localhost:8083
 // @BasePath /api/v1/orders
 func main() {
-	configFlag := flag.String("config", "configs/order.yaml", "Path to config file")
+	configFlag := flag.String("config", "configs/config.yaml", "Path to config file")
 	flag.Parse()
 
 	cfg, err := order.NewConfig(*configFlag)

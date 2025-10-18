@@ -47,78 +47,41 @@ services:
       timeout: 5s
       start_period: 10s
 
-  account-service:
-    build: 
-      context: ./app/account
-    container_name: account-service
-    restart: on-failure
-    ports:
-      - "8081:8081"
-    networks:
-      - traffic_net
-    depends_on:
-      postgres:
-        condition: service_healthy
-  
-  catalog-service:
-    build: 
-      context: ./app/catalog
-    container_name: catalog-service
-    restart: on-failure
-    ports:
-      - "8082:8082"
-    networks:
-      - traffic_net
-    depends_on:
-      postgres:
-        condition: service_healthy
-  
-  order-service:
-    build: 
-      context: ./app/order
-    container_name: order-service
-    restart: on-failure
-    ports:
-      - "8083:8083"
-    networks:
-      - traffic_net
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  pricing-service:
-    build: 
-      context: ./app/pricing
-    container_name: pricing-service
-    restart: on-failure
-    ports:
-      - "8084:8084"
-    networks:
-      - traffic_net
-    depends_on:
-      postgres:
-        condition: service_healthy
-  
-  api-gateway:
-    build: 
-      context: ./app/gateway
-    container_name: api-gateway
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin
     restart: on-failure
     environment:
-      SERVER_PORT: 8080
-      SPRING_CLOUD_CONSUL_HOST: consul
-      SPRING_CLOUD_CONSUL_PORT: 8500
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: my-secret-pw
     ports:
-      - "8080:8080"
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     networks:
       - traffic_net
     depends_on:
       postgres:
         condition: service_healthy
-
+  
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: redis-insight
+    restart: on-failure
+    ports:
+      - "5051:5540"
+    volumes:
+      - redis_insight_data:/db
+    networks:
+      - traffic_net
+    depends_on:
+      - redis
+  
 volumes:
   postgres_data:
   redis_data:
+  pgadmin_data:
+  redis_insight_data:
 
 networks:
   traffic_net:

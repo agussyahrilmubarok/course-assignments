@@ -36,7 +36,7 @@ import (
 // @host localhost:8082
 // @BasePath /api/v1/catalogs
 func main() {
-	configFlag := flag.String("config", "configs/catalog.yaml", "Path to config file")
+	configFlag := flag.String("config", "configs/config.yaml", "Path to config file")
 	flag.Parse()
 
 	cfg, err := catalog.NewConfig(*configFlag)

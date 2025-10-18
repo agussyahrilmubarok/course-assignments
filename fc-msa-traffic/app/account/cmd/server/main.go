@@ -40,7 +40,7 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	configFlag := flag.String("config", "configs/account.yaml", "Path to config file")
+	configFlag := flag.String("config", "configs/config.yaml", "Path to config file")
 	flag.Parse()
 
 	cfg, err := account.NewConfig(*configFlag)
