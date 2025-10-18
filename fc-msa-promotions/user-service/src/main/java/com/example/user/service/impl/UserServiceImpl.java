@@ -24,6 +24,7 @@ public class UserServiceImpl implements UserService {
                     return new UserNotFoundException("User not found with id " + id);
                 });
 
+        log.info("User found when find by id={}", user.getId());
         return UserDTO.from(user);
     }
 }

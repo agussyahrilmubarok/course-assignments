@@ -14,8 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ExtendWith(MockitoExtension.class)
 class JWTServiceImplTest {
 
-    @InjectMocks
-    private JWTServiceImpl jwtService;
+    @InjectMocks private JWTServiceImpl jwtService;
 
     @BeforeEach
     void setUp() {
@@ -24,12 +23,10 @@ class JWTServiceImplTest {
     }
 
     @Test
-    void testGenerateAndValidateToken() {
+    void testGenerate_shouldReturnJWTString() {
         User user = new User();
         user.setEmail("test@example.com");
-
         String token = jwtService.generate(user);
-
         assertNotNull(token, "Token should not be null");
         assertFalse(token.isEmpty(), "Token should not be empty");
 

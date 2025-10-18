@@ -19,16 +19,19 @@ import java.util.Date;
 @RequiredArgsConstructor
 public class JWTServiceImpl implements JWTService {
 
-    private final PasswordEncoder passwordEncoder;
     @Value("${jsonwebtoken.secret.key}")
     private String jwtSecretKey;
+
     @Value("${jsonwebtoken.expires}")
     private long jwtExpirationMs;
+
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public String generate(User user) {
         long now = System.currentTimeMillis();
 
+        log.info("Generate JWT success for user id={}", user.getId());
         return JWT.create()
                 .withSubject(user.getEmail())
                 .withClaim("role", "USER")
@@ -41,6 +44,7 @@ public class JWTServiceImpl implements JWTService {
     public DecodedJWT validateToken(String token) {
         try {
             DecodedJWT decodedJWT = getVerifier().verify(token);
+
             log.info("JWT token is valid for user: {}", decodedJWT.getSubject());
             return decodedJWT;
         } catch (Exception e) {

@@ -25,17 +25,11 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
-    @InjectMocks
-    private AuthServiceImpl authService;
+    @InjectMocks private AuthServiceImpl authService;
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private JWTService jwtService;
+    @Mock private UserRepository userRepository;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private JWTService jwtService;
 
     private User user;
 
@@ -49,13 +43,12 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testSignUp_success() {
+    void testSignUp_saveNewUser_shouldReturnAuthDTO() {
         AuthDTO.SignUp signUp = AuthDTO.SignUp.builder()
                 .name("Test")
                 .email("test@example.com")
                 .password("password")
                 .build();
-
         when(userRepository.existsByEmailIgnoreCase(signUp.getEmail())).thenReturn(false);
         when(passwordEncoder.encode(signUp.getPassword())).thenReturn("encodedPassword");
 
@@ -71,7 +64,6 @@ class AuthServiceImplTest {
                 .email("test@example.com")
                 .password("password")
                 .build();
-
         when(userRepository.existsByEmailIgnoreCase(signUp.getEmail())).thenReturn(true);
 
         assertThrows(DuplicateUserException.class, () -> authService.signUp(signUp));
@@ -80,12 +72,11 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testSignIn_success() {
+    void testSignIn_trueUser_shouldReturnAuthDTO() {
         AuthDTO.SignIn signIn = AuthDTO.SignIn.builder()
                 .email("test@example.com")
                 .password("password")
                 .build();
-
         when(userRepository.findByEmail("TEST@EXAMPLE.COM")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password", "encodedPassword")).thenReturn(true);
         when(jwtService.generate(user)).thenReturn("mockedToken");
@@ -103,7 +94,6 @@ class AuthServiceImplTest {
                 .email("notfound@example.com")
                 .password("password")
                 .build();
-
         when(userRepository.findByEmail("NOTFOUND@EXAMPLE.COM")).thenReturn(Optional.empty());
 
         assertThrows(UserNotFoundException.class, () -> authService.signIn(signIn));
@@ -117,7 +107,6 @@ class AuthServiceImplTest {
                 .email("test@example.com")
                 .password("wrongPassword")
                 .build();
-
         when(userRepository.findByEmail("TEST@EXAMPLE.COM")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false); // ❌ password tidak cocok
 
@@ -128,11 +117,10 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testValidateToken_success() {
+    void testValidateToken_validToken_shouldReturnAuthDTO() {
         AuthDTO.TokenRequest request = AuthDTO.TokenRequest.builder()
                 .token("validToken")
                 .build();
-
         DecodedJWT decodedJWT = mock(DecodedJWT.class);
         when(decodedJWT.getSubject()).thenReturn("test@example.com");
         when(userRepository.findByEmail("TEST@EXAMPLE.COM")).thenReturn(Optional.of(user));
@@ -149,10 +137,8 @@ class AuthServiceImplTest {
         AuthDTO.TokenRequest request = AuthDTO.TokenRequest.builder()
                 .token("validToken")
                 .build();
-
         DecodedJWT decodedJWT = mock(DecodedJWT.class);
         when(decodedJWT.getSubject()).thenReturn("notfound@example.com");
-
         when(jwtService.validateToken(request.getToken())).thenReturn(decodedJWT);
         when(userRepository.findByEmail("NOTFOUND@EXAMPLE.COM")).thenReturn(Optional.empty());
 

@@ -19,11 +19,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
-    @InjectMocks
-    private UserServiceImpl userService;
+    @InjectMocks private UserServiceImpl userService;
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
     private User user;
 
@@ -37,7 +35,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void testFindById_success() {
+    void testFindById_existUser_shouldReturnUserDTO() {
         when(userRepository.findById("123")).thenReturn(Optional.of(user));
 
         UserDTO result = userService.findByID("123");
@@ -46,12 +44,11 @@ class UserServiceImplTest {
         assertEquals("123", result.getId());
         assertEquals("Test User", result.getName());
         assertEquals("test@example.com", result.getEmail());
-
         verify(userRepository, times(1)).findById("123");
     }
 
     @Test
-    void testFindById_userNotFound_shouldThrowException() {
+    void testFindById_notFoundUser_shouldThrowException() {
         when(userRepository.findById("999")).thenReturn(Optional.empty());
 
         assertThrows(UserNotFoundException.class, () -> userService.findByID("999"));

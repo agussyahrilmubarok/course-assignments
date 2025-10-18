@@ -55,6 +55,7 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedAccessException("Invalid password");
         }
 
+        log.info("Sign in success for user email={}", user.getEmail());
         return AuthDTO.Response.builder()
                 .token(jwtService.generate(user))
                 .user(UserDTO.from(user))
@@ -71,6 +72,7 @@ public class AuthServiceImpl implements AuthService {
                     return new UserNotFoundException("User not found with email " + claims.getSubject());
                 });
 
+        log.info("Validate token success for user email={}", user.getEmail());
         return AuthDTO.Response.builder()
                 .token(param.getToken())
                 .user(UserDTO.from(user))
