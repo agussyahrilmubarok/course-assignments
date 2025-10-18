@@ -70,6 +70,11 @@ func main() {
 	// 	logger.Info().Msg("AutoMigrate executed")
 	// }
 
+	if err := db.AutoMigrate(&account.User{}); err != nil {
+		logger.Fatal().Err(err).Msg("AutoMigrate failed")
+		os.Exit(1)
+	}
+
 	instanceID := discovery.GenerateInstanceID(cfg.App.Name)
 	consulRegistry, err := consul.NewRegistry(cfg.Consul.Address)
 	if err != nil {
@@ -117,7 +122,7 @@ func main() {
 		v1.POST("/sign-up", handler.SignUp)
 		v1.POST("/sign-in", handler.SignIn, middleware.RateLimiterWithConfig(customMiddleware.RateLimiterConfig()))
 		v1.POST("/validate", handler.Validate)
-		v1.GET("/me", handler.GetMe, customMiddleware.Auth())
+		v1.GET("/me", handler.GetMe, customMiddleware.XUserID())
 	}
 
 	go func() {

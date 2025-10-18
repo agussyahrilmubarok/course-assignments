@@ -42,12 +42,21 @@ curl -X POST http://localhost:8081/api/v1/accounts/validate \
     -i
 ```
 
-## Get Me
+## Get Me (deprecated) use via api-gateway
 
 `api/v1/accounts/me`
 
 ```bash
 curl -X GET http://localhost:8081/api/v1/accounts/me \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer " \
+    -i
+```
+
+`api/v1/accounts/me`
+
+```bash
+curl -X GET http://localhost:8080/api/v1/accounts/me \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer " \
     -i

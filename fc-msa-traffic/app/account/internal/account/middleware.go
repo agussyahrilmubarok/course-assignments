@@ -13,6 +13,7 @@ import (
 type ICustomMiddleware interface {
 	Auth() echo.MiddlewareFunc
 	RateLimiterConfig() middleware.RateLimiterConfig
+	XUserID() echo.MiddlewareFunc
 }
 
 type customMiddleware struct {
@@ -78,5 +79,18 @@ func (m *customMiddleware) RateLimiterConfig() middleware.RateLimiterConfig {
 				"error": "Too many requests",
 			})
 		},
+	}
+}
+
+// XUserID middleware to extract X-USER-ID from headers and put it in context
+func (m *customMiddleware) XUserID() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			userID := c.Request().Header.Get("X-USER-ID")
+			if userID != "" {
+				c.Set("user_id", userID)
+			}
+			return next(c)
+		}
 	}
 }
