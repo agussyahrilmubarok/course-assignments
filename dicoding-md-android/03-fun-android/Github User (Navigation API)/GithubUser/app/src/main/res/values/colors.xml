@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="light_gray">#F1F1F3</color>
+    <color name="dark_gray">#DCDCDD</color>
+
+    <color name="retro_primary">#DCDCDD</color>
+    <color name="retro_primary_dark">#000000</color>
+    <color name="retro_accent">#FFC107</color>
+    <color name="retro_background">#F5F5F5</color>
+    <color name="retro_text_primary">#212121</color>
+    <color name="retro_text_secondary">#757575</color>
+
+</resources>

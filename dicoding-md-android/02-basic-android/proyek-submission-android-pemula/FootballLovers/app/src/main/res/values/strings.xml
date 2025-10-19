@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Football Lovers</string>
+    <string name="home">Home</string>
+    <string name="about">About</string>
+    <string name="team">Team</string>
+    <string name="team_name">Team</string>
+    <string name="team_league">League</string>
+    <string name="team_description">Description</string>
+    <string name="team_founded_year">Founded Year</string>
+    <string name="team_value">Value</string>
+    <string name="team_stadium">Stadium</string>
+    <string name="team_country">Country</string>
+    <string name="team_coach">Coach</string>
+    <string name="name">Name</string>
+    <string name="email">Email</string>
+</resources>
