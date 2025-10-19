@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">SimpleNotif</string>
+    <string name="send_notif">Send Notif</string>
+    <string name="notification_title">Dicoding Indonesia</string>
+    <string name="notification_message">Mari belajar bersama</string>
+    <string name="notification_subtext">Reminder</string>
+</resources>
