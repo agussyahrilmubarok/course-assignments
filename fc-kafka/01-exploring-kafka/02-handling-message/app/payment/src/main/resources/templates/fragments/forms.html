@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="row mb-3" th:fragment="inputRow(object, field)"
+     th:object="${__${object}__}"
+     th:with="type=${type} ?: 'text', required=${required}, disabled=${disabled},
+              inputClassappend=${#fields.hasErrors(field) || (type == 'textarea' && #fields.hasErrors(field + '*')) ? 'is-invalid ' : ''} + ${inputClass ?: ''}">
+
+    <!-- Checkbox -->
+    <div class="col-md-10 offset-md-2" th:if="${type == 'checkbox'}">
+        <div class="form-check">
+            <input class="form-check-input"
+                   th:classappend="${inputClassappend}" th:disabled="${disabled}"
+                   th:field="*{__${field}__}" th:type="${type}"/>
+            <label class="form-check-label" th:for="${#ids.prev(field)}">
+                <span>[[#{__${object}__.__${field}__.label} + ${required == true ? '*' : ''}]]</span>
+            </label>
+        </div>
+        <div th:replace="~{:: fieldErrors(${object}, ${field})}"/>
+    </div>
+
+    <!-- Label -->
+    <label class="col-md-2 col-form-label" th:for="${type == 'radio' ? '' : field}" th:if="${type != 'checkbox'}">
+        <span>[[#{__${object}__.__${field}__.label} + ${required == true ? '*' : ''}]]</span>
+    </label>
+
+    <div class="col-md-10" th:if="${type != 'checkbox'}">
+        <!-- Text / number / password / email / tel -->
+        <input class="form-control"
+               th:classappend="${inputClassappend}" th:disabled="${disabled}" th:field="*{__${field}__}"
+               th:if="${type == 'text' || type == 'password' || type == 'email' || type == 'tel' || type == 'number'}"
+               th:type="${type}"/>
+
+        <!-- Date / Datetime-local -->
+        <input class="form-control"
+               th:classappend="${inputClassappend}" th:disabled="${disabled}" th:field="*{__${field}__}"
+               th:if="${type == 'date' || type == 'datetime-local'}"
+               th:type="${type}"/>
+
+        <!-- Textarea -->
+        <textarea class="form-control"
+                  th:classappend="${inputClassappend}" th:disabled="${disabled}"
+                  th:field="*{__${field}__}" th:if="${type == 'textarea'}"></textarea>
+
+        <!-- Select / multiselect -->
+        <select class="form-select"
+                th:classappend="${inputClassappend}"
+                th:disabled="${disabled}"
+                th:field="*{__${field}__}"
+                th:if="${type == 'select' || type == 'multiselect'}"
+                th:multiple="${type == 'multiselect'}">
+            <option th:if="${type == 'select'}" value="">[[#{select.empty.label}]]</option>
+            <option th:each="optionValue : ${__${field}__Values}"
+                    th:if="${!(__${field}__Values instanceof T(java.util.Map))}"
+                    th:value="${optionValue}">[[${optionValue}]]
+            </option>
+            <option th:each="optionValue : ${__${field}__Values}"
+                    th:if="${__${field}__Values instanceof T(java.util.Map)}"
+                    th:value="${optionValue.key}">[[${optionValue.value}]]
+            </option>
+        </select>
+
+        <!-- Radio empty -->
+        <div class="form-check form-check-inline pt-2" th:if="${type == 'radio' && required != true}">
+            <input class="form-check-input"
+                   th:checked="*{__${field}__} == null"
+                   th:classappend="${inputClassappend}" th:disabled="${disabled}"
+                   th:name="${field}" type="radio" value=""/>
+            <label class="form-check-label">[[#{select.empty.label}]]</label>
+        </div>
+
+        <!-- Radio values -->
+        <div class="form-check form-check-inline pt-2" th:each="radioValue : ${__${field}__Values}"
+             th:if="${type == 'radio'}">
+            <input class="form-check-input"
+                   th:classappend="${inputClassappend}" th:disabled="${disabled}"
+                   th:field="*{__${field}__}" th:value="${radioValue}" type="radio"/>
+            <label class="form-check-label" th:for="${#ids.prev(field)}">[[${radioValue}]]</label>
+        </div>
+
+        <div th:replace="~{:: fieldErrors(${object}, ${field})}"/>
+    </div>
+</div>
+
+<!-- Field errors -->
+<div th:fragment="fieldErrors(object, field)" th:object="${__${object}__}" th:remove="tag">
+    <div class="invalid-feedback d-block" th:if="${#fields.hasErrors(field) || #fields.hasErrors(field + '*')}">
+        <p class="mb-0" th:each="fieldError : ${#fields.detailedErrors(field + '*')}">
+            [[${(fieldError.fieldName != field ? fieldError.fieldName + ': ' : '') + fieldError.message}]]
+        </p>
+    </div>
+</div>
+
+<!-- Global errors -->
+<div th:fragment="globalErrors(object)" th:object="${__${object}__}" th:remove="tag">
+    <div class="invalid-feedback d-block" th:if="${#fields.hasGlobalErrors()}">
+        <p class="mb-0" th:each="globalError : ${#fields.globalErrors()}">[[${globalError}]]</p>
+    </div>
+</div>
+</body>
+</html>
