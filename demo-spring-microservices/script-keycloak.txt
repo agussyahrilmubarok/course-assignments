@@ -1,0 +1,52 @@
+1. Login Keycloak via web browser
+
+2. Create realm
+
+    - realm_name: examplebank
+
+3. Register client (external client application)
+
+    - client_type: OpenID Connect
+    - client_id: examplebank-cc
+    - name: examplebank-cc
+
+    - client_authentication: On
+    - authorization: Off
+    - authentication_flow: Service accounts roles
+
+4. Get Client Credentials Access Token
+
+    - example: curl -X POST "https://<keycloak-host>/realms/<realm-name>/protocol/openid-connect/token" \
+                -H "Content-Type: application/x-www-form-urlencoded" \
+                -d "grant_type=client_credentials" \
+                -d "client_id=<client-id>" \
+                -d "client_secret=<client-secret>"
+
+    - example: curl -X POST "http://localhost:7080/realms/examplebank/protocol/openid-connect/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=examplebank-cc" \
+  -d "client_secret=sXg9rdvMM2KnmBXE6vpx6RktQCbrpASa"
+
+5. Create Realm Roles
+
+    - ACCOUNTS
+    - CARDS
+    - LOANS
+
+6. Signed each realm roles to client
+
+    - Services assign roles
+
+7. Register user (external client application)
+
+    - client_type: OpenID Connect
+    - client_id: examplebank-ac
+    - name: examplebank-ac
+
+    - client_authentication: On
+    - authorization: Off
+    - authentication_flow: Standard flow
+
+    - valid_redirects_urls: *
+    - web_origins: *
