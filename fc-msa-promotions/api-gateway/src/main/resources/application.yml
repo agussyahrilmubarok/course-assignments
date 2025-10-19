@@ -1,0 +1,178 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: ${SERVER_NAME:API-GATEWAY}
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          default-filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "${clients.url}"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+                allowCredentials: true
+          routes:
+            - id: public-user-service
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/api/v1/auth/sign-up, /api/v1/auth/sign-in, /api/v1/auth/validate-token
+            - id: user-service
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/api/v1/users/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: userServiceBreaker
+                    fallbackUri: forward:/fallback/users
+                - name: JwtAuthenticationFilter
+            - id: coupon-service
+              uri: lb://COUPON-SERVICE
+              predicates:
+                - Path=/api/coupons, /api/coupons/**, /api/couponPolicies, /api/couponPolicies/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: couponServiceBreaker
+                    fallbackUri: forward:/fallback/coupons
+                - name: JwtAuthenticationFilter
+            - id: coupon-service-v1
+              uri: lb://COUPON-SERVICE
+              predicates:
+                - Path=/api/v1/coupons, /api/v1/coupons/**, /api/v1/couponPolicies, /api/v1/couponPolicies/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: couponServiceBreaker
+                    fallbackUri: forward:/fallback/coupons
+                - name: JwtAuthenticationFilter
+            - id: coupon-service-v2
+              uri: lb://COUPON-SERVICE
+              predicates:
+                - Path=/api/v2/coupons, /api/v2/coupons/**, /api/v2/couponPolicies, /api/v2/couponPolicies/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: couponServiceBreaker
+                    fallbackUri: forward:/fallback/coupons
+                - name: JwtAuthenticationFilter
+            - id: coupon-service-v3
+              uri: lb://COUPON-SERVICE
+              predicates:
+                - Path=/api/v3/coupons, /api/v3/coupons/**, /api/v3/couponPolicies, /api/v3/couponPolicies/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: couponServiceBreaker
+                    fallbackUri: forward:/fallback/coupons
+                - name: JwtAuthenticationFilter
+            - id: point-service-v1
+              uri: lb://POINT-SERVICE
+              predicates:
+                - Path=/api/v1/points, /api/v1/points/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: pointServiceBreaker
+                    fallbackUri: forward:/fallback/points
+                - name: JwtAuthenticationFilter
+            - id: point-service-v2
+              uri: lb://POINT-SERVICE
+              predicates:
+                - Path=/api/v2/points, /api/v2/points/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: pointServiceBreaker
+                    fallbackUri: forward:/fallback/points
+                - name: JwtAuthenticationFilter
+            - id: timesale-service-v1
+              uri: lb://TIMESALE-SERVICE
+              predicates:
+                - Path=/api/v1/timeSales, /api/v1/timeSales/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: timeSaleServiceBreaker
+                    fallbackUri: forward:/fallback/timeSales
+                - name: JwtAuthenticationFilter
+            - id: timesale-service-v2
+              uri: lb://TIMESALE-SERVICE
+              predicates:
+                - Path=/api/v2/timeSales, /api/v2/timeSales/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: timeSaleServiceBreaker
+                    fallbackUri: forward:/fallback/timeSales
+                - name: JwtAuthenticationFilter
+            - id: timesale-service-v3
+              uri: lb://TIMESALE-SERVICE
+              predicates:
+                - Path=/api/v3/timeSales, /api/v3/timeSales/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: timeSaleServiceBreaker
+                    fallbackUri: forward:/fallback/timeSales
+                - name: JwtAuthenticationFilter
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_URL:http://localhost:8761/eureka/}
+    registerWithEureka: true
+    fetchRegistry: true
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      authCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 10
+        permittedNumberOfCallsInHalfOpenState: 10
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5000
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        record-exceptions:
+          - java.util.concurrent.TimeoutException
+          - org.springframework.cloud.gateway.support.NotFoundException
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+
+management:
+  server:
+    port: ${SERVER_METRIC_PORT:7070}
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+
+clients:
+  url: ${CLIENTS_URL:http://localhost:4000}
+
+logging:
+  level:
+    root: INFO
+    com.example.gateway.filter: INFO
+    org.springframework.cloud.gateway: DEBUG
