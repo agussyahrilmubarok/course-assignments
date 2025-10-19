@@ -1,0 +1,6 @@
+.idea
+node_modules
+.env
+.prod.env
+package-lock.json
+server-side-caching/src/api/uploads/file

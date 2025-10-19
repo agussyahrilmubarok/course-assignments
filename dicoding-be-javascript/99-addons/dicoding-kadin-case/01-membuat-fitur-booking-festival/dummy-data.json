@@ -1,0 +1,226 @@
+[
+  {
+    "title": "Oktoberfest",
+    "description": "Oktoberfest is a festival that celebrates beer, food, and Bavarian culture. Enjoy traditional music, food, and, of course, beer, in this lively and festive atmosphere.",
+    "location": "Munich, Germany",
+    "facilities": [
+      "Beer Tents",
+      "Food Stands",
+      "Restrooms",
+      "First Aid Stations"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/oktoberfest.jpg",
+    "price": 100
+  },
+  {
+    "title": "Film Fest",
+    "description": "Film Fest is a festival that celebrates the art of film-making. Enjoy screenings of the latest and greatest movies from around the world, as well as Q&A sessions with directors and actors.",
+    "location": "Cannes, France",
+    "facilities": [
+      "Screening Rooms",
+      "Information Booths",
+      "Food Stands",
+      "Medical Tent"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/film-fest.jpg",
+    "price": 120
+  },
+  {
+    "title": "Mardi Gras Madness",
+    "description": "Mardi Gras Madness is a festival that celebrates the carnival season. Enjoy parades, costumes, and a variety of other festivities in this colorful and lively event.",
+    "location": "New Orleans, Louisiana, USA",
+    "facilities": [
+      "Restrooms",
+      "Food Stalls",
+      "First Aid Station",
+      "Information Booths"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/mardi-gras.jpg",
+    "price": 80
+  },
+  {
+    "title": "Comic Con",
+    "description": "Comic Con is a convention that celebrates all things related to comics, movies, and pop culture. Meet your favorite celebrities, attend panels, and shop for all the latest merchandise.",
+    "location": "San Diego, California, USA",
+    "facilities": [
+      "Vendor Booths",
+      "Restrooms",
+      "Food Trucks",
+      "Medical Tent"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/comic-con.jpg",
+    "price": 150
+  },
+  {
+    "title": "Lunar New Year",
+    "description": "Lunar New Year is a festival that celebrates the start of the lunar calendar. Enjoy traditional performances, food, and activities to welcome the new year.",
+    "location": "Beijing, China",
+    "facilities": [
+      "Food Stalls",
+      "Restrooms",
+      "Information Booths",
+      "First Aid Station"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/lunar-new-year.jpg",
+    "price": 90
+  },
+  {
+    "title": "Running for a Cause",
+    "description": "Running for a Cause is a charity event that raises funds for a specific cause. Run, walk or jog and support a great cause while getting some exercise.",
+    "location": "Central Park, New York City, USA",
+    "facilities": [
+      "Restrooms",
+      "Water Stations",
+      "Medical Tent",
+      "Information Booths"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/running-for-a-cause.jpg",
+    "price": 50
+  },
+  {
+    "title": "Christmas Market",
+    "description": "Christmas Market is a festive market that sells handmade crafts, gifts, and traditional Christmas treats. Get in the holiday spirit while shopping and enjoying the sights and sounds of the season.",
+    "location": "Strasbourg, France",
+    "facilities": [
+      "Food Stalls",
+      "Information Booths",
+      "Restrooms",
+      "First Aid Station"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/christmas-market.jpg",
+    "price": 70
+  },
+  {
+    "title": "Science Fair",
+    "description": "Science Fair is an event that showcases the latest and greatest advancements in science and technology. Learn about new discoveries and innovations in this educational and fun event.",
+    "location": "San Francisco, California, USA",
+    "facilities": [
+      "Exhibits",
+      "Information Booths",
+      "Food Stalls",
+      "Medical Tent"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/science-fair.jpg",
+    "price": 100
+  },
+  {
+    "title": "Jazz Festival",
+    "description": "Jazz Festival is a music festival that celebrates the art of jazz music. Enjoy performances by local and international jazz musicians in this lively and vibrant event.",
+    "location": "New Orleans, Louisiana, USA",
+    "facilities": [
+      "Stages",
+      "Food Vendors",
+      "Restrooms",
+      "First Aid Stations"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/jazz-festival.jpg",
+    "price": 80
+  },
+  {
+    "title": "Halloween Horror Nights",
+    "description": "Halloween Horror Nights is an annual event that takes place at Universal Studios theme parks around the world. Enjoy haunted houses, scare zones, and live entertainment in this terrifying and thrilling event.",
+    "location": "Universal Studios, Hollywood, USA",
+    "facilities": [
+      "Restrooms",
+      "Food Stands",
+      "Medical Tent",
+      "Information Booths"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/halloween-horror-nights.jpg",
+    "price": 120
+  },
+  {
+    "title": "Cherry Blossom Festival",
+    "description": "Cherry Blossom Festival is a celebration of the blooming of cherry blossoms in the spring. Enjoy the beautiful sights and smells of the season, as well as traditional Japanese performances and food.",
+    "location": "Tokyo, Japan",
+    "facilities": [
+      "Food Stalls",
+      "Restrooms",
+      "First Aid Station",
+      "Information Booths"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/cherry-blossom-festival.jpg",
+    "price": 90
+  },
+  {
+    "title": "Winter Wonderland",
+    "description": "Winter Wonderland is a festival that celebrates the holiday season. Enjoy ice-skating, snow tubing, and a variety of other winter-themed activities in this magical and festive event.",
+    "location": "Hyde Park, London, UK",
+    "facilities": [
+      "Restrooms",
+      "Food Stands",
+      "Medical Tent",
+      "Information Booths"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/winter-wonderland.jpg",
+    "price": 70
+  },
+  {
+    "title": "Sunburn Festival",
+    "description": "Sunburn Festival is a music festival that celebrates electronic dance music. Enjoy performances by local and international DJs in this high-energy and exciting event.",
+    "location": "Goa, India",
+    "facilities": [
+      "Stages",
+      "Food Stalls",
+      "Restrooms",
+      "First Aid Station"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/sunburn-festival.jpg",
+    "price": 100
+  },
+  {
+    "title": "Dia de los Muertos",
+    "description": "Dia de los Muertos is a Mexican holiday that celebrates the lives of loved ones who have passed away. Enjoy colorful parades, traditional food, and music in this vibrant and cultural event.",
+    "location": "Mexico City, Mexico",
+    "facilities": [
+      "Food Stands",
+      "Restrooms",
+      "First Aid Station",
+      "Information Booths"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/dia-de-los-muertos.jpg",
+    "price": 80
+  },
+  {
+    "title": "Rock in Rio",
+    "description": "Rock in Rio is a music festival that celebrates rock music. Enjoy performances by local and international rock bands in this high-energy and exciting event.",
+    "location": "Rio de Janeiro, Brazil",
+    "facilities": [
+      "Stages",
+      "Food Vendors",
+      "Restrooms",
+      "Medical Tent"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/rock-in-rio.jpg",
+    "price": 120
+  },
+  {
+    "title": "Banff Music Festival",
+    "description": "Banff Music Festival is a music festival that takes place in the beautiful mountains of Banff. Enjoy a variety of musical performances from local and international artists, while surrounded by the stunning natural scenery of the mountains.",
+    "location": "Banff, Alberta, Canada",
+    "facilities": [
+      "Restrooms",
+      "Food Stands",
+      "Medical Tent",
+      "Information Booths"
+    ],
+    "refundable": true,
+    "banner": "/images/festival/banner/banff-music-festival.jpg",
+    "price": 100
+  }
+]
