@@ -112,6 +112,8 @@ func main() {
 
 		v1.GET("/products", handler.GetProducts)
 		v1.GET("/products/:id", handler.GetProduct)
+
+		// for internal communications
 		v1.POST("/products/stocks/reverse", handler.ReverseProductStock)
 		v1.POST("/products/stocks/release", handler.ReleaseProductStock)
 		v1.GET("/products/stocks/:id", handler.GetProductStock)
