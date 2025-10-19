@@ -1,0 +1,15 @@
+entryPoints:
+  web:
+    address: ":8080"
+
+  traefik:
+    address: ":5052"  
+
+api:
+  dashboard: true
+  insecure: true
+
+providers:
+  file:
+    directory: /rules
+    watch: true
