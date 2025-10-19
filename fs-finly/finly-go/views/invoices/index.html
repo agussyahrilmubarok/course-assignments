@@ -1,0 +1,7 @@
+<div class="flex h-screen overflow-hidden">
+  {{template "partials/sidebar" .}}
+  <div class="ml-56 flex-grow p-10 overflow-y-auto">
+    {{if eq .Type "data"}} {{template "invoices/partials/invoiceData" .}}
+    {{else}} {{template "invoices/partials/invoiceForm" .}} {{end}}
+  </div>
+</div>
