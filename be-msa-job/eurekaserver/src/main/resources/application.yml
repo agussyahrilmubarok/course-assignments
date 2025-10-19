@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: "eurekaserver"
+  config:
+    import: ${SPRING_CONFIG_IMPORT:optional:configserver:http://localhost:8071/}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  health:
+    readiness-state:
+      enabled: true
+    liveness-state:
+      enabled: true
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+logging:
+  level:
+    com:
+      example:
+        eurekaserver: DEBUG
+  file:
+    name: logs/app.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [${spring.application.name},%X{trace_id:-},%X{span_id:-}] [%t] %c{1} - %m%n"
+    console: "%d{HH:mm:ss.SSS} %5p [${spring.application.name},%X{trace_id:-},%X{span_id:-}] [%t] %c{1} - %m%n"

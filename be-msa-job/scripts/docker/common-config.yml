@@ -1,0 +1,11 @@
+services:
+  microservice-base-config:
+    environment:
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: rabbitmq
+      RABBITMQ_PASSWORD: P4ssword!
+    deploy:
+      resources:
+        limits:
+          memory: 700m
