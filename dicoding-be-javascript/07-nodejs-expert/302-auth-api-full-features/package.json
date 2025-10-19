@@ -1,0 +1,35 @@
+{
+  "name": "auth-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "start:dev": "nodemon src/app.js",
+    "test": "jest --setupFiles dotenv/config",
+    "test:watch": "jest --watchAll --coverage --setupFiles dotenv/config",
+    "migrate": "node-pg-migrate",
+    "migrate:test": "node-pg-migrate --envPath .test.env"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@hapi/hapi": "^21.3.2",
+    "@hapi/jwt": "^3.2.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.3.1",
+    "instances-container": "^2.0.6",
+    "nanoid": "^3.1.23",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "eslint": "^8.56.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "jest": "^29.7.0",
+    "node-pg-migrate": "^6.2.2",
+    "nodemon": "^3.0.2"
+  }
+}
