@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type Config struct {
@@ -32,6 +31,17 @@ type Config struct {
 		MaxIdleConns    int    `mapstructure:"max_idle_conns"`
 		ConnMaxLifetime string `mapstructure:"conn_max_lifetime"` // Example: "1h", "30m"
 	} `mapstructure:"postgres"`
+
+	MySQL struct {
+		Host            string `mapstructure:"host"`
+		Port            int    `mapstructure:"port"`
+		User            string `mapstructure:"user"`
+		Password        string `mapstructure:"password"`
+		DbName          string `mapstructure:"dbname"`
+		MaxOpenConns    int    `mapstructure:"max_open_conns"`
+		MaxIdleConns    int    `mapstructure:"max_idle_conns"`
+		ConnMaxLifetime string `mapstructure:"conn_max_lifetime"` // Example: "1h", "30m"
+	} `mapstructure:"mysql"`
 
 	Redis struct {
 		Host string `mapstructure:"host"`
@@ -65,37 +75,6 @@ func NewConfig(filepath string) (*Config, error) {
 	return &cfg, nil
 }
 
-func NewPostgres(cfg *Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Postgres.Host,
-		cfg.Postgres.Port,
-		cfg.Postgres.User,
-		cfg.Postgres.Password,
-		cfg.Postgres.DbName,
-		cfg.Postgres.SslMode,
-	)
-
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent), // Info, Warn, Error
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-
-	// Connection pool settings
-	sqlDB.SetMaxOpenConns(cfg.Postgres.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(cfg.Postgres.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(time.Duration(cfg.Postgres.MaxOpenConns))
-
-	return db, nil
-}
-
 func NewZerolog(cfg *Config) (zerolog.Logger, error) {
 	logDir := filepath.Dir(cfg.Logger.Filepath)
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
@@ -121,4 +100,49 @@ func NewZerolog(cfg *Config) (zerolog.Logger, error) {
 		Logger()
 
 	return logger, nil
+}
+
+func NewDBShard(cfg *Config) ([]*gorm.DB, error) {
+	var shards []*gorm.DB
+
+	// Compose Postgres DSN from config
+	postgresDSN := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
+		cfg.Postgres.Host,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DbName,
+		cfg.Postgres.Port,
+		cfg.Postgres.SslMode,
+	)
+
+	postgresDb, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	shards = append(shards, postgresDb)
+
+	// Compose MySQL DSN from config
+	mysqlDSN := fmt.Sprintf(
+		"%s:%s@tcp(%s:%d)/%s?parseTime=true",
+		cfg.MySQL.User,
+		cfg.MySQL.Password,
+		cfg.MySQL.Host,
+		cfg.MySQL.Port,
+		cfg.MySQL.DbName,
+	)
+
+	mysqlDb, err := gorm.Open(mysql.Open(mysqlDSN), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	shards = append(shards, mysqlDb)
+
+	for _, db := range shards {
+		if err := db.AutoMigrate(&Order{}, &OrderItem{}); err != nil {
+			return nil, err
+		}
+	}
+
+	return shards, nil
 }

@@ -17,12 +17,27 @@ type IStore interface {
 }
 
 type store struct {
-	db  *gorm.DB
-	log zerolog.Logger
+	shards []*gorm.DB
+	router *ShardRouter
+	log    zerolog.Logger
 }
 
-func NewStore(db *gorm.DB, log zerolog.Logger) IStore {
-	return &store{db: db, log: log}
+func NewStore(shards []*gorm.DB, router *ShardRouter, log zerolog.Logger) IStore {
+	return &store{
+		shards: shards,
+		router: router,
+		log:    log,
+	}
+}
+
+func (s *store) getDBByUserID(userID string) *gorm.DB {
+	index := s.router.GetShard(userID)
+	return s.shards[index]
+}
+
+func (s *store) getDBByOrderID(orderID string) *gorm.DB {
+	index := s.router.GetShard(orderID)
+	return s.shards[index]
 }
 
 func (s *store) SaveOrder(ctx context.Context, order *Order) error {
@@ -40,14 +55,15 @@ func (s *store) SaveOrder(ctx context.Context, order *Order) error {
 
 	order.FinalAmount = order.CalculateFinalAmount()
 
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	db := s.getDBByUserID(order.UserID)
+
+	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(order).Error; err != nil {
 			s.log.Error().Err(err).
 				Str("order_id", order.ID).
 				Msg("Failed to create order and its items")
 			return err
 		}
-
 		return nil
 	})
 
@@ -61,9 +77,10 @@ func (s *store) SaveOrder(ctx context.Context, order *Order) error {
 }
 
 func (s *store) FindOrderByID(ctx context.Context, orderID string) (*Order, error) {
-	var order Order
+	db := s.getDBByOrderID(orderID)
 
-	err := s.db.WithContext(ctx).
+	var order Order
+	err := db.WithContext(ctx).
 		Preload("OrderItems").
 		First(&order, "id = ?", orderID).Error
 
@@ -87,7 +104,9 @@ func (s *store) UpdateStatus(ctx context.Context, order *Order, status OrderStat
 		return errors.New("order object or ID is required")
 	}
 
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	db := s.getDBByOrderID(order.ID) 
+
+	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing Order
 		if err := tx.First(&existing, "id = ?", order.ID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -103,7 +122,6 @@ func (s *store) UpdateStatus(ctx context.Context, order *Order, status OrderStat
 			s.log.Error().Err(err).Str("order_id", order.ID).Msg("Failed to update order status")
 			return err
 		}
-
 		return nil
 	})
 

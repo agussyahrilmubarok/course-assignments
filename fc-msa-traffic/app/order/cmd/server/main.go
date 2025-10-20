@@ -51,14 +51,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := order.NewPostgres(cfg)
+	dbShards, err := order.NewDBShard(cfg)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to connect to database")
-		os.Exit(1)
-	}
-
-	if err := db.AutoMigrate(&order.Order{}, &order.OrderItem{}); err != nil {
-		logger.Fatal().Err(err).Msg("AutoMigrate failed")
+		fmt.Fprintf(os.Stderr, "Failed to set up hybrid shards: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -85,7 +80,7 @@ func main() {
 	}()
 	defer consulRegistry.Deregister(ctx, instanceID, cfg.App.Name)
 
-	store := order.NewStore(db, logger)
+	store := order.NewStore(dbShards, order.NewShardRouter(2), logger)
 	client := order.NewClient(cfg, logger)
 	service := order.NewService(cfg, store, client, logger)
 	handler := order.NewHandler(store, service, logger)
