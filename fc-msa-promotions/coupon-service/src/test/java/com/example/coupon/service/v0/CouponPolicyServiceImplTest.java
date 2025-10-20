@@ -32,12 +32,11 @@ class CouponPolicyServiceImplTest {
     private CouponPolicy couponPolicy;
 
     @Test
-    void givenExistingPolicies_whenFindAll_thenReturnListOfPolicies() {
+    void testFindAll_existingPolicies_shouldReturnPolicies() {
         CouponPolicy policy1 = new CouponPolicy();
         policy1.setId("1");
         CouponPolicy policy2 = new CouponPolicy();
         policy2.setId("2");
-
         when(couponPolicyRepository.findAll()).thenReturn(Arrays.asList(policy1, policy2));
 
         List<CouponPolicy> result = couponPolicyService.findAll();
@@ -48,10 +47,9 @@ class CouponPolicyServiceImplTest {
     }
 
     @Test
-    void givenExistingId_whenFindById_thenReturnCouponPolicy() {
+    void testFindById_existingId_returnCouponPolicy() {
         CouponPolicy policy = new CouponPolicy();
         policy.setId("123");
-
         when(couponPolicyRepository.findById("123")).thenReturn(Optional.of(policy));
 
         CouponPolicy result = couponPolicyService.findById("123");
@@ -61,14 +59,14 @@ class CouponPolicyServiceImplTest {
     }
 
     @Test
-    void givenNonExistingId_whenFindById_thenThrowException() {
+    void testFindById_notExists_thenThrowException() {
         when(couponPolicyRepository.findById("999")).thenReturn(Optional.empty());
 
         assertThrows(CouponPolicyNotFoundException.class, () -> couponPolicyService.findById("999"));
     }
 
     @Test
-    void givenValidCreateRequest_whenCreate_thenReturnSavedCouponPolicy() {
+    void testCreate_givenValidRequest_returnSavedCouponPolicy() {
         CouponPolicyDTO.CreateRequest request = CouponPolicyDTO.CreateRequest.builder()
                 .name("Summer Sale")
                 .description("Discount for summer season")
@@ -80,10 +78,8 @@ class CouponPolicyServiceImplTest {
                 .startTime(LocalDateTime.now().minusDays(1))
                 .endTime(LocalDateTime.now().plusDays(10))
                 .build();
-
         CouponPolicy savedPolicy = request.toEntity();
         savedPolicy.setId("abc123");
-
         when(couponPolicyRepository.save(any(CouponPolicy.class))).thenReturn(savedPolicy);
 
         CouponPolicy result = couponPolicyService.create(request);
