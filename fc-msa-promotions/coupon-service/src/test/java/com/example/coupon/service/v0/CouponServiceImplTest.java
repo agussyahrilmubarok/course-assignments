@@ -40,14 +40,10 @@ class CouponServiceImplTest {
     private static final String TEST_COUPON_ID = "COUPON_1";
     private static final String TEST_ORDER_ID = "ODER_1";
 
-    @InjectMocks
-    private CouponServiceImpl couponService;
+    @InjectMocks private CouponServiceImpl couponService;
 
-    @Mock
-    private CouponRepository couponRepository;
-
-    @Mock
-    private CouponPolicyRepository couponPolicyRepository;
+    @Mock private CouponRepository couponRepository;
+    @Mock private CouponPolicyRepository couponPolicyRepository;
 
     private CouponPolicy couponPolicy;
     private Coupon coupon;
@@ -74,7 +70,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenValidRequest_whenFindCoupons_thenReturnList() {
+    void testFindCoupons_validRequest_shouldReturnList() {
         List<Coupon> coupons = List.of(coupon);
         Page<Coupon> couponPage = new PageImpl<>(coupons);
         CouponDTO.ListRequest request = CouponDTO.ListRequest.builder()
@@ -97,7 +93,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenValidRequest_whenFindCoupons_thenReturnList_whenNullSize() {
+    void testFindCoupons_validRequest_shouldNullSize() {
         List<Coupon> coupons = Collections.emptyList();
         Page<Coupon> couponPage = new PageImpl<>(coupons);
         CouponDTO.ListRequest request = CouponDTO.ListRequest.builder()
@@ -119,7 +115,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenExistingCoupon_whenFindCoupon_thenReturnCoupon() {
+    void testFindCoupon_existsCoupon_shouldReturnCoupon() {
         try (MockedStatic<UserIdInterceptor> mockedStatic = mockStatic(UserIdInterceptor.class)) {
             mockedStatic.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
 
@@ -132,7 +128,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenNonExistingCoupon_whenFindCoupon_thenThrowException() {
+    void testFindCoupon_nonExistsCoupon_shouldThrowException() {
         try (MockedStatic<UserIdInterceptor> mockedStatic = mockStatic(UserIdInterceptor.class)) {
             mockedStatic.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
 
@@ -144,7 +140,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenValidPolicy_whenIssueCoupon_thenReturnCoupon() {
+    void testIssueCoupon_validPolicy_shouldReturnCoupon() {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(couponPolicy.getId())
                 .build();
@@ -164,7 +160,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenNotFoundPolicy_whenIssueCoupon_thenThrowException() {
+    void testIssueCoupon_notExistPolicy_shouldThrowException() {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(couponPolicy.getId())
                 .build();
@@ -181,7 +177,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenCouponOutOfIssuancePeriod_whenIssueCoupon_thenThrowException() {
+    void testIssueCoupon_outOfIssuancePeriod_shouldThrowException() {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(couponPolicy.getId())
                 .build();
@@ -202,7 +198,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenUsedCoupon_whenUseCoupon_thenSaveAndReturnCoupon() {
+    void testUseCoupon_notUsedCouponStatus_shouldSaveAndReturnCoupon() {
         when(couponRepository.findByIdAndUserId(TEST_COUPON_ID, TEST_USER_ID)).thenReturn(Optional.of(coupon));
         when(couponRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -218,7 +214,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenCouponNotFoundOrUnauthorized_whenUseCoupon_thenThrowException() {
+    void testUseCoupon_notFoundCouponOrUnauthorized_shouldThrowException() {
         when(couponRepository.findByIdAndUserId(TEST_COUPON_ID, TEST_USER_ID)).thenReturn(Optional.empty());
 
         try (MockedStatic<UserIdInterceptor> mockedStatic = mockStatic(UserIdInterceptor.class)) {
@@ -233,7 +229,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenCouponUpdatesOrderAndStatus_whenUseCoupon_thenSaveAndReturnCoupon() {
+    void testUseCoupon_givenCouponUpdatesOrderAndStatus_shouldSaveAndReturnCoupon() {
         when(couponRepository.findByIdAndUserId(TEST_COUPON_ID, TEST_USER_ID)).thenReturn(Optional.of(coupon));
         when(couponRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -248,7 +244,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenValidCoupon_whenCancelCoupon_thenSaveAndReturnCoupon() {
+    void testCancelCoupon_givenValidCoupon_shouldSaveAndReturnCoupon() {
         coupon.setStatus(Coupon.Status.USED);
         when(couponRepository.findByIdAndUserId(TEST_COUPON_ID, TEST_USER_ID))
                 .thenReturn(Optional.of(coupon));
@@ -265,7 +261,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenCouponNotFoundOrUnauthorized_whenCancelCoupon_thenThrowException() {
+    void testCancelCoupon_givenCouponNotFoundOrUnauthorized_shouldThrowException() {
         when(couponRepository.findByIdAndUserId(TEST_COUPON_ID, TEST_USER_ID)).thenReturn(Optional.empty());
 
         try (MockedStatic<UserIdInterceptor> mockedStatic = mockStatic(UserIdInterceptor.class)) {
@@ -280,7 +276,7 @@ class CouponServiceImplTest {
     }
 
     @Test
-    void givenCouponUpdatesOrderAndStatus_whenCancelCoupon_thenSaveAndReturnCoupon() {
+    void testCancelCoupon_givenCouponUpdatesOrderAndStatus_shouldSaveAndReturnCoupon() {
         coupon.setStatus(Coupon.Status.USED);
         when(couponRepository.findByIdAndUserId(TEST_COUPON_ID, TEST_USER_ID))
                 .thenReturn(Optional.of(coupon));
