@@ -1,0 +1,104 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my-secret-pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - traffic_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  mysql:
+    image: mysql:9.3
+    container_name: mysql
+    restart: on-failure
+    environment:
+      MYSQL_ROOT_PASSWORD: my-secret-pw
+      MYSQL_DATABASE: order_db
+      MYSQL_USER: mysqluser
+      MYSQL_PASSWORD: my-secret-pw
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - traffic_net
+  
+  redis:
+    image: redis:8.0.3
+    container_name: redis
+    restart: on-failure
+    ports:
+      - "6379:6379" 
+    volumes:
+      - redis_data:/data
+    networks:
+      - traffic_net
+  
+  consul:
+    container_name: consul
+    image: hashicorp/consul:1.9.9
+    restart: unless-stopped
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    networks:
+      - traffic_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/v1/status/leader"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+      start_period: 10s
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin
+    restart: on-failure
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: my-secret-pw
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - traffic_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: redis-insight
+    restart: on-failure
+    ports:
+      - "5051:5540"
+    volumes:
+      - redis_insight_data:/db
+    networks:
+      - traffic_net
+    depends_on:
+      - redis
+  
+volumes:
+  postgres_data:
+  redis_data:
+  mysql_data:
+  pgadmin_data:
+  redis_insight_data:
+
+networks:
+  traffic_net:

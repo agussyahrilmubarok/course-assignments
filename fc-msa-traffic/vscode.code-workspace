@@ -1,0 +1,28 @@
+{
+    "folders": [
+        {
+            "name": "account",
+            "path": "./app/account"
+        },
+        {
+            "name": "catalog",
+            "path": "./app/catalog"
+        },
+        {
+            "name": "order",
+            "path": "./app/order"
+        },
+        {
+            "name": "pricing",
+            "path": "./app/pricing"
+        },
+        {
+            "name": "gateway",
+            "path": "./app/gateway"
+        },
+        {
+            "name": "root",
+            "path": "."
+        }
+    ]
+}
