@@ -295,14 +295,16 @@ const docTemplate = `{
                 "PROCESSED",
                 "SHIPPED",
                 "COMPLETED",
-                "CANCELLED"
+                "CANCELLED",
+                "FAILED"
             ],
             "x-enum-varnames": [
                 "StatusPending",
                 "StatusProcessed",
                 "StatusShipped",
                 "StatusCompleted",
-                "StatusCancelled"
+                "StatusCancelled",
+                "StatusFailed"
             ]
         }
     }

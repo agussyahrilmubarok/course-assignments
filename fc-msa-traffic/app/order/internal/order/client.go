@@ -14,7 +14,7 @@ import (
 type IClient interface {
 	GetStockOnCatalogService(ctx context.Context, productID string) (int, error)
 	GetPricingOnPricingService(ctx context.Context, productID string) (*PricingResponse, error)
-	ReverseStockOnCatalogService(ctx context.Context, productID string, quantity int) error
+	ReserveStockOnCatalogService(ctx context.Context, productID string, quantity int) error
 	ReleaseStockOnCatalogService(ctx context.Context, productID string, quantity int) error
 }
 
@@ -110,10 +110,10 @@ func (c *client) GetPricingOnPricingService(ctx context.Context, productID strin
 	return &pricing, nil
 }
 
-func (c *client) ReverseStockOnCatalogService(ctx context.Context, productID string, quantity int) error {
-	url := fmt.Sprintf("%s/api/v1/catalogs/products/reverse", "http://catalog-service:8082")
+func (c *client) ReserveStockOnCatalogService(ctx context.Context, productID string, quantity int) error {
+	url := fmt.Sprintf("%s/api/v1/catalogs/products/stocks/reverse", "http://catalog-service:8082")
 	if c.cfg.App.Env != "production" {
-		url = fmt.Sprintf("%s/api/v1/catalogs/products/reverse", "http://localhost:8082")
+		url = fmt.Sprintf("%s/api/v1/catalogs/products/stocks/reverse", "http://localhost:8082")
 	}
 
 	body := map[string]interface{}{
@@ -141,15 +141,15 @@ func (c *client) ReverseStockOnCatalogService(ctx context.Context, productID str
 	c.log.Info().
 		Str("product_id", productID).
 		Int("quantity", quantity).
-		Msg("Reversed product stock successfully")
+		Msg("Reserved product stock successfully")
 
 	return nil
 }
 
 func (c *client) ReleaseStockOnCatalogService(ctx context.Context, productID string, quantity int) error {
-	url := fmt.Sprintf("%s/api/v1/catalogs/products/release", "http://catalog-service:8082")
+	url := fmt.Sprintf("%s/api/v1/catalogs/products/stocks/release", "http://catalog-service:8082")
 	if c.cfg.App.Env != "production" {
-		url = fmt.Sprintf("%s/api/v1/catalogs/products/release", "http://localhost:8082")
+		url = fmt.Sprintf("%s/api/v1/catalogs/products/stocks/release", "http://localhost:8082")
 	}
 
 	body := map[string]interface{}{

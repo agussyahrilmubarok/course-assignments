@@ -28,7 +28,7 @@ definitions:
     - product_id
     - quantity
     type: object
-  catalog.ReserveStockRequest:
+  catalog.ReverseStockRequest:
     properties:
       product_id:
         type: string
@@ -141,7 +141,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/catalog.ReserveStockRequest'
+          $ref: '#/definitions/catalog.ReverseStockRequest'
       produces:
       - application/json
       responses:

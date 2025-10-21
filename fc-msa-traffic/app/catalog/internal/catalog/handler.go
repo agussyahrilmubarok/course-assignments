@@ -74,14 +74,14 @@ func (h *Handler) GetProduct(c echo.Context) error {
 // @Tags         stock
 // @Accept       json
 // @Produce      json
-// @Param        request  body      ReserveStockRequest  true  "Reverse Stock Request"
+// @Param        request  body      ReverseStockRequest  true  "Reverse Stock Request"
 // @Success      200      {object}  map[string]interface{}
 // @Failure      400      {object}  map[string]interface{}
 // @Router       /products/reverse [post]
 func (h *Handler) ReverseProductStock(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	var req ReserveStockRequest
+	var req ReverseStockRequest
 	if err := c.Bind(&req); err != nil {
 		h.log.Warn().Err(err).Msg("Failed to bind request")
 		return c.JSON(400, echo.Map{"error": "Invalid request format"})
@@ -104,7 +104,7 @@ func (h *Handler) ReverseProductStock(c echo.Context) error {
 	}
 
 	h.log.Info().Str("product_id", req.ProductID).Int("quantity", req.Quantity).Msg("Reversed product stock successfully")
-	return c.JSON(http.StatusOK, echo.Map{"message": "Stock reversed successfully"})
+	return c.JSON(http.StatusOK, echo.Map{"message": "Stock reserved successfully"})
 }
 
 // ReleaseProductStock godoc

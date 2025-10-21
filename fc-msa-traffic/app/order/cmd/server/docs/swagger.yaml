@@ -84,6 +84,7 @@ definitions:
     - SHIPPED
     - COMPLETED
     - CANCELLED
+    - FAILED
     type: string
     x-enum-varnames:
     - StatusPending
@@ -91,6 +92,7 @@ definitions:
     - StatusShipped
     - StatusCompleted
     - StatusCancelled
+    - StatusFailed
 host: localhost:8083
 info:
   contact:

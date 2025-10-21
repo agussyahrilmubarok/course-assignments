@@ -130,7 +130,7 @@ func (s *service) CalculateAndCreateOrder(ctx context.Context, param CreateOrder
 	}
 
 	for _, item := range order.OrderItems {
-		if err := s.client.ReverseStockOnCatalogService(ctx, item.ProductID, item.Quantity); err != nil {
+		if err := s.client.ReserveStockOnCatalogService(ctx, item.ProductID, item.Quantity); err != nil {
 			s.log.Error().
 				Err(err).
 				Str("product_id", item.ProductID).
@@ -152,7 +152,7 @@ func (s *service) CalculateAndCreateOrder(ctx context.Context, param CreateOrder
 	s.log.Info().
 		Str("order_id", order.ID).
 		Int("total_items", len(order.OrderItems)).
-		Msg("Successfully created order and reversed stock")
+		Msg("Successfully created order and reserved stock")
 
 	return order, nil
 }

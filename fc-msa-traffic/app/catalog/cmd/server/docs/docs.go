@@ -116,7 +116,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/catalog.ReserveStockRequest"
+                            "$ref": "#/definitions/catalog.ReverseStockRequest"
                         }
                     }
                 ],
@@ -269,7 +269,7 @@ const docTemplate = `{
                 }
             }
         },
-        "catalog.ReserveStockRequest": {
+        "catalog.ReverseStockRequest": {
             "type": "object",
             "required": [
                 "product_id",

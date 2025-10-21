@@ -45,7 +45,7 @@ type UserResponse struct {
 func (r *UserResponse) FromUser(user *User) {
 	r.ID = user.ID
 	r.Name = user.Name
-	r.Email = user.Name
+	r.Email = user.Email
 	r.CreatedAt = user.CreatedAt
 	r.UpdatedAt = user.UpdatedAt
 }

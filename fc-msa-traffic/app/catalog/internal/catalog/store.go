@@ -125,7 +125,7 @@ func (s *store) ReverseProductByID(ctx context.Context, productID string, quanti
 			s.log.Warn().Err(err).Str("product_id", productID).Msg("Failed to update Redis stock cache")
 		}
 
-		s.log.Info().Str("product_id", productID).Int("new_stock", product.Stock).Int("decreased_by", quantity).Msg("Successfully reversed product stock")
+		s.log.Info().Str("product_id", productID).Int("new_stock", product.Stock).Int("decreased_by", quantity).Msg("Successfully reserved product stock")
 		return nil
 	})
 
