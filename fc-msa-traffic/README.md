@@ -41,6 +41,16 @@ This demo consists of the following microservices and supporting infrastructure:
   * Manages **dynamic product pricing**, particularly for **time-based promotions** such as **flash sales**.
   * Provides pricing logic and adjustment mechanisms based on promotional rules.
 
+## Technology Stack
+
+- **Programming Language**: Go (Golang), Java
+- **Web Framework**: Echo, Spring
+- **Databases**: PostgreSQL, MySQL (sharding), Redis (caching)
+- **Authentication**: JWT
+- **Service Discovery**: Consul
+- **Traffic Control**: Rate Limiter (Echo middleware)
+- **Concurrency**: Goroutines
+
 ## Conclusion
 
 This demo illustrates how traffic control mechanisms such as rate limiting, caching, and asynchronous communication can be effectively implemented in a Golang-based microservice architecture. The system demonstrates scalable service orchestration using tools like Consul, Redis, PostgreSQL and MySQL, and leverages concurrency features of Golang to improve performance and responsiveness. This setup serves as a solid foundation for building robust, distributed e-commerce platforms.
