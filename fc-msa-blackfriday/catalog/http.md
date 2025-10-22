@@ -3,7 +3,7 @@
 `api/v1/catalogs/product`
 
 ```bash
-curl -X POST http://localhost:8082/api/v1/catalogs/products \
+curl -X POST http://localhost:8080/api/v1/catalogs/products \
   -H "Content-Type: application/json" \
   -d '{
     "sellerId": "seller-abc-123",

@@ -17,23 +17,18 @@ public class OrderResource {
 
     private final OrderService orderService;
 
-    @PostMapping("/start")
+    @PostMapping("/create")
     public ResponseEntity<OrderDTO.StartOrderResponse> startOrder(@RequestBody @Valid OrderDTO.StartOrderRequest payload) {
         return ResponseEntity.ok(orderService.startOrder(payload));
     }
-
-    @PostMapping("/finish")
-    public ResponseEntity<OrderDTO.FinishOrderRequest> finishOrder(@RequestBody @Valid OrderDTO.FinishOrderRequest payload) {
-        throw new RuntimeException();
-    }
-
+    
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderDTO.Response> findById(@PathVariable String orderId) {
-        throw new RuntimeException();
+        return ResponseEntity.ok(orderService.findById(orderId));
     }
 
     @GetMapping("/users/{userId}")
     public ResponseEntity<List<OrderDTO.Response>> findAllByUser(@PathVariable String userId) {
-        throw new RuntimeException();
+        return ResponseEntity.ok(orderService.findAllByUser(userId));
     }
 }

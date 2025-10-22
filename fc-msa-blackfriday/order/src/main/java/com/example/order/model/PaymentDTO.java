@@ -1,6 +1,5 @@
-package com.example.payment.model;
+package com.example.order.model;
 
-import com.example.payment.domain.Transaction;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -11,7 +10,7 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-public class TransactionDTO {
+public class PaymentDTO {
 
     @Getter
     @Builder
@@ -38,15 +37,5 @@ public class TransactionDTO {
         private BigDecimal amount;
         private String paymentUrl;
         private String status;
-
-        public static Response from(Transaction transaction) {
-            return Response.builder()
-                    .id(transaction.getId())
-                    .orderId(transaction.getOrderId())
-                    .amount(transaction.getAmount())
-                    .paymentUrl(transaction.getPaymentUrl())
-                    .status(transaction.getStatus().name())
-                    .build();
-        }
     }
 }
