@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 
-@RestController("CatalogResourceV1")
+@RestController
 @RequestMapping(value = "/api/v1/catalogs", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class CatalogResource {

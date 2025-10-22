@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
-@Service("CatalogServiceImpl")
+@Service
 @Slf4j
 @RequiredArgsConstructor
 public class CatalogServiceImpl implements CatalogService {

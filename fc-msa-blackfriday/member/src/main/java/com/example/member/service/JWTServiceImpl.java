@@ -19,6 +19,7 @@ import java.util.Date;
 public class JWTServiceImpl implements JWTService {
 
     private final PasswordEncoder passwordEncoder;
+
     @Value("${jwt.secret.key}")
     private String jwtSecretKey;
     @Value("${jwt.expires}")
