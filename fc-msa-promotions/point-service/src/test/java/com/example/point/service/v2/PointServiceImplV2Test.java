@@ -41,16 +41,12 @@ class PointServiceImplV2Test {
 
     @Mock
     private PointBalanceRepository pointBalanceRepository;
-
     @Mock
     private PointRepository pointRepository;
-
     @Mock
     private RedissonClient redissonClient;
-
     @Mock
     private RLock lock;
-
     @Mock
     private RMap<Object, Object> balanceMap;
 
@@ -79,7 +75,7 @@ class PointServiceImplV2Test {
     }
 
     @Test
-    void shouldEarnPointAndUpdateBalance() {
+    void testEarn_whenValidRequest_shouldIncreaseBalanceAndCreatePoint() {
         PointDTO.EarnRequest request = PointDTO.EarnRequest.builder()
                 .amount(1000L)
                 .description("Earned test point")
@@ -108,7 +104,23 @@ class PointServiceImplV2Test {
     }
 
     @Test
-    void shouldUsePointAndDeductBalance() {
+    void testEarn_whenLockUnavailable_shouldThrowIllegalStateException() throws InterruptedException {
+        PointDTO.EarnRequest request = PointDTO.EarnRequest.builder()
+                .amount(500L)
+                .build();
+
+        when(lock.tryLock(anyLong(), anyLong(), any())).thenReturn(false);
+
+        try (MockedStatic<UserIdInterceptor> mockUser = mockStatic(UserIdInterceptor.class)) {
+            mockUser.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
+
+            IllegalStateException ex = assertThrows(IllegalStateException.class, () -> pointService.earn(request));
+            assertThat(ex.getMessage()).contains("Failed to acquire lock");
+        }
+    }
+
+    @Test
+    void testUse_whenValidRequest_shouldDecreaseBalanceAndCreatePoint() {
         PointDTO.UseRequest request = PointDTO.UseRequest.builder()
                 .amount(1000L)
                 .description("Use points")
@@ -132,7 +144,7 @@ class PointServiceImplV2Test {
     }
 
     @Test
-    void shouldThrowExceptionWhenInsufficientBalanceOnUse() {
+    void testUse_whenInsufficientBalance_shouldThrowIllegalArgumentException() {
         PointDTO.UseRequest request = PointDTO.UseRequest.builder()
                 .amount(99999L)
                 .build();
@@ -147,7 +159,7 @@ class PointServiceImplV2Test {
     }
 
     @Test
-    void shouldCancelUsedPointAndAddBalance() {
+    void testCancel_whenValidUsedPointRequest_shouldIncreaseBalanceAndCreateCancelPoint() {
         point.setType(Point.PointType.USED);
         PointDTO.CancelRequest request = PointDTO.CancelRequest.builder().pointId(TEST_POINT_ID).build();
 
@@ -168,23 +180,7 @@ class PointServiceImplV2Test {
     }
 
     @Test
-    void shouldThrowExceptionWhenLockFails() throws InterruptedException {
-        PointDTO.EarnRequest request = PointDTO.EarnRequest.builder()
-                .amount(500L)
-                .build();
-
-        when(lock.tryLock(anyLong(), anyLong(), any())).thenReturn(false);
-
-        try (MockedStatic<UserIdInterceptor> mockUser = mockStatic(UserIdInterceptor.class)) {
-            mockUser.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
-
-            IllegalStateException ex = assertThrows(IllegalStateException.class, () -> pointService.earn(request));
-            assertThat(ex.getMessage()).contains("Failed to acquire lock");
-        }
-    }
-
-    @Test
-    void shouldReturnCachedBalance() {
+    void testGetBalance_whenBalanceCached_shouldReturnCachedValue() {
         when(balanceMap.get(TEST_USER_ID)).thenReturn(String.valueOf(7000L));
         try (MockedStatic<UserIdInterceptor> mockUser = mockStatic(UserIdInterceptor.class)) {
             mockUser.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
@@ -194,7 +190,7 @@ class PointServiceImplV2Test {
     }
 
     @Test
-    void shouldReturnDbBalanceWhenCacheMiss() {
+    void testGetBalance_whenCacheMiss_shouldReturnDbValueAndUpdateCache() {
         when(balanceMap.get(TEST_USER_ID)).thenReturn(null);
         when(pointBalanceRepository.findByUserId(TEST_USER_ID)).thenReturn(Optional.of(pointBalance));
 
@@ -207,7 +203,7 @@ class PointServiceImplV2Test {
     }
 
     @Test
-    void shouldReturnUserPointHistory() {
+    void testGetHistory_whenCalled_shouldReturnUserPointList() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Point> page = new PageImpl<>(List.of(point));
 

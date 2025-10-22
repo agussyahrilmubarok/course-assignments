@@ -120,6 +120,8 @@ public class TimeSaleServiceImplV3 implements TimeSaleService, TimeSaleAsyncServ
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Thread was interrupted while waiting for lock.");
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error during purchase", e);
             throw new RuntimeException("Failed to process purchase", e);

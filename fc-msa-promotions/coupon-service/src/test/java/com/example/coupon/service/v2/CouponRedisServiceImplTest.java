@@ -36,19 +36,14 @@ class CouponRedisServiceImplTest {
 
     @Mock
     private RedissonClient redissonClient;
-
     @Mock
     private ObjectMapper objectMapper;
-
     @Mock
     private RBucket<Object> mockObjectBucket;
-
     @Mock
     private RAtomicLong mockAtomicLong;
-
     @Mock
     private RLock mockLock;
-
     @Mock
     private RKeys mockKeys;
 
@@ -76,7 +71,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenValidCouponPolicy_whenSetCouponPolicy_thenCacheIsSaved() throws JsonProcessingException {
+    void testSetCouponPolicy_whenValidCouponPolicy_shouldSaveToCache() throws JsonProcessingException {
         String expectedJson = "{\"id\":\"COUPON_POLICY_1\",\"name\":\"Test Coupon\"}";
         Duration expectedTTL = Duration.ofHours(48);
 
@@ -89,7 +84,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenInvalidCouponPolicy_whenSetCouponPolicy_thenCacheIsNotSaved() throws JsonProcessingException {
+    void testSetCouponPolicy_whenSerializationFails_shouldThrowRuntimeException() throws JsonProcessingException {
         when(objectMapper.writeValueAsString(couponPolicy)).thenThrow(JsonProcessingException.class);
 
         assertThrows(RuntimeException.class, () -> {
@@ -98,7 +93,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenValidCouponPolicyInRedis_whenGetCouponPolicy_thenReturnCouponPolicy() throws JsonProcessingException {
+    void testGetCouponPolicy_whenDataExists_shouldReturnCouponPolicy() throws JsonProcessingException {
         String policyJson = "{\"id\":\"COUPON_POLICY_1\",\"name\":\"Test Coupon\"}";
 
         when(redissonClient.getBucket("coupon:policy:" + TEST_POLICY_ID)).thenReturn(mockObjectBucket);
@@ -113,7 +108,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenNoCouponPolicyInRedis_whenGetCouponPolicy_thenReturnNull() {
+    void testGetCouponPolicy_whenDataNotExists_shouldReturnNull() {
         when(redissonClient.getBucket("coupon:policy:" + TEST_POLICY_ID)).thenReturn(mockObjectBucket);
         when(mockObjectBucket.get()).thenReturn(null);
 
@@ -123,7 +118,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenNoCouponPolicyInRedis_whenGetCouponPolicy_thenReturnDeserialization() throws JsonProcessingException {
+    void testGetCouponPolicy_whenDeserializationFails_shouldThrowRuntimeException() throws JsonProcessingException {
         String policyJson = "{\"id\":\"COUPON_POLICY_1\",\"name\":\"Test Coupon\"}";
 
         when(redissonClient.getBucket("coupon:policy:" + TEST_POLICY_ID)).thenReturn(mockObjectBucket);
@@ -134,7 +129,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenCouponPolicy_whenSetCouponPolicyQuantity_thenQuantityIsSet() {
+    void testSetCouponPolicyQuantity_whenValidPolicy_shouldSetQuantity() {
         when(redissonClient.getAtomicLong("coupon:quantity:" + TEST_POLICY_ID)).thenReturn(mockAtomicLong);
 
         couponRedisService.setCouponPolicyQuantity(couponPolicy);
@@ -143,7 +138,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenCouponPolicyQuantityInRedis_whenGetCouponPolicyQuantity_thenReturnQuantity() {
+    void testGetCouponPolicyQuantity_whenExists_shouldReturnQuantity() {
         when(redissonClient.getAtomicLong("coupon:quantity:" + TEST_POLICY_ID)).thenReturn(mockAtomicLong);
         when(mockAtomicLong.get()).thenReturn(TEST_QUANTITY);
 
@@ -154,7 +149,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenCouponQuantitiesInRedis_whenGetAllCouponPolicyQuantities_thenReturnAllQuantities() {
+    void testGetAllCouponPolicyQuantities_whenQuantitiesExist_shouldReturnAll() {
         String key1 = "coupon:quantity:POLICY1";
         String key2 = "coupon:quantity:POLICY2";
 
@@ -175,7 +170,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenPolicyId_whenDecrementAndGetQuantity_thenReturnDecrementedValue() {
+    void testDecrementAndGetCouponPolicyQuantity_whenCalled_shouldReturnDecrementedValue() {
         when(redissonClient.getAtomicLong("coupon:quantity:" + TEST_POLICY_ID)).thenReturn(mockAtomicLong);
         when(mockAtomicLong.decrementAndGet()).thenReturn(TEST_QUANTITY - 1);
 
@@ -186,7 +181,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenPolicyId_whenIncrementAndGetQuantity_thenReturnIncrementedValue() {
+    void testIncrementAndGetCouponPolicyQuantity_whenCalled_shouldReturnIncrementedValue() {
         when(redissonClient.getAtomicLong("coupon:quantity:" + TEST_POLICY_ID)).thenReturn(mockAtomicLong);
         when(mockAtomicLong.incrementAndGet()).thenReturn(TEST_QUANTITY + 1);
 
@@ -197,7 +192,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenCouponResponse_whenSetCouponState_thenCacheIsSaved() throws JsonProcessingException {
+    void testSetCouponState_whenValidCoupon_shouldSaveToCache() throws JsonProcessingException {
         String expectedJson = "{\"id\":\"COUPON_1\",\"code\":\"TEST123\"}";
         CouponDTO.Response newCoupon = CouponDTO.Response.from(coupon);
         Duration expectedTTL = Duration.between(newCoupon.getValidFrom(), newCoupon.getValidUntil());
@@ -211,7 +206,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenCouponResponse_whenSetCouponState_thenCacheIsFail() throws Exception {
+    void testSetCouponState_whenSerializationFails_shouldThrowRuntimeException() throws Exception {
         when(objectMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("error") {
         });
 
@@ -224,7 +219,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenExistingCouponStateInRedis_whenGetCouponState_thenReturnCouponResponse() throws JsonProcessingException {
+    void testGetCouponState_whenExists_shouldReturnCouponResponse() throws JsonProcessingException {
         String couponJson = "{\"id\":\"COUPON_1\",\"code\":\"TEST123\"}";
 
         when(redissonClient.getBucket("coupon:state:" + TEST_COUPON_ID)).thenReturn(mockObjectBucket);
@@ -238,7 +233,7 @@ class CouponRedisServiceImplTest {
     }
 
     @Test
-    void givenNoCouponStateInRedis_whenGetCouponState_thenReturnNull() {
+    void testGetCouponState_whenNotExists_shouldReturnNull() {
         when(redissonClient.getBucket("coupon:state:" + TEST_COUPON_ID)).thenReturn(mockObjectBucket);
         when(mockObjectBucket.get()).thenReturn(null);
 

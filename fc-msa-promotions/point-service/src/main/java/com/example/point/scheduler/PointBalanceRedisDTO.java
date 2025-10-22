@@ -15,10 +15,12 @@ import java.time.LocalDateTime;
 public class PointBalanceRedisDTO {
 
     private String id;
+    @Builder.Default
     private Long balance = 0L;
     private String userId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    @Builder.Default
     private Long version = 0L;
 
     public static PointBalanceRedisDTO toDto(PointBalance balance) {

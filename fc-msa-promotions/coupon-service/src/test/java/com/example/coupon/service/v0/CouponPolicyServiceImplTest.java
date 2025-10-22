@@ -32,7 +32,7 @@ class CouponPolicyServiceImplTest {
     private CouponPolicy couponPolicy;
 
     @Test
-    void testFindAll_existingPolicies_shouldReturnPolicies() {
+    void testFindAll_whenPoliciesExist_shouldReturnAllPolicies() {
         CouponPolicy policy1 = new CouponPolicy();
         policy1.setId("1");
         CouponPolicy policy2 = new CouponPolicy();
@@ -47,7 +47,7 @@ class CouponPolicyServiceImplTest {
     }
 
     @Test
-    void testFindById_existingId_returnCouponPolicy() {
+    void testFindById_whenPolicyExists_shouldReturnCouponPolicy() {
         CouponPolicy policy = new CouponPolicy();
         policy.setId("123");
         when(couponPolicyRepository.findById("123")).thenReturn(Optional.of(policy));
@@ -59,14 +59,14 @@ class CouponPolicyServiceImplTest {
     }
 
     @Test
-    void testFindById_notExists_thenThrowException() {
+    void testFindById_whenPolicyDoesNotExist_shouldThrowException() {
         when(couponPolicyRepository.findById("999")).thenReturn(Optional.empty());
 
         assertThrows(CouponPolicyNotFoundException.class, () -> couponPolicyService.findById("999"));
     }
 
     @Test
-    void testCreate_givenValidRequest_returnSavedCouponPolicy() {
+    void testCreate_whenValidRequest_shouldSaveAndReturnCouponPolicy() {
         CouponPolicyDTO.CreateRequest request = CouponPolicyDTO.CreateRequest.builder()
                 .name("Summer Sale")
                 .description("Discount for summer season")

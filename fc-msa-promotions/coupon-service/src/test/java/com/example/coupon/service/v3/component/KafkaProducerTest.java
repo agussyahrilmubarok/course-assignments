@@ -28,10 +28,8 @@ class KafkaProducerTest {
 
     @Mock
     private KafkaTemplate<String, CouponDTO.IssueMessage> kafkaTemplate;
-
     @Mock
     private SendResult<String, CouponDTO.IssueMessage> sendResult;
-
     @Mock
     private RecordMetadata recordMetadata;
 

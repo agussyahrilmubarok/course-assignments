@@ -24,7 +24,7 @@ class JWTServiceImplTest {
     }
 
     @Test
-    void testGenerateAndValidateToken() {
+    void testGenerateToken_whenUserProvided_shouldReturnValidToken() {
         User user = new User();
         user.setEmail("test@example.com");
 
@@ -42,7 +42,7 @@ class JWTServiceImplTest {
     }
 
     @Test
-    void testValidateToken_withInvalidToken_shouldThrowException() {
+    void testValidateToken_whenInvalidToken_shouldThrowIllegalArgumentException() {
         String invalidToken = "invalid.jwt.token";
 
         Exception exception = assertThrows(IllegalArgumentException.class,

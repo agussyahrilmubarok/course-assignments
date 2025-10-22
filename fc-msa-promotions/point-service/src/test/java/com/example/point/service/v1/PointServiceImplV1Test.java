@@ -39,7 +39,6 @@ class PointServiceImplV1Test {
 
     @Mock
     private PointBalanceRepository pointBalanceRepository;
-
     @Mock
     private PointRepository pointRepository;
 
@@ -63,7 +62,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldEarnPointAndUpdateBalance() {
+    void testEarn_whenBalanceExists_shouldAddAmount() {
         PointDTO.EarnRequest request = PointDTO.EarnRequest.builder()
                 .amount(1000L)
                 .description("Earned test point")
@@ -91,7 +90,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldCreateNewBalanceWhenNoneExistsAndEarnPoint() {
+    void testEarn_whenBalanceMissing_shouldCreateNewBalance() {
         PointDTO.EarnRequest request = PointDTO.EarnRequest.builder()
                 .amount(1000L)
                 .description("First earn")
@@ -116,7 +115,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldUsePointAndDeductBalance() {
+    void testUse_whenSufficientBalance_shouldDeductAmount() {
         PointDTO.UseRequest request = PointDTO.UseRequest.builder()
                 .amount(1000L)
                 .description("Use points")
@@ -142,7 +141,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldThrowExceptionWhenNoBalanceOnUse() {
+    void testUse_whenBalanceMissing_shouldThrowException() {
         PointDTO.UseRequest request = PointDTO.UseRequest.builder()
                 .amount(1000L)
                 .build();
@@ -157,7 +156,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldThrowExceptionWhenInsufficientBalanceOnUse() {
+    void testUse_whenInsufficientBalance_shouldThrowException() {
         PointDTO.UseRequest request = PointDTO.UseRequest.builder()
                 .amount(10000L)
                 .build();
@@ -172,7 +171,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldCancelEarnedPointAndDeductBalance() {
+    void testCancel_whenPointIsEarned_shouldDeductAmountFromBalance() {
         PointDTO.CancelRequest request = PointDTO.CancelRequest.builder()
                 .pointId(TEST_POINT_ID)
                 .build();
@@ -195,7 +194,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldThrowExceptionWhenPointAlreadyCanceled() {
+    void testCancel_whenAlreadyCanceled_shouldThrowException() {
         PointDTO.CancelRequest request = PointDTO.CancelRequest.builder()
                 .pointId(TEST_POINT_ID)
                 .build();
@@ -211,7 +210,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldCancelUsedPointAndAddBalance() {
+    void testCancel_whenPointIsUsed_shouldAddAmountToBalance() {
         PointDTO.CancelRequest request = PointDTO.CancelRequest.builder()
                 .pointId(TEST_POINT_ID)
                 .build();
@@ -234,7 +233,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldReturnCorrectBalanceWhenExists() {
+    void testGetBalance_whenExists_shouldReturnBalance() {
         try (MockedStatic<UserIdInterceptor> mockUser = mockStatic(UserIdInterceptor.class)) {
             mockUser.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
             when(pointBalanceRepository.findByUserId(TEST_USER_ID)).thenReturn(Optional.of(pointBalance));
@@ -246,7 +245,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldReturnZeroBalanceWhenNoneExists() {
+    void testGetBalance_whenMissing_shouldReturnZero() {
         try (MockedStatic<UserIdInterceptor> mockUser = mockStatic(UserIdInterceptor.class)) {
             mockUser.when(UserIdInterceptor::getCurrentUserId).thenReturn(TEST_USER_ID);
             when(pointBalanceRepository.findByUserId(TEST_USER_ID)).thenReturn(Optional.empty());
@@ -258,7 +257,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldReturnUserPointHistory() {
+    void testGetHistory_shouldReturnPageOfPoints() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Point> page = new PageImpl<>(List.of(point));
 
@@ -274,7 +273,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldThrowExceptionWhenPointNotFoundOnCancel() {
+    void testCancel_whenPointNotFound_shouldThrowException() {
         PointDTO.CancelRequest request = PointDTO.CancelRequest.builder()
                 .pointId(TEST_POINT_ID)
                 .build();
@@ -289,7 +288,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldThrowExceptionWhenCancelEarnedPointWithInsufficientBalance() {
+    void testCancel_whenEarnedPointAndInsufficientBalance_shouldThrowException() {
         PointDTO.CancelRequest request = PointDTO.CancelRequest.builder()
                 .pointId(TEST_POINT_ID)
                 .build();
@@ -309,7 +308,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldThrowExceptionWhenPointTypeInvalidOnCancel() {
+    void testCancel_whenInvalidPointType_shouldThrowException() {
         PointDTO.CancelRequest request = PointDTO.CancelRequest.builder()
                 .pointId(TEST_POINT_ID)
                 .build();
@@ -328,7 +327,7 @@ class PointServiceImplV1Test {
     }
 
     @Test
-    void shouldCancelEarnedPointAndSubtractBalance() {
+    void testCancel_whenEarnedPointAndSufficientBalance_shouldSubtractAmount() {
         PointDTO.CancelRequest request = PointDTO.CancelRequest.builder()
                 .pointId(TEST_POINT_ID)
                 .build();

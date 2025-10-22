@@ -38,16 +38,12 @@ class CouponIssuerServiceImplTest {
 
     @Mock
     private RedissonClient redissonClient;
-
     @Mock
     private CouponRepository couponRepository;
-
     @Mock
     private CouponPolicyRepository couponPolicyRepository;
-
     @Mock
     private CouponRedisService couponRedisService;
-
     @Mock
     private RLock mockLock;
 
@@ -75,7 +71,7 @@ class CouponIssuerServiceImplTest {
     }
 
     @Test
-    void givenValidRequest_whenIssueCoupon_thenReturnCoupon() throws Exception {
+    void testIssueCoupon_whenValidRequest_shouldReturnCoupon() throws Exception {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(TEST_POLICY_ID)
                 .build();
@@ -106,7 +102,7 @@ class CouponIssuerServiceImplTest {
     }
 
     @Test
-    void givenValidRequest_whenIssueCouponLockFail_thenThrowCouponIssueException() throws InterruptedException {
+    void testIssueCoupon_whenLockFails_shouldThrowCouponIssueException() throws InterruptedException {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(TEST_POLICY_ID)
                 .build();
@@ -122,7 +118,7 @@ class CouponIssuerServiceImplTest {
     }
 
     @Test
-    void givenInvalidPeriodRequest_whenIssueCoupon_thenThrowIllegalStateException() throws InterruptedException {
+    void testIssueCoupon_whenBeforeStartPeriod_shouldThrowIllegalStateException() throws InterruptedException {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(TEST_POLICY_ID)
                 .build();
@@ -144,7 +140,7 @@ class CouponIssuerServiceImplTest {
     }
 
     @Test
-    void givenExpiredCouponPeriod_whenIssueCoupon_thenThrowIllegalStateException() throws InterruptedException {
+    void testIssueCoupon_whenAfterEndPeriod_shouldThrowIllegalStateException() throws InterruptedException {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(TEST_POLICY_ID)
                 .build();
@@ -169,7 +165,7 @@ class CouponIssuerServiceImplTest {
     }
 
     @Test
-    void givenUserAlreadyIssuedCoupon_whenIssueCoupon_thenThrowCouponIssueException() throws InterruptedException {
+    void testIssueCoupon_whenUserAlreadyHasCoupon_shouldThrowCouponIssueException() throws InterruptedException {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(TEST_POLICY_ID)
                 .build();
@@ -193,7 +189,7 @@ class CouponIssuerServiceImplTest {
     }
 
     @Test
-    void givenCouponQuotaExhausted_whenIssueCoupon_thenThrowCouponIssueException() throws InterruptedException {
+    void testIssueCoupon_whenQuotaExhausted_shouldThrowCouponIssueException() throws InterruptedException {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(TEST_POLICY_ID)
                 .build();
@@ -217,7 +213,7 @@ class CouponIssuerServiceImplTest {
     }
 
     @Test
-    void givenInterruptedException_whenIssueCoupon_thenThrowCouponIssueException() throws InterruptedException {
+    void testIssueCoupon_whenInterruptedException_shouldThrowCouponIssueException() throws InterruptedException {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(TEST_POLICY_ID)
                 .build();
@@ -236,7 +232,7 @@ class CouponIssuerServiceImplTest {
     }
 
     @Test
-    void givenLockNotHeldByCurrentThread_whenIssueCoupon_thenLockNotUnlocked() throws InterruptedException {
+    void testIssueCoupon_whenLockNotHeld_shouldNotUnlockLock() throws InterruptedException {
         CouponDTO.IssueRequest request = CouponDTO.IssueRequest.builder()
                 .couponPolicyId(TEST_POLICY_ID)
                 .build();

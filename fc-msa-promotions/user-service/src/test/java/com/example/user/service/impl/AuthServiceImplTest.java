@@ -30,10 +30,8 @@ class AuthServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
-
     @Mock
     private PasswordEncoder passwordEncoder;
-
     @Mock
     private JWTService jwtService;
 
@@ -49,7 +47,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testSignUp_success() {
+    void testSignUp_whenValidRequest_shouldSaveUser() {
         AuthDTO.SignUp signUp = AuthDTO.SignUp.builder()
                 .name("Test")
                 .email("test@example.com")
@@ -65,7 +63,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testSignUp_duplicateUser_shouldThrowException() {
+    void testSignUp_whenEmailExists_shouldThrowDuplicateUserException() {
         AuthDTO.SignUp signUp = AuthDTO.SignUp.builder()
                 .name("Test")
                 .email("test@example.com")
@@ -80,7 +78,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testSignIn_success() {
+    void testSignIn_whenValidCredentials_shouldReturnTokenAndUser() {
         AuthDTO.SignIn signIn = AuthDTO.SignIn.builder()
                 .email("test@example.com")
                 .password("password")
@@ -98,7 +96,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testSignIn_userNotFound_shouldThrowException() {
+    void testSignIn_whenUserNotFound_shouldThrowUserNotFoundException() {
         AuthDTO.SignIn signIn = AuthDTO.SignIn.builder()
                 .email("notfound@example.com")
                 .password("password")
@@ -112,7 +110,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testSignIn_invalidPassword_shouldThrowException() {
+    void testSignIn_whenInvalidPassword_shouldThrowUnauthorizedAccessException() {
         AuthDTO.SignIn signIn = AuthDTO.SignIn.builder()
                 .email("test@example.com")
                 .password("wrongPassword")
@@ -128,7 +126,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testValidateToken_success() {
+    void testValidateToken_whenValidToken_shouldReturnUser() {
         AuthDTO.TokenRequest request = AuthDTO.TokenRequest.builder()
                 .token("validToken")
                 .build();
@@ -145,7 +143,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void testValidateToken_userNotFound_shouldThrowException() {
+    void testValidateToken_whenUserNotFound_shouldThrowUserNotFoundException() {
         AuthDTO.TokenRequest request = AuthDTO.TokenRequest.builder()
                 .token("validToken")
                 .build();

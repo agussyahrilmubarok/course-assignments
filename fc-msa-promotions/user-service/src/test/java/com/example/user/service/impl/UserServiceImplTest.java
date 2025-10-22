@@ -37,7 +37,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void testFindById_success() {
+    void findById_whenUserExists_shouldReturnUserDTO() {
         when(userRepository.findById("123")).thenReturn(Optional.of(user));
 
         UserDTO result = userService.findByID("123");
@@ -51,7 +51,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void testFindById_userNotFound_shouldThrowException() {
+    void findById_whenUserDoesNotExist_shouldThrowUserNotFoundException() {
         when(userRepository.findById("999")).thenReturn(Optional.empty());
 
         assertThrows(UserNotFoundException.class, () -> userService.findByID("999"));

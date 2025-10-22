@@ -24,6 +24,7 @@ public class PointRedisDTO {
     private String pointBalanceId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    @Builder.Default
     private Long version = 0L;
 
     public static PointRedisDTO toDto(Point point) {
