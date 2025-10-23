@@ -1,12 +1,13 @@
 # Demo Microservice Architecture in promotion feature written by Java with Spring Framework
 
-# Applications
+## Applications
 
 * service-registry,8761
 * user-service,8081,7071
 * coupon-service,8082,7072
 * point-service,8083,7073
 * timesale-service,8084,7074
+* point-service-batch,worker
 
 * postgres,5432
 * redis,6379
@@ -15,9 +16,11 @@
 * redis-insight,5051
 * kafka-ui,5052
 
-* point-service-batch,worker
+* fluentbit,24224
+* loki,3100
+* grafana,3000
 
-# Insight
+## Insight
 
 * service-registry
     * The purpose is to avoid hardcoding service addresses. With Eureka Server, each service can register itself and discover other services dynamically.
@@ -38,3 +41,5 @@
     * The gateway can have pre-filters to validate JWT tokens, check user roles, or log requests. This way, internal services don’t have to repeat authentication logic.
     * The API Gateway can also handle rate limiting, circuit breaking, monitoring, and logging.
 * 
+
+## Technology Stack
