@@ -52,11 +52,17 @@ eureka:
 
 management:
   server:
-    port: ${SERVER_METRIC_PORT:7072}
+    port: ${SERVER_METRIC_PORT:7074}
   endpoints:
     web:
       exposure:
-        include: health,metrics
+        include: health,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
 
 springdoc:
   swagger-ui:

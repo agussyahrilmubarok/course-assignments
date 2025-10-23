@@ -1,5 +1,6 @@
 package com.example.point.service.v2;
 
+import com.example.point.aop.PointMetered;
 import com.example.point.domain.Point;
 import com.example.point.domain.Point.PointType;
 import com.example.point.domain.PointBalance;
@@ -37,6 +38,7 @@ public class PointServiceImplV2 implements PointService {
 
     @Override
     @Transactional
+    @PointMetered(version = "v2")
     public Point earn(PointDTO.EarnRequest request) {
         String userId = getCurrentUserId();
 
@@ -67,6 +69,7 @@ public class PointServiceImplV2 implements PointService {
 
     @Override
     @Transactional
+    @PointMetered(version = "v2")
     public Point use(PointDTO.UseRequest request) {
         String userId = getCurrentUserId();
 

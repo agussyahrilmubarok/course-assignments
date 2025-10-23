@@ -1,5 +1,6 @@
 package com.example.timesale.service.v1;
 
+import com.example.timesale.aop.TimeSaleMetered;
 import com.example.timesale.domain.Product;
 import com.example.timesale.domain.TimeSale;
 import com.example.timesale.domain.TimeSaleOrder;
@@ -68,6 +69,7 @@ public class TimeSaleServiceImplV1 implements TimeSaleService {
 
     @Override
     @Transactional
+    @TimeSaleMetered(version = "v1")
     public TimeSale purchase(TimeSaleDTO.PurchaseRequest request, String userId) {
         TimeSale timeSale = timeSaleRepository.findByIdWithPessimisticLock(request.getTimeSaleId())
                 .orElseThrow(() -> new IllegalArgumentException("TimeSale not found"));

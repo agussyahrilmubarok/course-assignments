@@ -16,3 +16,8 @@ compose/up:
 compose/down:
 	docker compose down
 	docker volume prune -a
+
+compose/all/down:
+	docker compose -f docker-compose-infra.yml down
+	docker compose -f docker-compose-obs.yml down
+	docker volume prune -a

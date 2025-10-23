@@ -19,6 +19,8 @@
 * fluentbit,24224
 * loki,3100
 * grafana,3000
+* alertmanager,9093
+* prometheus,9090
 
 ## Insight
 

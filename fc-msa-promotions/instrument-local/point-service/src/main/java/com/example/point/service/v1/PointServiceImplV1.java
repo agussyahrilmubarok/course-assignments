@@ -1,5 +1,6 @@
 package com.example.point.service.v1;
 
+import com.example.point.aop.PointMetered;
 import com.example.point.domain.Point;
 import com.example.point.domain.Point.PointType;
 import com.example.point.domain.PointBalance;
@@ -28,6 +29,7 @@ public class PointServiceImplV1 implements PointService {
 
     @Override
     @Transactional(isolation = Isolation.REPEATABLE_READ)
+    @PointMetered(version = "v1")
     public Point earn(PointDTO.EarnRequest request) {
         validateAmount(request.getAmount());
 
@@ -44,6 +46,7 @@ public class PointServiceImplV1 implements PointService {
 
     @Override
     @Transactional(isolation = Isolation.REPEATABLE_READ)
+    @PointMetered(version = "v1")
     public Point use(PointDTO.UseRequest request) {
         validateAmount(request.getAmount());
 

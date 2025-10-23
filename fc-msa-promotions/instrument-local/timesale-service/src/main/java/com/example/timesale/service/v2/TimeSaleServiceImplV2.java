@@ -1,5 +1,6 @@
 package com.example.timesale.service.v2;
 
+import com.example.timesale.aop.TimeSaleMetered;
 import com.example.timesale.domain.Product;
 import com.example.timesale.domain.TimeSale;
 import com.example.timesale.domain.TimeSaleOrder;
@@ -78,6 +79,7 @@ public class TimeSaleServiceImplV2 implements TimeSaleService {
 
     @Override
     @Transactional
+    @TimeSaleMetered(version = "v2")
     public TimeSale purchase(TimeSaleDTO.PurchaseRequest request, String userId) {
         RLock lock = redissonClient.getLock(TIME_SALE_LOCK + request.getTimeSaleId());
         if (lock == null) {

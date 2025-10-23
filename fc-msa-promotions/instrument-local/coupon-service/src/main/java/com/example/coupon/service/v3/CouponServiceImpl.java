@@ -1,5 +1,6 @@
 package com.example.coupon.service.v3;
 
+import com.example.coupon.aop.CouponMetered;
 import com.example.coupon.domain.Coupon;
 import com.example.coupon.exception.CouponNotFoundException;
 import com.example.coupon.model.CouponDTO;
@@ -81,6 +82,7 @@ public class CouponServiceImpl implements CouponService {
      * @param request contains the coupon policy ID to issue a coupon from
      */
     @Override
+    @CouponMetered(version = "v3")
     public void requestIssueCoupon(CouponDTO.IssueRequest request) {
         couponIssuerService.issueCoupon(request);
         log.info("Coupon issue request processed for policyId={}, userId={}",
