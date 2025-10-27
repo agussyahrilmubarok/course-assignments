@@ -92,151 +92,67 @@ services:
     networks:
       - blackfriday_net
   
-  registry:
-    build:
-      context: ./registry
-    container_name: registry
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin
     restart: on-failure
     environment:
-      SERVER_PORT: 8761
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: my-secret-pw
     ports:
-      - "8761:8761"
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     networks:
       - blackfriday_net
     depends_on:
-      - postgres
-      - redis
-      - kafka
-      cassandra:
+      postgres:
         condition: service_healthy
   
-  member:
-    build:
-      context: ./member
-    container_name: member
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: redis-insight
     restart: on-failure
-    environment:
-      SERVER_PORT: 8081
-      SERVER_NAME: member-service
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/member_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: my-secret-pw
-      EUREKA_CLIENT_URL: http://registry:8761/eureka/
-      SERVER_METRIC_PORT: 7071
-      JWT_SECRET_KEY: promotionTestSecretKey2025PromotionTestSecretKey2025
-      JWT_EXPIRES: 3600000
     ports:
-      - "8081:8081"
+      - "5051:5540"
+    volumes:
+      - redis_insight_data:/db
     networks:
       - blackfriday_net
     depends_on:
-      - registry
-  
-  catalog:
-    build:
-      context: ./catalog
-    container_name: catalog
-    restart: on-failure
+      - redis
+
+  cassandra-web:
+    image: ipushc/cassandra-web:v1.1.6
+    container_name: cassandra-web
+    restart: unless-stopped
     environment:
-      SERVER_PORT: 8082
-      SERVER_NAME: catalog-service
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catalog_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: my-secret-pw
-      SPRING_CASSANDRA_CONTACT_POINTS: cassandra
-      SPRING_CASSANDRA_PORT: 9042
-      SPRING_CASSANDRA_KEYSPACE_NAME: catalog
-      SPRING_CASSANDRA_LOCAL_DATACENTER: dc1
-      SPRING_KAFKA_BOOTSTRAP: kafka:9092
-      EUREKA_CLIENT_URL: http://registry:8761/eureka/
-      SERVER_METRIC_PORT: 7072
+      HOST_PORT: ":80"
+      READ_ONLY: "false"
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      CASSANDRA_USERNAME: cassandra
+      CASSANDRA_PASSWORD: cassandra
     ports:
-      - "8082:8082"
+      - "5052:80"
     networks:
       - blackfriday_net
     depends_on:
-      - registry
-  
-  search:
-    build:
-      context: ./search
-    container_name: search
-    restart: on-failure
-    environment:
-      SERVER_PORT: 8083
-      SERVER_NAME: search-service
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP: kafka:9092
-      EUREKA_CLIENT_URL: http://registry:8761/eureka/
-      SERVER_METRIC_PORT: 7073
+      cassandra:
+        condition: service_healthy
+    
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
     ports:
-      - "8083:8083"
+      - "5053:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
     networks:
       - blackfriday_net
     depends_on:
-      - registry
-  
-  order:
-    build:
-      context: ./order
-    container_name: order
-    restart: on-failure
-    environment:
-      SERVER_PORT: 8084
-      SERVER_NAME: order-service
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: my-secret-pw
-      EUREKA_CLIENT_URL: http://registry:8761/eureka/
-      SERVER_METRIC_PORT: 7074
-    ports:
-      - "8084:8084"
-    networks:
-      - blackfriday_net
-    depends_on:
-      - registry
-  
-  payment:
-    build:
-      context: ./payment
-    container_name: payment
-    restart: on-failure
-    environment:
-      SERVER_PORT: 8085
-      SERVER_NAME: payment-service
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: my-secret-pw
-      EUREKA_CLIENT_URL: http://registry:8761/eureka/
-      SERVER_METRIC_PORT: 7075
-      MIDTRANS_SERVER_KEY: ""
-      MIDTRANS_CLIENT_KEY: ""
-      MIDTRANS_IS_PRODUCTION: false
-    ports:
-      - "8085:8085"
-    networks:
-      - blackfriday_net
-    depends_on:
-      - registry
-  
-  gateway:
-    build:
-      context: ./gateway
-    container_name: gateway
-    restart: on-failure
-    environment:
-      SERVER_PORT: 8080
-      SERVER_NAME: order-service
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      EUREKA_CLIENT_URL: http://registry:8761/eureka/
-    ports:
-      - "8080:8080"
-    networks:
-      - blackfriday_net
-    depends_on:
-      - registry
+      - kafka
 
 volumes:
   postgres_data:
