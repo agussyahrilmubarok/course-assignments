@@ -1,0 +1,20 @@
+server:
+  port: 8081
+  shutdown: graceful
+
+spring:
+  application:
+    name: grpc-client
+grpc:
+  client:
+    book-server:
+      address: 'static://127.0.0.1:9090'
+      enableKeepAlive: true
+      keepAliveWithoutCalls: true
+      negotiationType: plaintext
+logging:
+  level:
+    root: INFO
+    com.example: DEBUG
+springdoc:
+  pathsToMatch: /, /api/**

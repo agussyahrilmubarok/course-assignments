@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package bookstore;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+option java_multiple_files = true;
+option java_package = "com.example.bookstore";
+option java_outer_classname = "BookstoreProto";
+
+// ---------- AUTHOR MESSAGES ----------
+
+message Author {
+    int64 id = 1;
+    string name = 2;
+    google.protobuf.Timestamp date_created = 3;
+    google.protobuf.Timestamp last_updated = 4;
+}
+
+message CreateAuthorRequest {
+    string name = 1;
+}
+
+message GetAuthorRequest {
+    int64 id = 1;
+}
+
+message UpdateAuthorRequest {
+    int64 id = 1;
+    string name = 2;
+}
+
+// ---------- BOOK MESSAGES ----------
+
+message Book {
+    int64 id = 1;
+    string title = 2;
+    string publisher = 3;
+    google.protobuf.Timestamp published_date = 4;
+    repeated int64 author_ids = 5;
+    google.protobuf.Timestamp date_created = 6;
+    google.protobuf.Timestamp last_updated = 7;
+}
+
+message CreateBookRequest {
+    string title = 1;
+    string publisher = 2;
+    google.protobuf.Timestamp published_date = 3;
+    repeated int64 author_ids = 4;
+}
+
+message GetBookRequest {
+    int64 id = 1;
+}
+
+message UpdateBookRequest {
+    int64 id = 1;
+    string title = 2;
+    string publisher = 3;
+    google.protobuf.Timestamp published_date = 4;
+    repeated int64 author_ids = 5;
+}
+
+message BookDetail {
+    int64 id = 1;
+    string title = 2;
+    string publisher = 3;
+    google.protobuf.Timestamp published_date = 4;
+    repeated Author authors = 5;
+    repeated Review reviews = 6;
+    google.protobuf.Timestamp date_created = 7;
+    google.protobuf.Timestamp last_updated = 8;
+}
+
+// ---------- REVIEW MESSAGES ----------
+
+message Review {
+    int64 id = 1;
+    string content = 2;
+    float rating = 3;
+    int64 book_id = 4;
+    google.protobuf.Timestamp date_created = 5;
+    google.protobuf.Timestamp last_updated = 6;
+}
+
+message CreateReviewRequest {
+    string content = 1;
+    float rating = 2;
+    int64 book_id = 3;
+}
+
+message GetReviewRequest {
+    int64 id = 1;
+}
+
+message UpdateReviewRequest {
+    int64 id = 1;
+    string content = 2;
+    float rating = 3;
+    int64 book_id = 4;
+}
+
+// ---------- SERVICES ----------
+
+service AuthorService {
+    rpc findAll (google.protobuf.Empty) returns (stream Author);
+    rpc get (GetAuthorRequest) returns (Author);
+    rpc create (CreateAuthorRequest) returns (Author);
+    rpc update (UpdateAuthorRequest) returns (Author);
+    rpc delete (GetAuthorRequest) returns (google.protobuf.Empty);
+}
+
+service BookService {
+    rpc findAll (google.protobuf.Empty) returns (stream Book);
+    rpc get (GetBookRequest) returns (BookDetail);
+    rpc create (CreateBookRequest) returns (Book);
+    rpc update (UpdateBookRequest) returns (Book);
+    rpc delete (GetBookRequest) returns (google.protobuf.Empty);
+}
+
+service ReviewService {
+    rpc findAll (google.protobuf.Empty) returns (stream Review);
+    rpc get (GetReviewRequest) returns (Review);
+    rpc create (CreateReviewRequest) returns (Review);
+    rpc update (UpdateReviewRequest) returns (Review);
+    rpc delete (GetReviewRequest) returns (google.protobuf.Empty);
+}
