@@ -1,0 +1,167 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my-secret-pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - blackfriday_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  redis:
+    image: redis:8.0.3
+    container_name: redis
+    restart: on-failure
+    ports:
+      - "6379:6379" 
+    volumes:
+      - redis_data:/data
+    networks:
+      - blackfriday_net
+  
+  cassandra:
+    image: cassandra:5.0
+    container_name: cassandra
+    restart: on-failure
+    environment:
+      CASSANDRA_SEEDS: cassandra  # one node
+      CASSANDRA_CLUSTER_NAME: my-cluster
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      CASSANDRA_DC: dc1
+      CASSANDRA_RACK: rack1
+      HEAP_NEWSIZE: 128M
+      MAX_HEAP_SIZE: 1024M
+    ports:
+      - "9042:9042"   # CQL client communication (used by apps/drivers)
+      - "7000:7000"   # Intra-node communication (cluster internode traffic)
+      - "7001:7001"   # Secure internode communication (SSL-enabled)
+      - "7199:7199"   # JMX monitoring (used for metrics/tools)
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - blackfriday_net
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces" ]
+      interval: 10s
+      timeout: 10s
+      retries: 50
+  
+  cassandra-init:
+    image: cassandra:5.0
+    container_name: cassandra-init
+    networks:
+      - blackfriday_net
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    entrypoint: [ "sh", "-c", "cqlsh cassandra -e \"CREATE KEYSPACE IF NOT EXISTS catalog WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};\"" ]
+    
+  kafka:
+    image: confluentinc/cp-kafka:8.0.0 
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: "EpwKlK0lR6qKZW0cGwZz8w"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://:29092,PLAINTEXT_EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+      - kafka_secrets:/etc/kafka/secrets
+    networks:
+      - blackfriday_net
+  
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin
+    restart: on-failure
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: my-secret-pw
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - blackfriday_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+  
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: redis-insight
+    restart: on-failure
+    ports:
+      - "5051:5540"
+    volumes:
+      - redis_insight_data:/db
+    networks:
+      - blackfriday_net
+    depends_on:
+      - redis
+
+  cassandra-web:
+    image: ipushc/cassandra-web:v1.1.6
+    container_name: cassandra-web
+    restart: unless-stopped
+    environment:
+      HOST_PORT: ":80"
+      READ_ONLY: "false"
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      CASSANDRA_USERNAME: cassandra
+      CASSANDRA_PASSWORD: cassandra
+    ports:
+      - "5052:80"
+    networks:
+      - blackfriday_net
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    ports:
+      - "5053:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+    networks:
+      - blackfriday_net
+    depends_on:
+      - kafka
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+  redis_insight_data:
+  cassandra_data:
+  kafka_data:
+  kafka_secrets:
+
+networks:
+  blackfriday_net:
