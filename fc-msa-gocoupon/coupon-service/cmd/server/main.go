@@ -27,7 +27,6 @@ func main() {
 	log := logger.NewZerolog(cfg)
 
 	r := server.NewRouter()
-
 	serverAddr := fmt.Sprintf(":%v", cfg.Server.Port)
 	srv := &http.Server{
 		Addr:    serverAddr,

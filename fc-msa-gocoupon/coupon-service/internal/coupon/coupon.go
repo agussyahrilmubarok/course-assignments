@@ -1,4 +1,4 @@
-package domain
+package coupon
 
 import (
 	"errors"
@@ -8,19 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type Coupon struct {
-	ID             string       `gorm:"primaryKey;not null;unique;column:id" json:"id"`
-	Code           string       `gorm:"not null;unique;size:50" json:"code"`
-	Status         CouponStatus `gorm:"not null;column:status" json:"status"`
-	UsedAt         *time.Time   `gorm:"column:used_at" json:"usedAt,omitempty"`
-	UserID         string       `gorm:"not null;column:user_id" json:"userId"`
-	OrderID        *string      `gorm:"column:order_id" json:"orderId,omitempty"`
-	CouponPolicyID string       `gorm:"not null;column:coupon_policy_id" json:"couponPolicyId"`
-	CreatedAt      time.Time    `gorm:"autoCreateTime;column:created_at" json:"createdAt"`
-	UpdatedAt      time.Time    `gorm:"autoUpdateTime;column:updated_at" json:"updatedAt"`
-	CouponPolicy   CouponPolicy `gorm:"foreignKey:CouponPolicyID" json:"couponPolicy"`
-}
-
 type CouponStatus string
 
 const (
@@ -29,6 +16,19 @@ const (
 	CouponStatusExpired   CouponStatus = "EXPIRED"
 	CouponStatusCanceled  CouponStatus = "CANCELED"
 )
+
+type Coupon struct {
+	ID             string        `json:"id" gorm:"primaryKey;column:id"`
+	Code           string        `json:"code" gorm:"unique;size:50;not null"`
+	Status         CouponStatus  `json:"status" gorm:"not null"`
+	UsedAt         *time.Time    `json:"usedAt,omitempty" gorm:"column:used_at"`
+	UserID         string        `json:"userId" gorm:"not null;column:user_id"`
+	OrderID        *string       `json:"orderId,omitempty" gorm:"column:order_id"`
+	CouponPolicyID string        `json:"couponPolicyId" gorm:"not null;column:coupon_policy_id"`
+	CreatedAt      time.Time     `json:"createdAt" gorm:"autoCreateTime;column:created_at"`
+	UpdatedAt      time.Time     `json:"updatedAt" gorm:"autoUpdateTime;column:updated_at"`
+	CouponPolicy   *CouponPolicy `json:"couponPolicy,omitempty" gorm:"foreignKey:CouponPolicyID"`
+}
 
 var (
 	ErrCouponAlreadyUsed = errors.New("coupon has already been used")

@@ -1,0 +1,12 @@
+{
+    "folders": [
+        {
+            "name": "coupon-service",
+            "path": "./coupon-service"
+        },
+        {
+            "name": "project",
+            "path": "."
+        }
+    ]
+}
