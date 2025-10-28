@@ -66,6 +66,15 @@ services:
     networks:
       - promotion_obs_net
 
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: zipkin
+    restart: on-failure
+    ports:
+      - "9411:9411"  # Zipkin HTTP API
+    networks:
+      - promotion_obs_net
+
   grafana:
     image: grafana/grafana:12.2
     container_name: grafana
@@ -85,6 +94,7 @@ services:
       - loki
       - alertmanager
       - prometheus
+      - zipkin
 
 volumes:
   grafana_data:

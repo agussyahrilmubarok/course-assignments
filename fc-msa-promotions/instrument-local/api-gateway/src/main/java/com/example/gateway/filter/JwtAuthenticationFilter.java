@@ -2,7 +2,6 @@ package com.example.gateway.filter;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.client.loadbalancer.reactive.ReactorLoadBalancerExchangeFilterFunction;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -19,7 +18,6 @@ import java.util.Map;
 @Slf4j
 public class JwtAuthenticationFilter extends AbstractGatewayFilterFactory<JwtAuthenticationFilter.Config> {
 
-    @LoadBalanced
     private final WebClient webClient;
 
     public JwtAuthenticationFilter(ReactorLoadBalancerExchangeFilterFunction lbFunction) {

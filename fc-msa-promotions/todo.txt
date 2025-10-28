@@ -1,5 +1,8 @@
 - feature
 
 - fixing
+    - instrument-local:
+        1. Integrate testing for new tracing implementation.
+        2. Integrate with Pin Point APM for all services.
 
 - bug
