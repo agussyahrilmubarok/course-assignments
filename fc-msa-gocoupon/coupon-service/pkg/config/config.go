@@ -1,30 +1,48 @@
 package config
 
-import (
-	"path/filepath"
-	"strings"
-
-	"github.com/spf13/viper"
-)
+import "github.com/spf13/viper"
 
 type Config struct {
-	Server   ServerConfig   `json:"server" mapstructure:"server"`
-	Postgres PostgresConfig `json:"postgres" mapstructure:"postgres"`
+	App struct {
+		Name   string `mapstructure:"name"`
+		Host   string `mapstructure:"host"`
+		Port   int    `mapstructure:"port"`
+		Env    string `mapstructure:"env"`
+		Metric struct {
+			Host string `mapstructure:"host"`
+			Port int    `mapstructure:"port"`
+		} `json:"metric"`
+	} `json:"app"`
+
+	Postgres struct {
+		Host            string `mapstructure:"host"`
+		Port            int    `mapstructure:"port"`
+		User            string `mapstructure:"user"`
+		Password        string `mapstructure:"password"`
+		DbName          string `mapstructure:"dbname"`
+		SslMode         string `mapstructure:"sslmode"`
+		MaxOpenConns    int    `mapstructure:"max_open_conns"`
+		MaxIdleConns    int    `mapstructure:"max_idle_conns"`
+		ConnMaxLifetime string `mapstructure:"conn_max_lifetime"` // Example: "1h", "30m"
+	} `mapstructure:"postgres"`
+
+	Redis struct {
+		Host     string `mapstructure:"host"`
+		Port     int    `mapstructure:"port"`
+		User     string `mapstructure:"user"`
+		Password string `mapstructure:"password"`
+		DB       int    `mapstructure:"db"`
+	} `mapstructure:"redis"`
+
+	Logger struct {
+		Level    string `mapstructure:"level"`    // Example: "info", "debug"
+		Filepath string `mapstructure:"filepath"` // Example: "logs/account.log"
+	} `mapstructure:"logger"`
 }
 
-func LoadConfig(location string) (*Config, error) {
+func NewConfig(filepath string) (*Config, error) {
 	v := viper.New()
-
-	dir := filepath.Dir(location)
-	filename := filepath.Base(location)
-	ext := filepath.Ext(filename)
-	name := strings.TrimSuffix(filename, ext)
-
-	v.AddConfigPath(dir)
-	v.SetConfigName(name)
-	if ext != "" {
-		v.SetConfigType(strings.TrimPrefix(ext, "."))
-	}
+	v.SetConfigFile(filepath)
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err

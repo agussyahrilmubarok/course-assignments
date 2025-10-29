@@ -15,6 +15,80 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/couponPolicies": {
+            "get": {
+                "description": "Get coupon policies by ID, code, or name. If no parameters are provided, return all coupon policies.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Coupon Policy"
+                ],
+                "summary": "Search coupon policies (by ID, Code, Name, or all)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Coupon Policy ID",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Coupon Code",
+                        "name": "code",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Coupon Name",
+                        "name": "name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/coupon.CouponPolicy"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/couponPolicies/dummy": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Coupon Policy"
+                ],
+                "summary": "Create dummy coupon policies",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/coupon.CouponPolicy"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/coupons": {
             "get": {
                 "produces": [
@@ -37,6 +111,119 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "definitions": {
+        "coupon.Coupon": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "couponPolicy": {
+                    "$ref": "#/definitions/coupon.CouponPolicy"
+                },
+                "couponPolicyId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "orderId": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/coupon.CouponStatus"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "usedAt": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "coupon.CouponPolicy": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "coupons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/coupon.Coupon"
+                    }
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "discountType": {
+                    "$ref": "#/definitions/coupon.DiscountType"
+                },
+                "discountValue": {
+                    "type": "integer"
+                },
+                "endTime": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "maximumDiscountAmount": {
+                    "type": "integer"
+                },
+                "minimumOrderAmount": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "totalQuantity": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "coupon.CouponStatus": {
+            "type": "string",
+            "enum": [
+                "AVAILABLE",
+                "USED",
+                "EXPIRED",
+                "CANCELED"
+            ],
+            "x-enum-varnames": [
+                "CouponStatusAvailable",
+                "CouponStatusUsed",
+                "CouponStatusExpired",
+                "CouponStatusCanceled"
+            ]
+        },
+        "coupon.DiscountType": {
+            "type": "string",
+            "enum": [
+                "FIXED_AMOUNT",
+                "PERCENTAGE"
+            ],
+            "x-enum-varnames": [
+                "DiscountTypeFixedAmount",
+                "DiscountTypePercentage"
+            ]
+        }
     }
 }`
 
@@ -55,5 +242,5 @@ var SwaggerInfo = &swag.Spec{
 }
 
 func init() {
-	swag.Register("swagger_v1", SwaggerInfo)
+	swag.Register("couponSwaggerV1", SwaggerInfo)
 }

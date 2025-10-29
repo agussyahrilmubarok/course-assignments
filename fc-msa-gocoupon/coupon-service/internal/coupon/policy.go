@@ -16,6 +16,7 @@ const (
 
 type CouponPolicy struct {
 	ID                    string       `json:"id" gorm:"primaryKey;column:id"`
+	Code                  string       `json:"code" gorm:"unique;size:50;not null"`
 	Name                  string       `json:"name" gorm:"not null"`
 	Description           string       `json:"description" gorm:"type:text;not null"`
 	TotalQuantity         int          `json:"totalQuantity" gorm:"not null;column:total_quantity"`

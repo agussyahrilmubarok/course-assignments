@@ -10,48 +10,46 @@ import (
 	"syscall"
 	"time"
 
-	"example.com/internal/server"
-	"example.com/pkg/config"
-	"example.com/pkg/logger"
+	"example.com/coupon/internal/server"
+	"example.com/coupon/pkg/config"
 )
 
 func main() {
-	configPath := flag.String("config", "configs/config.yaml", "Path for config file")
+	configFlag := flag.String("config", "configs/config.yaml", "Path to config file")
 	flag.Parse()
 
-	cfg, err := config.LoadConfig(*configPath)
+	cfg, err := config.NewConfig(*configFlag)
 	if err != nil {
-		panic("cannot found config file")
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
 	}
 
-	log := logger.NewZerolog(cfg)
-
-	r := server.NewRouter()
-	serverAddr := fmt.Sprintf(":%v", cfg.Server.Port)
-	srv := &http.Server{
-		Addr:    serverAddr,
-		Handler: r,
+	logger, err := config.NewZerolog(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
+		os.Exit(1)
 	}
+
+	srv := server.NewGinRouter(cfg, logger)
 
 	go func() {
-		log.Printf("Server running on %s", serverAddr)
+		logger.Info().Msg("Starting server on " + srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Msgf("failed to start server: %v", err)
+			logger.Fatal().Err(err).Msg("Server failed")
 		}
 	}()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
-	<-quit
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
-	log.Info().Msg("shutting down server gracefully...")
+	<-stop
+	logger.Info().Msg("Shutting down server...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctxShutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal().Msgf("server forced to shutdown: %v", err)
+	if err := srv.Shutdown(ctxShutdown); err != nil {
+		logger.Fatal().Err(err).Msg("Graceful shutdown failed")
 	}
 
-	log.Info().Msg("server stopped cleanly")
+	logger.Info().Msg("Server stopped gracefully")
 }
