@@ -30,18 +30,18 @@ type Coupon struct {
 	CouponPolicy   *CouponPolicy `json:"couponPolicy,omitempty" gorm:"foreignKey:CouponPolicyID"`
 }
 
-var (
-	ErrCouponAlreadyUsed = errors.New("coupon has already been used")
-	ErrCouponExpired     = errors.New("coupon has expired")
-	ErrCouponNotUsed     = errors.New("coupon has not been used")
-)
-
 func (c *Coupon) BeforeCreate(tx *gorm.DB) (err error) {
 	if c.ID == "" {
 		c.ID = uuid.NewString()
 	}
 	return nil
 }
+
+var (
+	ErrCouponAlreadyUsed = errors.New("coupon has already been used")
+	ErrCouponExpired     = errors.New("coupon has expired")
+	ErrCouponNotUsed     = errors.New("coupon has not been used")
+)
 
 // IsExpired returns true if current time is before start or after end
 func (c *Coupon) IsExpired() bool {

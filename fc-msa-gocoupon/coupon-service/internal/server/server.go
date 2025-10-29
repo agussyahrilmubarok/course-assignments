@@ -11,6 +11,8 @@ import (
 	"github.com/rs/zerolog"
 
 	v1 "example.com/coupon/api/v1/handler"
+	featureV1 "example.com/coupon/internal/coupon/feature/v1"
+	couponMiddleware "example.com/coupon/internal/middleware"
 
 	_ "example.com/coupon/api/v1/docs"
 
@@ -34,8 +36,9 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 
 	apiRoute := r.Group("/api")
 
+	couponFeatureV1 := featureV1.NewCouponFeature(db)
 	couponPolicyHandlerV1 := v1.NewCouponPolicyHandler(db)
-	couponHandlerV1 := v1.NewCouponHandler()
+	couponHandlerV1 := v1.NewCouponHandler(couponFeatureV1)
 
 	// V1 routes
 	v1Group := apiRoute.Group("/v1")
@@ -43,7 +46,12 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		v1Group.POST("/couponPolicies/dummy", couponPolicyHandlerV1.CreateCouponPolicyDummy)
 		v1Group.GET("/couponPolicies", couponPolicyHandlerV1.SearchCouponPolicy)
 
-		v1Group.GET("/coupons", couponHandlerV1.FindCoupon)
+		v1Group.POST("/coupons/issue", couponMiddleware.UserIDMiddleware(), couponHandlerV1.IssueCoupon)
+		v1Group.GET("/coupons/:code", couponMiddleware.UserIDMiddleware(), couponHandlerV1.FindCouponByCode)
+		v1Group.POST("/coupons/:code/use", couponMiddleware.UserIDMiddleware(), couponHandlerV1.UseCoupon)
+		v1Group.POST("/coupons/:code/cancel", couponMiddleware.UserIDMiddleware(), couponHandlerV1.CancelCoupon)
+		v1Group.GET("/coupons/user", couponMiddleware.UserIDMiddleware(), couponHandlerV1.FindCouponsByUserID)
+		v1Group.GET("/coupons/policy/:policyCode", couponHandlerV1.FindCouponsByCouponPolicyCode)
 
 		v1Group.GET("/swagger/*any", ginSwagger.WrapHandler(
 			swaggerFiles.Handler,

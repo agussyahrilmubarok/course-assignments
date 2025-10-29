@@ -1,6 +1,7 @@
 package coupon
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,6 +38,11 @@ func (c *CouponPolicy) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 	return nil
 }
+
+var (
+	ErrCouponPolicyQoutaExceeded = errors.New("coupon policy quota exceeded")
+	ErrCouponPolicyInvalidPeriod = errors.New("coupon policy is not valid in current period")
+)
 
 // IsValidPeriod returns true if the current time is within the start and end time of the coupon policy.
 func (c *CouponPolicy) IsValidPeriod() bool {
