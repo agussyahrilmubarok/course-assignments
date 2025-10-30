@@ -1,0 +1,39 @@
+groups:
+  - name: api_gateway_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job="api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: API gateway is down
+          description: Service has been down for more than 1 minute
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="api-gateway"} > 1.5e9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High memory usage in api gateway
+          description: Memory usage is {{ $value | humanize }}B
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_usage{job="api-gateway"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High CPU usage in api gateway
+          description: CPU usage is {{ $value }}%
+
+      - alert: HighGCTime
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: High GC time in api gateway
+          description: GC is taking {{ $value }}s per second on average
+
