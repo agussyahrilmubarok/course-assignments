@@ -1,0 +1,39 @@
+groups:
+  - name: user_service_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job="user-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: User service is down
+          description: Service has been down for more than 1 minute
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="user-service"} > 1.5e9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High memory usage in user service
+          description: Memory usage is {{ $value | humanize }}B
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_usage{job="user-service"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High CPU usage in user service
+          description: CPU usage is {{ $value }}%
+
+      - alert: HighGCTime
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: High GC time in user service
+          description: GC is taking {{ $value }}s per second on average
+

@@ -1,0 +1,16 @@
+server:
+  http_listen_port: 3100
+  log_level: info
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+        http:
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/blocks

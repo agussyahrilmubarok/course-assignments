@@ -1,0 +1,356 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my-secret-pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - promotion_net
+  
+  redis:
+    image: redis:8.0.3
+    container_name: redis
+    restart: on-failure
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379" 
+    volumes:
+      - ./scripts/redis/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis_data:/data
+    networks:
+      - promotion_net
+
+  kafka:
+    image: confluentinc/cp-kafka:8.0.0 
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: "EpwKlK0lR6qKZW0cGwZz8w"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://:29092,PLAINTEXT_EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+      - kafka_secrets:/etc/kafka/secrets
+    networks:
+      - promotion_net
+
+  pgadmin:
+    image: dpage/pgadmin4:9.8
+    container_name: pgadmin
+    restart: on-failure
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: my-secret-pw
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - promotion_net
+    depends_on:
+      - postgres
+  
+  redis-insight:
+    image: redis/redisinsight:2.70
+    container_name: redis-insight
+    restart: on-failure
+    ports:
+      - "5051:5540"
+    volumes:
+      - redis_insight_data:/db
+    networks:
+      - promotion_net
+    depends_on:
+      - redis
+  
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    ports:
+      - "5052:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+    networks:
+      - promotion_net
+    depends_on:
+      - kafka
+
+  service-registry:
+    build: 
+      context: ./service-registry
+    container_name: service-registry
+    restart: on-failure
+    environment:
+      - SERVER_PORT=8761
+      - SERVER_NAME=service-registry
+    ports:
+      - "8761:8761"
+    volumes:
+      - ./logging/service-registry/logs:/app/logs
+    networks:
+      - promotion_net
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+
+  user-service:
+    build: 
+      context: ./user-service
+    container_name: user-service
+    restart: on-failure
+    environment:
+      - SERVER_PORT=8081
+      - SERVER_NAME=USER-SERVICE
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/promotions_userdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=my-secret-pw
+      - EUREKA_CLIENT_URL=http://service-registry:8761/eureka/
+      - SERVER_METRIC_PORT=7071
+      - JWT_SECRET_KEY=promotionTestSecretKey2025PromotionTestSecretKey2025
+      - JWT_EXPIRES=3600000
+      - ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./logging/user-service/logs:/app/logs
+    networks:
+      - promotion_net
+    depends_on:
+      - service-registry
+
+  coupon-service:
+    build: 
+      context: ./coupon-service
+    container_name: coupon-service
+    restart: on-failure
+    environment:
+      - SERVER_PORT=8082
+      - SERVER_NAME=COUPON-SERVICE
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/promotions_coupondb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=my-secret-pw
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP=kafka:29092
+      - EUREKA_CLIENT_URL=http://service-registry:8761/eureka/
+      - SERVER_METRIC_PORT=7072
+      - ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./logging/coupon-service/logs:/app/logs
+    networks:
+      - promotion_net
+    depends_on:
+      - service-registry
+
+  point-service:
+    build: 
+      context: ./point-service
+    container_name: point-service
+    restart: on-failure
+    environment:
+      - SERVER_PORT=8083
+      - SERVER_NAME=POINT-SERVICE
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/promotions_pointdb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=my-secret-pw
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - EUREKA_CLIENT_URL=http://service-registry:8761/eureka/
+      - SERVER_METRIC_PORT=7073
+      - ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    ports:
+      - "8083:8083"
+    volumes:
+      - ./logging/point-service/logs:/app/logs
+    networks:
+      - promotion_net
+    depends_on:
+      - service-registry
+  
+  timesale-service:
+    build: 
+      context: ./timesale-service
+    container_name: timesale-service
+    restart: on-failure
+    environment:
+      - SERVER_PORT=8084
+      - SERVER_NAME=TIMESALE-SERVICE
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/promotions_timesaledb
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=my-secret-pw
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_KAFKA_BOOTSTRAP=kafka:29092
+      - EUREKA_CLIENT_URL=http://service-registry:8761/eureka/
+      - SERVER_METRIC_PORT=7074
+      - ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    ports:
+      - "8084:8084"
+    volumes:
+      - ./logging/timesale-service/logs:/app/logs
+    networks:
+      - promotion_net
+    depends_on:
+      - service-registry
+
+  api-gateway:
+    build: 
+      context: ./api-gateway
+    container_name: api-gateway
+    restart: on-failure
+    environment:
+      - SERVER_PORT=8080
+      - SERVER_NAME=API-GATEWAY
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - EUREKA_CLIENT_URL=http://service-registry:8761/eureka/
+      - SERVER_METRIC_PORT=7070
+      - ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logging/api-gateway/logs:/app/logs
+    networks:
+      - promotion_net
+    depends_on:
+      - service-registry
+      - user-service
+      - coupon-service
+      - point-service
+      - timesale-service
+
+  loki:
+    image: grafana/loki:3.5.7
+    container_name: loki
+    restart: on-failure
+    command: -config.file=/etc/loki/config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./scripts/loki:/etc/loki
+    networks:
+      - promotion_net
+    depends_on:
+      - api-gateway
+
+  fluentbit:
+    image: fluent/fluent-bit:4.0
+    container_name: fluentbit
+    restart: on-failure
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    volumes:
+      - ./scripts/fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./scripts/fluentbit/map.json:/fluent-bit/etc/map.json
+      - ./logging:/app/logging
+    networks:
+      - promotion_net
+    depends_on:
+      - loki
+      - api-gateway
+  
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: alertmanager
+    restart: on-failure
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./scripts/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    networks:
+      - promotion_net
+    depends_on:
+      - api-gateway
+
+  prometheus:
+    image: prom/prometheus:v3.7.2
+    container_name: prometheus
+    restart: on-failure
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.listen-address=:9090'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./scripts/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./scripts/prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - promotion_net
+    depends_on:
+      - api-gateway
+  
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: zipkin
+    restart: on-failure
+    ports:
+      - "9411:9411"  # Zipkin HTTP API
+    networks:
+      - promotion_net
+
+  grafana:
+    image: grafana/grafana:12.2
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./scripts/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    networks:
+      - promotion_net
+    depends_on:
+      - loki
+      - alertmanager
+      - prometheus
+      - zipkin
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+  redis_insight_data:
+  kafka_data:
+  kafka_secrets:
+  grafana_data:
+  alertmanager_data:
+  prometheus_data:
+
+networks:
+  promotion_net:
