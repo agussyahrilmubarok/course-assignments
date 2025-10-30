@@ -7,6 +7,7 @@ import (
 
 	"example.com/coupon/internal/coupon"
 	"example.com/coupon/pkg/config"
+	"example.com/coupon/pkg/instrument"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
@@ -21,8 +22,6 @@ import (
 )
 
 func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
-	r := gin.Default()
-
 	db, err := config.NewPostgres(cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
@@ -34,11 +33,15 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		os.Exit(1)
 	}
 
+	r := gin.Default()
+	r.Use(instrument.Middleware(cfg.App.Name, log))
+	r.Use(instrument.MetricAppMiddleware)
+
 	apiRoute := r.Group("/api")
 
-	couponFeatureV1 := featureV1.NewCouponFeature(db)
-	couponPolicyHandlerV1 := v1.NewCouponPolicyHandler(db)
-	couponHandlerV1 := v1.NewCouponHandler(couponFeatureV1)
+	couponFeatureV1 := featureV1.NewCouponFeature(db, log)
+	couponPolicyHandlerV1 := v1.NewCouponPolicyHandler(db, log)
+	couponHandlerV1 := v1.NewCouponHandler(couponFeatureV1, log)
 
 	// V1 routes
 	v1Group := apiRoute.Group("/v1")

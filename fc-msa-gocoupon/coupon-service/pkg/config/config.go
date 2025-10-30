@@ -38,6 +38,11 @@ type Config struct {
 		Level    string `mapstructure:"level"`    // Example: "info", "debug"
 		Filepath string `mapstructure:"filepath"` // Example: "logs/account.log"
 	} `mapstructure:"logger"`
+
+	OTEL struct {
+		Host string `mapstructure:"host"`
+		Port int    `mapstructure:"port"`
+	} `json:"otel"`
 }
 
 func NewConfig(filepath string) (*Config, error) {

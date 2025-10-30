@@ -12,6 +12,7 @@ import (
 
 	"example.com/coupon/internal/server"
 	"example.com/coupon/pkg/config"
+	"example.com/coupon/pkg/instrument"
 )
 
 func main() {
@@ -30,11 +31,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := server.NewGinRouter(cfg, logger)
+	ctx := context.Background()
+	traceExporter := instrument.NewOTLPExporter(ctx, fmt.Sprintf("%s:%v", cfg.OTEL.Host, cfg.OTEL.Port))
+	shutdownTrace := instrument.InitTraceProvider(ctx, cfg.App.Name, traceExporter)
+	defer shutdownTrace(ctx)
 
+	srv := server.NewGinRouter(cfg, logger)
 	go func() {
 		logger.Info().Msg("Starting server on " + srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal().Err(err).Msg("Server failed")
+		}
+	}()
+
+	metricsServer := instrument.NewMetricServer(cfg)
+	go func() {
+		logger.Info().Msg("Starting server on " + metricsServer.Addr)
+		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal().Err(err).Msg("Server failed")
 		}
 	}()
@@ -47,7 +60,12 @@ func main() {
 
 	ctxShutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	if err := srv.Shutdown(ctxShutdown); err != nil {
+		logger.Fatal().Err(err).Msg("Graceful shutdown failed")
+	}
+
+	if err := metricsServer.Shutdown(ctxShutdown); err != nil {
 		logger.Fatal().Err(err).Msg("Graceful shutdown failed")
 	}
 

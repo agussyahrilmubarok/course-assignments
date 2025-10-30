@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"example.com/coupon/internal/coupon"
+	"example.com/coupon/pkg/instrument"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -12,12 +13,14 @@ import (
 )
 
 type couponPolicyHandler struct {
-	db *gorm.DB
+	db  *gorm.DB
+	log zerolog.Logger
 }
 
-func NewCouponPolicyHandler(db *gorm.DB) *couponPolicyHandler {
+func NewCouponPolicyHandler(db *gorm.DB, log zerolog.Logger) *couponPolicyHandler {
 	return &couponPolicyHandler{
-		db: db,
+		db:  db,
+		log: log,
 	}
 }
 
@@ -34,7 +37,7 @@ func NewCouponPolicyHandler(db *gorm.DB) *couponPolicyHandler {
 // @Router /couponPolicies [get]
 func (h *couponPolicyHandler) SearchCouponPolicy(c *gin.Context) {
 	ctx := c.Request.Context()
-	log := zerolog.Ctx(ctx)
+	log := instrument.GetLogger(ctx, h.log)
 
 	id := c.Query("id")
 	code := c.Query("code")
@@ -82,7 +85,7 @@ func (h *couponPolicyHandler) SearchCouponPolicy(c *gin.Context) {
 // @Router /couponPolicies/dummy [post]
 func (h *couponPolicyHandler) CreateCouponPolicyDummy(c *gin.Context) {
 	ctx := c.Request.Context()
-	log := zerolog.Ctx(ctx)
+	log := instrument.GetLogger(ctx, h.log)
 
 	if err := h.db.Exec("DELETE FROM coupons").Error; err != nil {
 		log.Error().Err(err).Msg("Failed to delete coupons")

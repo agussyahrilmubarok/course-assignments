@@ -94,6 +94,110 @@ services:
     depends_on:
       - kafka
 
+  grafana:
+    image: grafana/grafana:12.2
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./scripts/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    networks:
+      - coupon_net
+    depends_on:
+      - loki
+      - prometheus
+      - jaeger
+  
+  loki:
+    image: grafana/loki:3.5.7
+    container_name: loki
+    restart: on-failure
+    command: -config.file=/etc/loki/config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./scripts/loki:/etc/loki
+    networks:
+      - coupon_net
+  
+  fluentbit:
+    image: fluent/fluent-bit:4.0
+    container_name: fluentbit
+    restart: on-failure
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    volumes:
+      - ./scripts/fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./coupon-service/logs:/app/logging/coupon-service/logs
+    networks:
+      - coupon_net
+    depends_on:
+      - loki
+  
+  prometheus:
+    image: prom/prometheus:v3.7.2
+    container_name: prometheus
+    restart: on-failure
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.listen-address=:9090'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./scripts/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - coupon_net
+  
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: alertmanager
+    restart: on-failure
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./scripts/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    networks:
+      - coupon_net
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.74.0
+    container_name: jaeger
+    restart: always
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: 9411
+    expose:
+      - "16686"
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger collector (HTTP)
+      - "14250:14250"  # gRPC (optional)
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "9411:9411"    # Zipkin compatible
+    command:
+      - "--memory.max-traces=10000"
+      - "--collector.otlp.enabled=true"
+      - "--collector.otlp.grpc.host-port=:4317"
+      - "--collector.otlp.http.host-port=:4318"
+    networks:
+      - coupon_net
+
 volumes:
   postgres_data:
   redis_data:
@@ -101,6 +205,9 @@ volumes:
   redis_insight_data:
   kafka_data:
   kafka_secrets:
+  grafana_data:
+  prometheus_data:
+  alertmanager_data:
 
 networks:
   coupon_net:

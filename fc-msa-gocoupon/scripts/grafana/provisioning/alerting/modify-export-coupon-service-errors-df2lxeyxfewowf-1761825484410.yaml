@@ -1,0 +1,278 @@
+apiVersion: 1
+groups:
+    - orgId: 1
+      name: coupon-service-errors
+      folder: coupon-service-dashboards
+      interval: 1m
+      rules:
+        - uid: df2lxeyxfewowf
+          title: Coupon Issue Failed
+          condition: C
+          data:
+            - refId: A
+              queryType: range
+              relativeTimeRange:
+                from: 3600
+                to: 0
+              datasourceUid: P8E80F9AEF21F6940
+              model:
+                datasource:
+                    type: loki
+                    uid: P8E80F9AEF21F6940
+                direction: backward
+                editorMode: code
+                expr: count_over_time({service_name="coupon-service"} |= "Failed to issue new coupon" [10m])
+                instant: true
+                intervalMs: 1000
+                maxDataPoints: 43200
+                queryType: range
+                range: false
+                refId: A
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 3
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: ad4x4fw
+          panelId: 3
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          keepFiringFor: 2m
+          annotations:
+            __dashboardUid__: ad4x4fw
+            __panelId__: "3"
+            description: More than 3 coupon issuance failures occurred within the last 10 minutes.
+            summary: Over 3 coupon issuance failures in 10 minutes
+          labels:
+            feature: coupon-issue
+            service-name: coupon-service
+            severity: critical
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: ef2lxnxb55clce
+          title: Coupon Invalid Period
+          condition: C
+          data:
+            - refId: A
+              queryType: range
+              relativeTimeRange:
+                from: 3600
+                to: 0
+              datasourceUid: P8E80F9AEF21F6940
+              model:
+                datasource:
+                    type: loki
+                    uid: P8E80F9AEF21F6940
+                direction: backward
+                editorMode: code
+                expr: count_over_time({service_name="coupon-service"} |= "Coupon policy is not valid in the current period" [10m])
+                instant: true
+                intervalMs: 1000
+                maxDataPoints: 43200
+                queryType: range
+                range: false
+                refId: A
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 3
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: ad4x4fw
+          panelId: 4
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: ad4x4fw
+            __panelId__: "4"
+            description: Attempts to issue coupons outside of the valid policy period were detected in the last 10 minutes.
+            summary: Coupon issuance attempted outside valid policy period
+          labels:
+            feature: coupon-issue
+            service-name: coupon-service
+            severity: critical
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email
+        - uid: ff2lxqne5m51ca
+          title: Coupon Policy Quota Exceeded
+          condition: C
+          data:
+            - refId: A
+              queryType: range
+              relativeTimeRange:
+                from: 3600
+                to: 0
+              datasourceUid: P8E80F9AEF21F6940
+              model:
+                datasource:
+                    type: loki
+                    uid: P8E80F9AEF21F6940
+                direction: backward
+                editorMode: code
+                expr: count_over_time({sevice_name="coupon-service"} |= "Coupon policy quota exceeded" [10m])
+                instant: true
+                intervalMs: 1000
+                maxDataPoints: 43200
+                queryType: range
+                range: false
+                refId: A
+            - refId: B
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params: []
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - B
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: A
+                intervalMs: 1000
+                maxDataPoints: 43200
+                reducer: last
+                refId: B
+                type: reduce
+            - refId: C
+              datasourceUid: __expr__
+              model:
+                conditions:
+                    - evaluator:
+                        params:
+                            - 3
+                        type: gt
+                      operator:
+                        type: and
+                      query:
+                        params:
+                            - C
+                      reducer:
+                        params: []
+                        type: last
+                      type: query
+                datasource:
+                    type: __expr__
+                    uid: __expr__
+                expression: B
+                intervalMs: 1000
+                maxDataPoints: 43200
+                refId: C
+                type: threshold
+          dashboardUid: ad4x4fw
+          panelId: 2
+          noDataState: NoData
+          execErrState: Error
+          for: 1m
+          annotations:
+            __dashboardUid__: ad4x4fw
+            __panelId__: "2"
+            description: Attempts to issue coupons exceeding the policy quota occurred in the last 10 minutes.
+            summary: Coupon policy quota exceeded more than 3 times in 10 minutes
+          labels:
+            feature: coupon-issue
+            service-name: coupon-service
+            severity: critical
+          isPaused: false
+          notification_settings:
+            receiver: grafana-default-email

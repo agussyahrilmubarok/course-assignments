@@ -3,6 +3,9 @@ app:
   host: "localhost"
   port: 8080
   env: "development"
+  metric:
+    host: "localhost"
+    port: 7070
 
 postgres:
   host: "localhost"
@@ -25,3 +28,7 @@ redis:
 logger:
   level: "info"
   filepath: "logs/app.log"
+
+otel:
+  host: "localhost"
+  port: 4317

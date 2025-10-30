@@ -1,0 +1,11 @@
+groups:
+  - name: coupon_service_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job="coupon-service"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Coupon service is down
+          description: Service has been down for more than 5 minute

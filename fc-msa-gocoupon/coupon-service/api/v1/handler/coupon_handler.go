@@ -7,17 +7,20 @@ import (
 	v1 "example.com/coupon/internal/coupon/feature/v1"
 	"example.com/coupon/internal/middleware"
 	"example.com/coupon/pkg/exception"
+	"example.com/coupon/pkg/instrument"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
 
 type couponHandler struct {
 	couponFeature v1.ICouponFeature
+	log           zerolog.Logger
 }
 
-func NewCouponHandler(couponFeature v1.ICouponFeature) *couponHandler {
+func NewCouponHandler(couponFeature v1.ICouponFeature, log zerolog.Logger) *couponHandler {
 	return &couponHandler{
 		couponFeature: couponFeature,
+		log:           log,
 	}
 }
 
@@ -34,7 +37,8 @@ func NewCouponHandler(couponFeature v1.ICouponFeature) *couponHandler {
 // @Router /coupons/issue [post]
 // @Security ApiKeyAuth
 func (h *couponHandler) IssueCoupon(c *gin.Context) {
-	log := zerolog.Ctx(c.Request.Context())
+	ctx := c.Request.Context()
+	log := instrument.GetLogger(ctx, h.log)
 
 	var payload coupon.IssueCouponRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -50,7 +54,7 @@ func (h *couponHandler) IssueCoupon(c *gin.Context) {
 		return
 	}
 
-	issuedCoupon, err := h.couponFeature.IssueCoupon(c.Request.Context(), payload.CouponPolicyCode, userID)
+	issuedCoupon, err := h.couponFeature.IssueCoupon(ctx, payload.CouponPolicyCode, userID)
 	if err != nil {
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
@@ -93,7 +97,8 @@ func (h *couponHandler) IssueCoupon(c *gin.Context) {
 // @Router /coupons/{code}/use [post]
 // @Security ApiKeyAuth
 func (h *couponHandler) UseCoupon(c *gin.Context) {
-	log := zerolog.Ctx(c.Request.Context())
+	ctx := c.Request.Context()
+	log := instrument.GetLogger(ctx, h.log)
 
 	couponCode := c.Param("code")
 	var payload coupon.UseCouponRequest
@@ -110,7 +115,7 @@ func (h *couponHandler) UseCoupon(c *gin.Context) {
 		return
 	}
 
-	usedCoupon, err := h.couponFeature.UseCoupon(c.Request.Context(), couponCode, userID, payload.OrderID)
+	usedCoupon, err := h.couponFeature.UseCoupon(ctx, couponCode, userID, payload.OrderID)
 	if err != nil {
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
@@ -153,7 +158,8 @@ func (h *couponHandler) UseCoupon(c *gin.Context) {
 // @Router /coupons/{code}/cancel [post]
 // @Security ApiKeyAuth
 func (h *couponHandler) CancelCoupon(c *gin.Context) {
-	log := zerolog.Ctx(c.Request.Context())
+	ctx := c.Request.Context()
+	log := instrument.GetLogger(ctx, h.log)
 
 	couponCode := c.Param("code")
 	userID, err := middleware.GetCurrentUserID(c)
@@ -163,7 +169,7 @@ func (h *couponHandler) CancelCoupon(c *gin.Context) {
 		return
 	}
 
-	canceledCoupon, err := h.couponFeature.CancelCoupon(c.Request.Context(), couponCode, userID)
+	canceledCoupon, err := h.couponFeature.CancelCoupon(ctx, couponCode, userID)
 	if err != nil {
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
@@ -203,7 +209,8 @@ func (h *couponHandler) CancelCoupon(c *gin.Context) {
 // @Router /coupons/{code} [get]
 // @Security ApiKeyAuth
 func (h *couponHandler) FindCouponByCode(c *gin.Context) {
-	log := zerolog.Ctx(c.Request.Context())
+	ctx := c.Request.Context()
+	log := instrument.GetLogger(ctx, h.log)
 
 	couponCode := c.Param("code")
 	userID, err := middleware.GetCurrentUserID(c)
@@ -213,7 +220,7 @@ func (h *couponHandler) FindCouponByCode(c *gin.Context) {
 		return
 	}
 
-	couponData, err := h.couponFeature.FindCouponByCode(c.Request.Context(), couponCode, userID)
+	couponData, err := h.couponFeature.FindCouponByCode(ctx, couponCode, userID)
 	if err != nil {
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
@@ -252,7 +259,8 @@ func (h *couponHandler) FindCouponByCode(c *gin.Context) {
 // @Router /coupons/user [get]
 // @Security ApiKeyAuth
 func (h *couponHandler) FindCouponsByUserID(c *gin.Context) {
-	log := zerolog.Ctx(c.Request.Context())
+	ctx := c.Request.Context()
+	log := instrument.GetLogger(ctx, h.log)
 
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
@@ -261,7 +269,7 @@ func (h *couponHandler) FindCouponsByUserID(c *gin.Context) {
 		return
 	}
 
-	coupons, err := h.couponFeature.FindCouponsByUserID(c.Request.Context(), userID)
+	coupons, err := h.couponFeature.FindCouponsByUserID(ctx, userID)
 	if err != nil {
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
@@ -299,10 +307,11 @@ func (h *couponHandler) FindCouponsByUserID(c *gin.Context) {
 // @Router /coupons/policy/{policyCode} [get]
 // @Security ApiKeyAuth
 func (h *couponHandler) FindCouponsByCouponPolicyCode(c *gin.Context) {
-	log := zerolog.Ctx(c.Request.Context())
+	ctx := c.Request.Context()
+	log := instrument.GetLogger(ctx, h.log)
 
 	couponPolicyCode := c.Param("policyCode")
-	coupons, err := h.couponFeature.FindCouponsByCouponPolicyCode(c.Request.Context(), couponPolicyCode)
+	coupons, err := h.couponFeature.FindCouponsByCouponPolicyCode(ctx, couponPolicyCode)
 	if err != nil {
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
