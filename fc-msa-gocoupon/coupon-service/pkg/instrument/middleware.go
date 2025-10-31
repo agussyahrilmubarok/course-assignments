@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ctxKeyRequestID struct{}
@@ -34,8 +35,7 @@ func GetLogger(ctx context.Context, baseLogger zerolog.Logger) zerolog.Logger {
 	return logger
 }
 
-func Middleware(serviceName string, baseLogger zerolog.Logger) gin.HandlerFunc {
-	tracer := otel.Tracer(serviceName)
+func Middleware(tracer trace.Tracer, baseLogger zerolog.Logger) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		start := time.Now()

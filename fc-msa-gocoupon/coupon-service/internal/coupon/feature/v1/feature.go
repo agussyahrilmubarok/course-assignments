@@ -10,6 +10,8 @@ import (
 	"example.com/coupon/pkg/instrument"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
 )
 
@@ -24,14 +26,16 @@ type ICouponFeature interface {
 }
 
 type couponFeature struct {
-	db  *gorm.DB
-	log zerolog.Logger
+	db     *gorm.DB
+	log    zerolog.Logger
+	tracer trace.Tracer
 }
 
-func NewCouponFeature(db *gorm.DB, log zerolog.Logger) ICouponFeature {
+func NewCouponFeature(db *gorm.DB, log zerolog.Logger, tracer trace.Tracer) ICouponFeature {
 	return &couponFeature{
-		db:  db,
-		log: log,
+		db:     db,
+		log:    log,
+		tracer: tracer,
 	}
 }
 
@@ -39,6 +43,14 @@ func NewCouponFeature(db *gorm.DB, log zerolog.Logger) ICouponFeature {
 // It validates the policy period, checks quota limits, and persists the coupon to the database.
 // Returns the issued coupon on success or an appropriate error if the operation fails.
 func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string, userID string) (*coupon.Coupon, error) {
+	ctx, span := f.tracer.Start(ctx, "Feature.IssueCoupon",
+		trace.WithAttributes(
+			attribute.String("coupon.policy_code", couponPolicyCode),
+			attribute.String("user.id", userID),
+		),
+	)
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, f.log)
 
 	var couponPolicy coupon.CouponPolicy
@@ -46,6 +58,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		Preload("Coupons").
 		Where("code = ?", couponPolicyCode).
 		First(&couponPolicy).Error; err != nil {
+		span.RecordError(err)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("coupon_policy_code", couponPolicyCode).
@@ -59,8 +72,9 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		return nil, exception.NewInternal("Failed to get coupon policy", err)
 	}
 
-	if !couponPolicy.IsValidPeriod() {
+	if !couponPolicy.IsValidPeriodUnix() {
 		err := coupon.ErrCouponPolicyInvalidPeriod
+		span.RecordError(err)
 		log.Warn().
 			Str("coupon_policy_code", couponPolicy.Code).
 			Str("coupon_policy_start_time", couponPolicy.StartTime.Format(time.RFC3339)).
@@ -71,6 +85,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 
 	if couponPolicy.GetIssuedQuantity() >= couponPolicy.TotalQuantity {
 		err := coupon.ErrCouponPolicyQoutaExceeded
+		span.RecordError(err)
 		log.Warn().
 			Str("coupon_policy_code", couponPolicy.Code).
 			Int("coupon_policy_total_quantity", couponPolicy.TotalQuantity).
@@ -88,6 +103,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		CouponPolicyID: couponPolicy.ID,
 	}
 	if err := f.db.WithContext(ctx).Create(&newCoupon).Error; err != nil {
+		span.RecordError(err)
 		log.Error().
 			Str("coupon_policy_code", couponPolicy.Code).
 			Str("user_id", userID).
@@ -96,6 +112,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		return nil, exception.NewInternal("Failed to issue coupon", err)
 	}
 
+	span.SetAttributes(attribute.String("coupon.code", newCoupon.Code))
 	log.Info().
 		Str("coupon_policy_code", couponPolicyCode).
 		Str("coupon_code", newCoupon.Code).
@@ -108,6 +125,15 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 // It ensures the coupon exists, belongs to the user, and is in a valid state to be used.
 // Returns the updated coupon or an error if usage fails or cannot be saved.
 func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID string, orderID string) (*coupon.Coupon, error) {
+	ctx, span := f.tracer.Start(ctx, "Feature.UseCoupon",
+		trace.WithAttributes(
+			attribute.String("coupon.code", couponCode),
+			attribute.String("user.id", userID),
+			attribute.String("order.id", orderID),
+		),
+	)
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, f.log)
 
 	var coupon coupon.Coupon
@@ -115,6 +141,7 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 		Preload("CouponPolicy").
 		First(&coupon, "code = ? AND user_id = ?", couponCode, userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			span.RecordError(err)
 			log.Warn().
 				Str("coupon_code", couponCode).
 				Str("user_id", userID).
@@ -130,6 +157,7 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 	}
 
 	if err := coupon.Use(orderID); err != nil {
+		span.RecordError(err)
 		log.Error().
 			Str("coupon_code", coupon.Code).
 			Str("coupon_status", string(coupon.Status)).
@@ -140,6 +168,7 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 	}
 
 	if err := f.db.WithContext(ctx).Save(&coupon).Error; err != nil {
+		span.RecordError(err)
 		log.Error().
 			Str("coupon_code", coupon.Code).
 			Str("coupon_status", string(coupon.Status)).
@@ -163,12 +192,21 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 // It validates the coupon's existence and current status before performing the cancellation.
 // Returns the updated coupon or an error if cancellation fails or cannot be saved.
 func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
+	ctx, span := f.tracer.Start(ctx, "Feature.CancelCoupon",
+		trace.WithAttributes(
+			attribute.String("coupon.code", couponCode),
+			attribute.String("user.id", userID),
+		),
+	)
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, f.log)
 
 	var coupon coupon.Coupon
 	if err := f.db.WithContext(ctx).
 		Preload("CouponPolicy").
 		First(&coupon, "code = ? AND user_id = ?", couponCode, userID).Error; err != nil {
+		span.RecordError(err)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("coupon_code", couponCode).
@@ -185,6 +223,7 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 	}
 
 	if err := coupon.Cancel(); err != nil {
+		span.RecordError(err)
 		log.Error().
 			Str("coupon_code", coupon.Code).
 			Str("coupon_status", string(coupon.Status)).
@@ -195,6 +234,7 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 	}
 
 	if err := f.db.WithContext(ctx).Save(&coupon).Error; err != nil {
+		span.RecordError(err)
 		log.Error().
 			Str("coupon_code", coupon.Code).
 			Str("coupon_status", string(coupon.Status)).
@@ -215,12 +255,21 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 // FindCouponByCode retrieves a single coupon for a user by its unique code.
 // Returns the coupon if found, or a NotFound error if no matching coupon exists.
 func (f *couponFeature) FindCouponByCode(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
+	ctx, span := f.tracer.Start(ctx, "Feature.FindCouponByCode",
+		trace.WithAttributes(
+			attribute.String("coupon.code", couponCode),
+			attribute.String("user.id", userID),
+		),
+	)
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, f.log)
 
 	var c coupon.Coupon
 	if err := f.db.WithContext(ctx).
 		Preload("CouponPolicy").
 		First(&c, "code = ? AND user_id = ?", couponCode, userID).Error; err != nil {
+		span.RecordError(err)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("coupon_code", couponCode).
@@ -246,6 +295,11 @@ func (f *couponFeature) FindCouponByCode(ctx context.Context, couponCode string,
 // FindCouponsByUserID fetches all coupons associated with a specific user.
 // Returns the list of coupons or an Internal error if the database query fails.
 func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) ([]coupon.Coupon, error) {
+	ctx, span := f.tracer.Start(ctx, "Feature.FindCouponsByUserID",
+		trace.WithAttributes(attribute.String("user.id", userID)),
+	)
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, f.log)
 
 	var coupons []coupon.Coupon
@@ -253,6 +307,7 @@ func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) 
 		Preload("CouponPolicy").
 		Where("user_id = ?", userID).
 		Find(&coupons).Error; err != nil {
+		span.RecordError(err)
 		log.Error().
 			Str("user_id", userID).
 			Err(err).
@@ -270,12 +325,18 @@ func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) 
 // FindCouponsByCouponPolicyCode fetches all coupons issued under a specific coupon policy.
 // Returns the list of coupons or an appropriate error if the policy does not exist or the query fails.
 func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, couponPolicyCode string) ([]coupon.Coupon, error) {
+	ctx, span := f.tracer.Start(ctx, "Feature.FindCouponsByCouponPolicyCode",
+		trace.WithAttributes(attribute.String("coupon.policy_code", couponPolicyCode)),
+	)
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, f.log)
 
 	var policy coupon.CouponPolicy
 	if err := f.db.WithContext(ctx).
 		Where("code = ?", couponPolicyCode).
 		First(&policy).Error; err != nil {
+		span.RecordError(err)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("coupon_policy_code", couponPolicyCode).
@@ -293,6 +354,7 @@ func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, coupo
 	if err := f.db.WithContext(ctx).
 		Where("coupon_policy_id = ?", policy.ID).
 		Find(&coupons).Error; err != nil {
+		span.RecordError(err)
 		log.Error().
 			Str("coupon_policy_code", couponPolicyCode).
 			Err(err).

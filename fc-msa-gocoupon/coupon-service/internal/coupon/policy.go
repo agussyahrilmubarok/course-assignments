@@ -36,6 +36,9 @@ func (c *CouponPolicy) BeforeCreate(tx *gorm.DB) (err error) {
 	if c.ID == "" {
 		c.ID = uuid.NewString()
 	}
+
+	c.StartTime = c.StartTime.UTC()
+	c.EndTime = c.EndTime.UTC()
 	return nil
 }
 
@@ -48,6 +51,14 @@ var (
 func (c *CouponPolicy) IsValidPeriod() bool {
 	now := time.Now()
 	return !now.Before(c.StartTime) && !now.After(c.EndTime)
+}
+
+// IsValidPeriodUnix version that compares using Unix timestamps (optional)
+func (c *CouponPolicy) IsValidPeriodUnix() bool {
+	now := time.Now().UTC().Unix()
+	start := c.StartTime.UTC().Unix()
+	end := c.EndTime.UTC().Unix()
+	return now >= start && now <= end
 }
 
 // GetIssuedQuantity returns the number of issued coupons linked to this coupon policy.

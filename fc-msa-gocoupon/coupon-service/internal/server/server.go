@@ -10,6 +10,7 @@ import (
 	"example.com/coupon/pkg/instrument"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel"
 
 	v1 "example.com/coupon/api/v1/handler"
 	featureV1 "example.com/coupon/internal/coupon/feature/v1"
@@ -33,15 +34,17 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		os.Exit(1)
 	}
 
+	tracer := otel.Tracer(cfg.App.Name)
+
 	r := gin.Default()
-	r.Use(instrument.Middleware(cfg.App.Name, log))
+	r.Use(instrument.Middleware(tracer, log))
 	r.Use(instrument.MetricAppMiddleware)
 
 	apiRoute := r.Group("/api")
 
-	couponFeatureV1 := featureV1.NewCouponFeature(db, log)
-	couponPolicyHandlerV1 := v1.NewCouponPolicyHandler(db, log)
-	couponHandlerV1 := v1.NewCouponHandler(couponFeatureV1, log)
+	couponFeatureV1 := featureV1.NewCouponFeature(db, log, tracer)
+	couponPolicyHandlerV1 := v1.NewCouponPolicyHandler(db, log, tracer)
+	couponHandlerV1 := v1.NewCouponHandler(couponFeatureV1, log, tracer)
 
 	// V1 routes
 	v1Group := apiRoute.Group("/v1")

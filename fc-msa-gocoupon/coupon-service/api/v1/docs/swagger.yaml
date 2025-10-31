@@ -83,7 +83,7 @@ definitions:
     type: object
   coupon.UseCouponRequest:
     properties:
-      order_id:
+      orderId:
         type: string
     type: object
 info:
@@ -314,8 +314,6 @@ paths:
             additionalProperties:
               type: string
             type: object
-      security:
-      - ApiKeyAuth: []
       summary: Get coupons by policy code
       tags:
       - Coupons

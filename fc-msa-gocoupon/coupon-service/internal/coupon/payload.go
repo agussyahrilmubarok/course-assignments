@@ -10,5 +10,5 @@ type IssueCouponMessage struct {
 }
 
 type UseCouponRequest struct {
-	OrderID string `json:"order_id"`
+	OrderID string `json:"orderId"`
 }

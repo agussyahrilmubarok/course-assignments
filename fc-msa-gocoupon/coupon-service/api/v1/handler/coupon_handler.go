@@ -10,17 +10,22 @@ import (
 	"example.com/coupon/pkg/instrument"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type couponHandler struct {
 	couponFeature v1.ICouponFeature
 	log           zerolog.Logger
+	tracer        trace.Tracer
 }
 
-func NewCouponHandler(couponFeature v1.ICouponFeature, log zerolog.Logger) *couponHandler {
+func NewCouponHandler(couponFeature v1.ICouponFeature, log zerolog.Logger, tracer trace.Tracer) *couponHandler {
 	return &couponHandler{
 		couponFeature: couponFeature,
 		log:           log,
+		tracer:        tracer,
 	}
 }
 
@@ -38,10 +43,14 @@ func NewCouponHandler(couponFeature v1.ICouponFeature, log zerolog.Logger) *coup
 // @Security ApiKeyAuth
 func (h *couponHandler) IssueCoupon(c *gin.Context) {
 	ctx := c.Request.Context()
+	ctx, span := h.tracer.Start(ctx, "handler.IssueCoupon")
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, h.log)
 
 	var payload coupon.IssueCouponRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
+		span.RecordError(err)
 		log.Warn().Err(err).Msg("Invalid request payload")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
@@ -49,13 +58,20 @@ func (h *couponHandler) IssueCoupon(c *gin.Context) {
 
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
+		span.RecordError(err)
 		log.Warn().Err(err).Msg("User ID not found in context")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("user.id", userID),
+		attribute.String("coupon.policy_code", payload.CouponPolicyCode),
+	)
+
 	issuedCoupon, err := h.couponFeature.IssueCoupon(ctx, payload.CouponPolicyCode, userID)
 	if err != nil {
+		span.RecordError(err)
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
 				Err(ex.Err).
@@ -75,6 +91,7 @@ func (h *couponHandler) IssueCoupon(c *gin.Context) {
 		return
 	}
 
+	span.SetAttributes(attribute.String("coupon.code", issuedCoupon.Code))
 	log.Info().
 		Str("coupon_code", issuedCoupon.Code).
 		Str("coupon_policy_code", payload.CouponPolicyCode).
@@ -98,11 +115,15 @@ func (h *couponHandler) IssueCoupon(c *gin.Context) {
 // @Security ApiKeyAuth
 func (h *couponHandler) UseCoupon(c *gin.Context) {
 	ctx := c.Request.Context()
+	ctx, span := h.tracer.Start(ctx, "handler.UseCoupon")
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, h.log)
 
 	couponCode := c.Param("code")
 	var payload coupon.UseCouponRequest
 	if err := c.ShouldBindJSON(&payload); err != nil {
+		span.RecordError(err)
 		log.Warn().Err(err).Msg("Invalid request payload")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
@@ -110,13 +131,21 @@ func (h *couponHandler) UseCoupon(c *gin.Context) {
 
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
+		span.RecordError(err)
 		log.Warn().Err(err).Msg("User ID not found in context")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("coupon.code", couponCode),
+		attribute.String("user.id", userID),
+		attribute.String("order.id", payload.OrderID),
+	)
+
 	usedCoupon, err := h.couponFeature.UseCoupon(ctx, couponCode, userID, payload.OrderID)
 	if err != nil {
+		span.RecordError(err)
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
 				Err(ex.Err).
@@ -159,18 +188,28 @@ func (h *couponHandler) UseCoupon(c *gin.Context) {
 // @Security ApiKeyAuth
 func (h *couponHandler) CancelCoupon(c *gin.Context) {
 	ctx := c.Request.Context()
+	ctx, span := h.tracer.Start(ctx, "handler.CancelCoupon")
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, h.log)
 
 	couponCode := c.Param("code")
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
+		span.RecordError(err)
 		log.Warn().Err(err).Msg("User ID not found in context")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("coupon.code", couponCode),
+		attribute.String("user.id", userID),
+	)
+
 	canceledCoupon, err := h.couponFeature.CancelCoupon(ctx, couponCode, userID)
 	if err != nil {
+		span.RecordError(err)
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
 				Err(ex.Err).
@@ -210,18 +249,28 @@ func (h *couponHandler) CancelCoupon(c *gin.Context) {
 // @Security ApiKeyAuth
 func (h *couponHandler) FindCouponByCode(c *gin.Context) {
 	ctx := c.Request.Context()
+	ctx, span := h.tracer.Start(ctx, "handler.FindCouponByCode")
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, h.log)
 
 	couponCode := c.Param("code")
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
+		span.RecordError(err)
 		log.Warn().Err(err).Msg("User ID not found in context")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("coupon.code", couponCode),
+		attribute.String("user.id", userID),
+	)
+
 	couponData, err := h.couponFeature.FindCouponByCode(ctx, couponCode, userID)
 	if err != nil {
+		span.RecordError(err)
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
 				Err(ex.Err).
@@ -260,17 +309,22 @@ func (h *couponHandler) FindCouponByCode(c *gin.Context) {
 // @Security ApiKeyAuth
 func (h *couponHandler) FindCouponsByUserID(c *gin.Context) {
 	ctx := c.Request.Context()
-	log := instrument.GetLogger(ctx, h.log)
+	ctx, span := h.tracer.Start(ctx, "handler.FindCouponsByUserID")
+	defer span.End()
 
 	userID, err := middleware.GetCurrentUserID(c)
 	if err != nil {
+		span.RecordError(err)
 		log.Warn().Err(err).Msg("User ID not found in context")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID not found"})
 		return
 	}
 
+	span.SetAttributes(attribute.String("user.id", userID))
+
 	coupons, err := h.couponFeature.FindCouponsByUserID(ctx, userID)
 	if err != nil {
+		span.RecordError(err)
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
 				Err(ex.Err).
@@ -288,6 +342,7 @@ func (h *couponHandler) FindCouponsByUserID(c *gin.Context) {
 		return
 	}
 
+	span.SetAttributes(attribute.Int("coupon.count", len(coupons)))
 	log.Info().
 		Str("user_id", userID).
 		Int("count", len(coupons)).
@@ -305,14 +360,17 @@ func (h *couponHandler) FindCouponsByUserID(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /coupons/policy/{policyCode} [get]
-// @Security ApiKeyAuth
 func (h *couponHandler) FindCouponsByCouponPolicyCode(c *gin.Context) {
 	ctx := c.Request.Context()
+	ctx, span := h.tracer.Start(ctx, "handler.FindCouponsByCouponPolicyCode")
+	defer span.End()
+
 	log := instrument.GetLogger(ctx, h.log)
 
 	couponPolicyCode := c.Param("policyCode")
 	coupons, err := h.couponFeature.FindCouponsByCouponPolicyCode(ctx, couponPolicyCode)
 	if err != nil {
+		span.RecordError(err)
 		if ex, ok := err.(*exception.Http); ok {
 			log.Error().
 				Err(ex.Err).
@@ -330,6 +388,7 @@ func (h *couponHandler) FindCouponsByCouponPolicyCode(c *gin.Context) {
 		return
 	}
 
+	span.SetAttributes(attribute.Int("coupon.count", len(coupons)))
 	log.Info().
 		Str("coupon_policy_code", couponPolicyCode).
 		Int("count", len(coupons)).

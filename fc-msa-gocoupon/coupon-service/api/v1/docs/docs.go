@@ -148,11 +148,6 @@ const docTemplate = `{
         },
         "/coupons/policy/{policyCode}": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Retrieves all coupons issued for a specific coupon policy code",
                 "produces": [
                     "application/json"
@@ -539,7 +534,7 @@ const docTemplate = `{
         "coupon.UseCouponRequest": {
             "type": "object",
             "properties": {
-                "order_id": {
+                "orderId": {
                     "type": "string"
                 }
             }

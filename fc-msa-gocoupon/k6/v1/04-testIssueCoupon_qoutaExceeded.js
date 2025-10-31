@@ -10,7 +10,7 @@ export default function () {
     const url = 'http://localhost:8080/api/v1/coupons/issue';
 
     const payload = JSON.stringify({
-        couponPolicyCode: 'COUPON-300'
+        couponPolicyCode: 'COUPON-400'
     });
 
     const params = {
