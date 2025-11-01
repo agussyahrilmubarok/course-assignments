@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
 )
@@ -42,8 +43,15 @@ func NewCouponFeature(db *gorm.DB, log zerolog.Logger, tracer trace.Tracer) ICou
 // IssueCoupon generates a new coupon for a given user under a specified coupon policy.
 // It validates the policy period, checks quota limits, and persists the coupon to the database.
 // Returns the issued coupon on success or an appropriate error if the operation fails.
+// Issue List:
+// **RaceConditionOnQuotaCheck**: The function checks coupon quota (GetIssuedQuantity() >= TotalQuantity) before inserting a new record, but without locking or a transaction. Multiple concurrent requests could issue more coupons than the quota allows.
+// **NoUserDuplicateCheck**: The function doesn’t verify if the user already has a coupon under the same policy, allowing multiple coupons per user when the business rule may only allow one.
+// **HeavyPreloadCoupons**: The code uses Preload("Coupons"), which loads all coupons under the policy just to check issued count — inefficient for large datasets.
+// **TruncatedUUIDCollisionRisk**: Using only the first 8 characters of a UUID for the coupon code increases the probability of collisions.
+// **NoDatabaseTransaction**: The code performs multiple dependent operations (read policy → check quota → insert coupon) without wrapping them in a transaction, risking data inconsistency if an error occurs mid-process.
+// **NonRealtimeIssuedQuantity**: The method GetIssuedQuantity() likely depends on preloaded data, which may not reflect the actual count in the database at query time.
 func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := f.tracer.Start(ctx, "Feature.IssueCoupon",
+	ctx, span := f.tracer.Start(ctx, "feature.IssueCoupon",
 		trace.WithAttributes(
 			attribute.String("coupon.policy_code", couponPolicyCode),
 			attribute.String("user.id", userID),
@@ -94,10 +102,9 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		return nil, exception.NewBadRequest("Coupon policy quota exceeded", err)
 	}
 
-	couponCode := uuid.NewString()
 	newCoupon := coupon.Coupon{
-		ID:             couponCode,
-		Code:           couponCode[:8],
+		ID:             uuid.NewString(),
+		Code:           uuid.NewString(),
 		Status:         coupon.CouponStatusAvailable,
 		UserID:         userID,
 		CouponPolicyID: couponPolicy.ID,
@@ -112,6 +119,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		return nil, exception.NewInternal("Failed to issue coupon", err)
 	}
 
+	span.SetStatus(codes.Ok, "IssueCoupon")
 	span.SetAttributes(attribute.String("coupon.code", newCoupon.Code))
 	log.Info().
 		Str("coupon_policy_code", couponPolicyCode).
@@ -125,7 +133,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 // It ensures the coupon exists, belongs to the user, and is in a valid state to be used.
 // Returns the updated coupon or an error if usage fails or cannot be saved.
 func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID string, orderID string) (*coupon.Coupon, error) {
-	ctx, span := f.tracer.Start(ctx, "Feature.UseCoupon",
+	ctx, span := f.tracer.Start(ctx, "feature.UseCoupon",
 		trace.WithAttributes(
 			attribute.String("coupon.code", couponCode),
 			attribute.String("user.id", userID),
@@ -179,6 +187,7 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 		return nil, exception.NewInternal("Failed to save use coupon", err)
 	}
 
+	span.SetStatus(codes.Ok, "UseCoupon")
 	log.Info().
 		Str("coupon_code", coupon.Code).
 		Str("coupon_status", string(coupon.Status)).
@@ -192,7 +201,7 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 // It validates the coupon's existence and current status before performing the cancellation.
 // Returns the updated coupon or an error if cancellation fails or cannot be saved.
 func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := f.tracer.Start(ctx, "Feature.CancelCoupon",
+	ctx, span := f.tracer.Start(ctx, "feature.CancelCoupon",
 		trace.WithAttributes(
 			attribute.String("coupon.code", couponCode),
 			attribute.String("user.id", userID),
@@ -244,18 +253,19 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 		return nil, exception.NewInternal("Failed to save use coupon", err)
 	}
 
+	span.SetStatus(codes.Ok, "CancelCoupon")
 	log.Info().
 		Str("coupon_code", coupon.Code).
 		Str("coupon_status", string(coupon.Status)).
 		Str("user_id", userID).
-		Msg("Coupon used successfully")
+		Msg("Coupon cancel successfully")
 	return &coupon, nil
 }
 
 // FindCouponByCode retrieves a single coupon for a user by its unique code.
 // Returns the coupon if found, or a NotFound error if no matching coupon exists.
 func (f *couponFeature) FindCouponByCode(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := f.tracer.Start(ctx, "Feature.FindCouponByCode",
+	ctx, span := f.tracer.Start(ctx, "feature.FindCouponByCode",
 		trace.WithAttributes(
 			attribute.String("coupon.code", couponCode),
 			attribute.String("user.id", userID),
@@ -285,6 +295,7 @@ func (f *couponFeature) FindCouponByCode(ctx context.Context, couponCode string,
 		return nil, exception.NewInternal("Failed to fetch coupon", err)
 	}
 
+	span.SetStatus(codes.Ok, "FindCouponByCode")
 	log.Info().
 		Str("coupon_code", c.Code).
 		Str("user_id", userID).
@@ -295,7 +306,7 @@ func (f *couponFeature) FindCouponByCode(ctx context.Context, couponCode string,
 // FindCouponsByUserID fetches all coupons associated with a specific user.
 // Returns the list of coupons or an Internal error if the database query fails.
 func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) ([]coupon.Coupon, error) {
-	ctx, span := f.tracer.Start(ctx, "Feature.FindCouponsByUserID",
+	ctx, span := f.tracer.Start(ctx, "feature.FindCouponsByUserID",
 		trace.WithAttributes(attribute.String("user.id", userID)),
 	)
 	defer span.End()
@@ -315,6 +326,7 @@ func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) 
 		return nil, exception.NewInternal("Failed to fetch coupons by user", err)
 	}
 
+	span.SetStatus(codes.Ok, "FindCouponsByUserID")
 	log.Info().
 		Str("user_id", userID).
 		Int("coupon_count", len(coupons)).
@@ -325,7 +337,7 @@ func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) 
 // FindCouponsByCouponPolicyCode fetches all coupons issued under a specific coupon policy.
 // Returns the list of coupons or an appropriate error if the policy does not exist or the query fails.
 func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, couponPolicyCode string) ([]coupon.Coupon, error) {
-	ctx, span := f.tracer.Start(ctx, "Feature.FindCouponsByCouponPolicyCode",
+	ctx, span := f.tracer.Start(ctx, "feature.FindCouponsByCouponPolicyCode",
 		trace.WithAttributes(attribute.String("coupon.policy_code", couponPolicyCode)),
 	)
 	defer span.End()
@@ -362,6 +374,7 @@ func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, coupo
 		return nil, exception.NewInternal("Failed to fetch coupons by policy code", err)
 	}
 
+	span.SetStatus(codes.Ok, "FindCouponsByCouponPolicyCode")
 	log.Info().
 		Str("coupon_policy_code", couponPolicyCode).
 		Int("coupon_count", len(coupons)).

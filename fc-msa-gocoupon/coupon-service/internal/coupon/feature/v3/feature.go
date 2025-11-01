@@ -94,10 +94,9 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		return nil, exception.NewBadRequest("Coupon policy quota exceeded", err)
 	}
 
-	couponCode := uuid.NewString()
 	newCoupon := coupon.Coupon{
-		ID:             couponCode,
-		Code:           couponCode[:8],
+		ID:             uuid.NewString(),
+		Code:           uuid.NewString(),
 		Status:         coupon.CouponStatusAvailable,
 		UserID:         userID,
 		CouponPolicyID: couponPolicy.ID,

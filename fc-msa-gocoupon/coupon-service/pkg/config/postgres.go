@@ -7,6 +7,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/tracing"
 )
 
 func NewPostgres(cfg *Config) (*gorm.DB, error) {
@@ -24,6 +25,10 @@ func NewPostgres(cfg *Config) (*gorm.DB, error) {
 		Logger: logger.Default.LogMode(logger.Silent), // Info, Warn, Error
 	})
 	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Use(tracing.NewPlugin(tracing.WithoutMetrics())); err != nil {
 		return nil, err
 	}
 

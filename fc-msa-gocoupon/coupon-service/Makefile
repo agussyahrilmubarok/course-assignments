@@ -1,5 +1,8 @@
 server/dev:
 	go run cmd/server/main.go --config=config.yaml
+
+csv/export:
+	go run cmd/csv/main.go --config=config.yaml --output=$(OUTPUT)
 	
 swagger/install:
 	go install github.com/swaggo/swag/cmd/swag@latest

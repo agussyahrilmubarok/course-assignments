@@ -41,18 +41,18 @@ func Middleware(tracer trace.Tracer, baseLogger zerolog.Logger) gin.HandlerFunc 
 		start := time.Now()
 		ctx := c.Request.Context()
 
+		ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.HeaderCarrier(c.Request.Header))
+		ctx, span := tracer.Start(ctx, c.Request.Method+" "+c.FullPath())
+		defer span.End()
+		traceID := span.SpanContext().TraceID().String()
+		ctx = context.WithValue(ctx, TraceIDKey, traceID)
+
 		requestID := c.GetHeader("X-Request-ID")
 		if requestID == "" {
 			requestID = xid.New().String()
 		}
 		c.Writer.Header().Set("X-Request-ID", requestID)
 		ctx = context.WithValue(ctx, RequestIDKey, requestID)
-
-		ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.HeaderCarrier(c.Request.Header))
-		ctx, span := tracer.Start(ctx, c.Request.Method+" "+c.FullPath())
-		defer span.End()
-		traceID := span.SpanContext().TraceID().String()
-		ctx = context.WithValue(ctx, TraceIDKey, traceID)
 
 		c.Request = c.Request.WithContext(ctx)
 
