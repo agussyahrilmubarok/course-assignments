@@ -72,6 +72,9 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		return nil, exception.NewInternal("Failed to get coupon policy", err)
 	}
 
+	instrument.CouponQuota.WithLabelValues(couponPolicy.Code).Set(float64(couponPolicy.TotalQuantity))
+	instrument.CouponIssued.WithLabelValues(couponPolicy.Code).Inc()
+
 	if !couponPolicy.IsValidPeriodUnix() {
 		err := coupon.ErrCouponPolicyInvalidPeriod
 		span.RecordError(err)
@@ -360,6 +363,9 @@ func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, coupo
 			Msg("Failed to fetch coupons by policy code")
 		return nil, exception.NewInternal("Failed to fetch coupons by policy code", err)
 	}
+
+	instrument.CouponQuota.WithLabelValues(policy.Code).Set(float64(policy.TotalQuantity))
+	instrument.CouponIssued.WithLabelValues(policy.Code).Set(float64(len(coupons)))
 
 	log.Info().
 		Str("coupon_policy_code", couponPolicyCode).

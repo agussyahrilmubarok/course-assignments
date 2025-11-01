@@ -11,13 +11,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 //go:generate mockery --name=ICouponFeature
 type ICouponFeature interface {
 	IssueCoupon(ctx context.Context, couponPolicyCode string, userID string) (*coupon.Coupon, error)
+	IssueCouponNoContextCanceled(ctx context.Context, couponPolicyCode string, userID string) (*coupon.Coupon, error)
 	UseCoupon(ctx context.Context, couponID string, userID string, orderID string) (*coupon.Coupon, error)
 	CancelCoupon(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error)
 	FindCouponByCode(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error)
@@ -42,6 +45,14 @@ func NewCouponFeature(db *gorm.DB, log zerolog.Logger, tracer trace.Tracer) ICou
 // IssueCoupon generates a new coupon for a given user under a specified coupon policy.
 // It validates the policy period, checks quota limits, and persists the coupon to the database.
 // Returns the issued coupon on success or an appropriate error if the operation fails.
+// Issued List:
+//
+// **ContextCanceledUnderHighLoad** (observed issue under load testing):
+//
+//	When many concurrent requests occur, transactions may wait for locks,
+//	causing client timeouts and “context canceled” errors.
+//	➜ Solution: This is expected under contention; can be mitigated with
+//	  increased DB connection pool, per-request timeout, or retry logic.
 func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string, userID string) (*coupon.Coupon, error) {
 	ctx, span := f.tracer.Start(ctx, "feature.IssueCoupon",
 		trace.WithAttributes(
@@ -53,71 +64,232 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 
 	log := instrument.GetLogger(ctx, f.log)
 
-	var couponPolicy coupon.CouponPolicy
-	if err := f.db.WithContext(ctx).
-		Preload("Coupons").
-		Where("code = ?", couponPolicyCode).
-		First(&couponPolicy).Error; err != nil {
-		span.RecordError(err)
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			log.Warn().
-				Str("coupon_policy_code", couponPolicyCode).
-				Msg("Coupon policy not found")
-			return nil, exception.NewNotFound("Coupon policy not found", err)
+	var issuedCoupon *coupon.Coupon
+	err := f.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Lock the coupon policy to prevent concurrent quota violations
+		var policy coupon.CouponPolicy
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("code = ?", couponPolicyCode).
+			First(&policy).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				log.Warn().Str("coupon_policy_code", couponPolicyCode).Msg("Coupon policy not found")
+				return exception.NewNotFound("Coupon policy not found", err)
+			}
+			log.Error().Err(err).Str("coupon_policy_code", couponPolicyCode).Msg("Failed to load coupon policy")
+			return exception.NewInternal("Failed to load coupon policy", err)
 		}
-		log.Error().
-			Str("coupon_policy_code", couponPolicyCode).
-			Err(err).
-			Msg("Failed to get coupon policy")
-		return nil, exception.NewInternal("Failed to get coupon policy", err)
-	}
 
-	if !couponPolicy.IsValidPeriodUnix() {
-		err := coupon.ErrCouponPolicyInvalidPeriod
+		instrument.CouponQuota.WithLabelValues(policy.Code).Set(float64(policy.TotalQuantity))
+
+		// Check policy validity period (UTC-safe)
+		if !policy.IsValidPeriodUnix() {
+			err := coupon.ErrCouponPolicyInvalidPeriod
+			span.RecordError(err)
+			log.Warn().
+				Str("coupon_policy_code", policy.Code).
+				Str("start_time", policy.StartTime.UTC().Format(time.RFC3339)).
+				Str("end_time", policy.EndTime.UTC().Format(time.RFC3339)).
+				Msg("Coupon policy is not valid in the current period")
+			return exception.NewBadRequest("Coupon policy is not valid in current period", err)
+		}
+
+		// Check if user already has a coupon for this policy
+		var existing coupon.Coupon
+		if err := tx.Where("coupon_policy_id = ? AND user_id = ?", policy.ID, userID).
+			First(&existing).Error; err == nil {
+			span.RecordError(err)
+			log.Warn().
+				Str("user_id", userID).
+				Str("coupon_policy_code", couponPolicyCode).
+				Msg("User already has a coupon for this policy")
+			return exception.NewBadRequest("User already has a coupon for this policy", nil)
+		} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			span.RecordError(err)
+			log.Error().
+				Str("user_id", userID).
+				Err(err).
+				Msg("Failed to check existing coupon")
+			return exception.NewInternal("Failed to check existing coupon", err)
+		}
+
+		// Check current issued count (real-time, without Preload)
+		var issuedCount int64
+		if err := tx.Model(&coupon.Coupon{}).
+			Where("coupon_policy_id = ?", policy.ID).
+			Count(&issuedCount).Error; err != nil {
+			span.RecordError(err)
+			log.Error().Err(err).Str("coupon_policy_code", policy.Code).Msg("Failed to count issued coupons")
+			return exception.NewInternal("Failed to count issued coupons", err)
+		}
+
+		if issuedCount >= int64(policy.TotalQuantity) {
+			err := coupon.ErrCouponPolicyQoutaExceeded
+			span.RecordError(err)
+			log.Warn().
+				Str("coupon_policy_code", policy.Code).
+				Int("total_quantity", policy.TotalQuantity).
+				Int64("issued_quantity", issuedCount).
+				Msg("Coupon policy quota exceeded")
+			return exception.NewBadRequest("Coupon policy quota exceeded", err)
+		}
+
+		newCoupon := coupon.Coupon{
+			ID:             uuid.NewString(),
+			Code:           uuid.NewString(),
+			Status:         coupon.CouponStatusAvailable,
+			UserID:         userID,
+			CouponPolicyID: policy.ID,
+		}
+		if err := f.db.WithContext(ctx).Create(&newCoupon).Error; err != nil {
+			span.RecordError(err)
+			log.Error().
+				Str("coupon_policy_code", policy.Code).
+				Str("user_id", userID).
+				Err(err).
+				Msg("Failed to issue new coupon")
+			return exception.NewInternal("Failed to issue coupon", err)
+		}
+
+		instrument.CouponIssued.WithLabelValues(policy.Code).Inc()
+
+		issuedCoupon = &newCoupon
+		return nil
+	})
+
+	if err != nil {
 		span.RecordError(err)
-		log.Warn().
-			Str("coupon_policy_code", couponPolicy.Code).
-			Str("coupon_policy_start_time", couponPolicy.StartTime.Format(time.RFC3339)).
-			Str("coupon_policy_end_time", couponPolicy.EndTime.Format(time.RFC3339)).
-			Msg("Coupon policy is not valid in the current period")
-		return nil, exception.NewBadRequest("Coupon policy is not valid in current period", err)
+		return nil, err
 	}
 
-	if couponPolicy.GetIssuedQuantity() >= couponPolicy.TotalQuantity {
-		err := coupon.ErrCouponPolicyQoutaExceeded
-		span.RecordError(err)
-		log.Warn().
-			Str("coupon_policy_code", couponPolicy.Code).
-			Int("coupon_policy_total_quantity", couponPolicy.TotalQuantity).
-			Int("coupon_policy_issued_quantity", couponPolicy.GetIssuedQuantity()).
-			Msg("Coupon policy quota exceeded")
-		return nil, exception.NewBadRequest("Coupon policy quota exceeded", err)
-	}
-
-	newCoupon := coupon.Coupon{
-		ID:             uuid.NewString(),
-		Code:           uuid.NewString(),
-		Status:         coupon.CouponStatusAvailable,
-		UserID:         userID,
-		CouponPolicyID: couponPolicy.ID,
-	}
-	if err := f.db.WithContext(ctx).Create(&newCoupon).Error; err != nil {
-		span.RecordError(err)
-		log.Error().
-			Str("coupon_policy_code", couponPolicy.Code).
-			Str("user_id", userID).
-			Err(err).
-			Msg("Failed to issue new coupon")
-		return nil, exception.NewInternal("Failed to issue coupon", err)
-	}
-
-	span.SetAttributes(attribute.String("coupon.code", newCoupon.Code))
+	span.SetStatus(codes.Ok, "IssueCoupon")
+	span.SetAttributes(attribute.String("coupon.code", issuedCoupon.Code))
 	log.Info().
 		Str("coupon_policy_code", couponPolicyCode).
-		Str("coupon_code", newCoupon.Code).
+		Str("coupon_code", issuedCoupon.Code).
 		Str("user_id", userID).
 		Msg("Coupon issued successfully")
-	return &newCoupon, nil
+	return issuedCoupon, nil
+}
+
+// IssueCouponNoContextCanceled issues a coupon without being affected by client-side context cancellation.
+// This prevents "context canceled" errors under high concurrent load scenarios.
+// Warning: Use carefully, as long-running transactions won't be canceled even if the client disconnects.
+func (f *couponFeature) IssueCouponNoContextCanceled(ctx context.Context, couponPolicyCode string, userID string) (*coupon.Coupon, error) {
+	// Use a background context to avoid client-side cancellation
+	bgCtx := context.Background()
+
+	bgCtx, span := f.tracer.Start(bgCtx, "feature.IssueCouponNoContextCanceled",
+		trace.WithAttributes(
+			attribute.String("coupon.policy_code", couponPolicyCode),
+			attribute.String("user.id", userID),
+		),
+	)
+	defer span.End()
+
+	log := instrument.GetLogger(bgCtx, f.log)
+
+	var issuedCoupon *coupon.Coupon
+	err := f.db.WithContext(bgCtx).Transaction(func(tx *gorm.DB) error {
+		// Lock the coupon policy to prevent concurrent quota violations
+		var policy coupon.CouponPolicy
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("code = ?", couponPolicyCode).
+			First(&policy).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				log.Warn().Str("coupon_policy_code", couponPolicyCode).Msg("Coupon policy not found")
+				return exception.NewNotFound("Coupon policy not found", err)
+			}
+			log.Error().Err(err).Str("coupon_policy_code", couponPolicyCode).Msg("Failed to load coupon policy")
+			return exception.NewInternal("Failed to load coupon policy", err)
+		}
+
+		instrument.CouponQuota.WithLabelValues(policy.Code).Set(float64(policy.TotalQuantity))
+
+		// Check policy validity period
+		if !policy.IsValidPeriodUnix() {
+			err := coupon.ErrCouponPolicyInvalidPeriod
+			span.RecordError(err)
+			log.Warn().
+				Str("coupon_policy_code", policy.Code).
+				Str("start_time", policy.StartTime.UTC().Format(time.RFC3339)).
+				Str("end_time", policy.EndTime.UTC().Format(time.RFC3339)).
+				Msg("Coupon policy is not valid in the current period")
+			return exception.NewBadRequest("Coupon policy is not valid in current period", err)
+		}
+
+		// Check if user already has a coupon for this policy
+		var existing coupon.Coupon
+		if err := tx.Where("coupon_policy_id = ? AND user_id = ?", policy.ID, userID).First(&existing).Error; err == nil {
+			span.RecordError(err)
+			log.Warn().
+				Str("user_id", userID).
+				Str("coupon_policy_code", couponPolicyCode).
+				Msg("User already has a coupon for this policy")
+			return exception.NewBadRequest("User already has a coupon for this policy", nil)
+		} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			span.RecordError(err)
+			log.Error().
+				Str("user_id", userID).
+				Err(err).
+				Msg("Failed to check existing coupon")
+			return exception.NewInternal("Failed to check existing coupon", err)
+		}
+
+		// Check current issued count
+		var issuedCount int64
+		if err := tx.Model(&coupon.Coupon{}).Where("coupon_policy_id = ?", policy.ID).Count(&issuedCount).Error; err != nil {
+			span.RecordError(err)
+			log.Error().Err(err).Str("coupon_policy_code", policy.Code).Msg("Failed to count issued coupons")
+			return exception.NewInternal("Failed to count issued coupons", err)
+		}
+
+		if issuedCount >= int64(policy.TotalQuantity) {
+			err := coupon.ErrCouponPolicyQoutaExceeded
+			span.RecordError(err)
+			log.Warn().
+				Str("coupon_policy_code", policy.Code).
+				Int("total_quantity", policy.TotalQuantity).
+				Int64("issued_quantity", issuedCount).
+				Msg("Coupon policy quota exceeded")
+			return exception.NewBadRequest("Coupon policy quota exceeded", err)
+		}
+
+		newCoupon := coupon.Coupon{
+			ID:             uuid.NewString(),
+			Code:           uuid.NewString(),
+			Status:         coupon.CouponStatusAvailable,
+			UserID:         userID,
+			CouponPolicyID: policy.ID,
+		}
+		if err := tx.Create(&newCoupon).Error; err != nil {
+			span.RecordError(err)
+			log.Error().
+				Str("coupon_policy_code", policy.Code).
+				Str("user_id", userID).
+				Err(err).
+				Msg("Failed to issue new coupon")
+			return exception.NewInternal("Failed to issue coupon", err)
+		}
+
+		instrument.CouponIssued.WithLabelValues(policy.Code).Inc()
+
+		issuedCoupon = &newCoupon
+		return nil
+	})
+
+	if err != nil {
+		span.RecordError(err)
+		return nil, err
+	}
+
+	span.SetStatus(codes.Ok, "IssueCouponNoContextCanceled")
+	span.SetAttributes(attribute.String("coupon.code", issuedCoupon.Code))
+	log.Info().
+		Str("coupon_policy_code", couponPolicyCode).
+		Str("coupon_code", issuedCoupon.Code).
+		Str("user_id", userID).
+		Msg("Coupon issued successfully (no context canceled)")
+	return issuedCoupon, nil
 }
 
 // UseCoupon marks a specific coupon as used for a given order by a user.
@@ -178,6 +350,7 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 		return nil, exception.NewInternal("Failed to save use coupon", err)
 	}
 
+	span.SetStatus(codes.Ok, "UseCoupon")
 	log.Info().
 		Str("coupon_code", coupon.Code).
 		Str("coupon_status", string(coupon.Status)).
@@ -243,6 +416,7 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 		return nil, exception.NewInternal("Failed to save use coupon", err)
 	}
 
+	span.SetStatus(codes.Ok, "CancelCoupon")
 	log.Info().
 		Str("coupon_code", coupon.Code).
 		Str("coupon_status", string(coupon.Status)).
@@ -284,6 +458,7 @@ func (f *couponFeature) FindCouponByCode(ctx context.Context, couponCode string,
 		return nil, exception.NewInternal("Failed to fetch coupon", err)
 	}
 
+	span.SetStatus(codes.Ok, "FindCouponByCode")
 	log.Info().
 		Str("coupon_code", c.Code).
 		Str("user_id", userID).
@@ -314,6 +489,7 @@ func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) 
 		return nil, exception.NewInternal("Failed to fetch coupons by user", err)
 	}
 
+	span.SetStatus(codes.Ok, "FindCouponsByUserID")
 	log.Info().
 		Str("user_id", userID).
 		Int("coupon_count", len(coupons)).
@@ -361,6 +537,10 @@ func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, coupo
 		return nil, exception.NewInternal("Failed to fetch coupons by policy code", err)
 	}
 
+	instrument.CouponQuota.WithLabelValues(policy.Code).Set(float64(policy.TotalQuantity))
+	instrument.CouponIssued.WithLabelValues(policy.Code).Set(float64(len(coupons)))
+
+	span.SetStatus(codes.Ok, "FindCouponsByCouponPolicyCode")
 	log.Info().
 		Str("coupon_policy_code", couponPolicyCode).
 		Int("coupon_count", len(coupons)).

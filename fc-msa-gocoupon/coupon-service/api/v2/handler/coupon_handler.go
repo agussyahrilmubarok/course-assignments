@@ -69,7 +69,7 @@ func (h *couponHandler) IssueCoupon(c *gin.Context) {
 		attribute.String("coupon.policy_code", payload.CouponPolicyCode),
 	)
 
-	issuedCoupon, err := h.couponFeature.IssueCoupon(ctx, payload.CouponPolicyCode, userID)
+	issuedCoupon, err := h.couponFeature.IssueCouponNoContextCanceled(ctx, payload.CouponPolicyCode, userID)
 	if err != nil {
 		span.RecordError(err)
 		if ex, ok := err.(*exception.Http); ok {

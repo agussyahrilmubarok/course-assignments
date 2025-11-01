@@ -9,3 +9,12 @@ groups:
         annotations:
           summary: Coupon service is down
           description: Service has been down for more than 5 minute
+      
+      - alert: CouponOverselling
+        expr: coupon_issued_total > coupon_policy_quota
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Overselling detected for coupon policy {{ $labels.coupon_policy_code }}"
+          description: "Issued coupons ({{ $value }}) exceeded quota for coupon policy {{ $labels.coupon_policy_code }}"

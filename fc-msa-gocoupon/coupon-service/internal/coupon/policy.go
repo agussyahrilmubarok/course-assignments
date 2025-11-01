@@ -43,8 +43,8 @@ func (c *CouponPolicy) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 var (
-	ErrCouponPolicyQoutaExceeded = errors.New("coupon policy quota exceeded")
-	ErrCouponPolicyInvalidPeriod = errors.New("coupon policy is not valid in current period")
+	ErrCouponPolicyQoutaExceeded = errors.New("Coupon policy quota exceeded")
+	ErrCouponPolicyInvalidPeriod = errors.New("Coupon policy is not valid in current period")
 )
 
 // IsValidPeriod returns true if the current time is within the start and end time of the coupon policy.

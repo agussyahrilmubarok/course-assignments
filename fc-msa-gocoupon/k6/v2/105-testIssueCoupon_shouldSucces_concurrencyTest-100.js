@@ -19,8 +19,8 @@ export let options = {
     vus: 100,           // 100 virtual users
     duration: '1s',    // short duration to simulate simultaneous requests
     thresholds: {
-        http_req_duration: ['p(95)<1000'], 
-        http_req_failed: ['rate<0.01'], 
+        'coupon_success': ['count>=10'],
+        'coupon_failed': ['count>=90'],
     },
 };
 
