@@ -16,6 +16,7 @@ import (
 	v2 "example.com/coupon/api/v2/handler"
 	v3 "example.com/coupon/api/v3/handler"
 	v4 "example.com/coupon/api/v4/handler"
+	"example.com/coupon/internal/coupon/cache"
 	featureV1 "example.com/coupon/internal/coupon/feature/v1"
 	featureV2 "example.com/coupon/internal/coupon/feature/v2"
 	featureV3 "example.com/coupon/internal/coupon/feature/v3"
@@ -40,6 +41,12 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 
 	if err := db.AutoMigrate(&coupon.Coupon{}, &coupon.CouponPolicy{}); err != nil {
 		log.Fatal().Err(err).Msg("AutoMigrate failed")
+		os.Exit(1)
+	}
+
+	rdb, err := config.NewRedis(cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to redis")
 		os.Exit(1)
 	}
 
@@ -99,8 +106,9 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		))
 	}
 
-	couponFeatureV3 := featureV3.NewCouponFeature(db, log, tracer)
-	couponPolicyHandlerV3 := v3.NewCouponPolicyHandler(db, log, tracer)
+	cache := cache.NewCache(rdb, log, tracer)
+	couponFeatureV3 := featureV3.NewCouponFeature(db, rdb, cache, log, tracer)
+	couponPolicyHandlerV3 := v3.NewCouponPolicyHandler(db, cache, log, tracer)
 	couponHandlerV3 := v3.NewCouponHandler(couponFeatureV3, log, tracer)
 
 	// V3 routes

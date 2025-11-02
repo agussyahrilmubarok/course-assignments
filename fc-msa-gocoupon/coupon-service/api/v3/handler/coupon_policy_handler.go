@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"example.com/coupon/internal/coupon"
+	"example.com/coupon/internal/coupon/cache"
 	"example.com/coupon/pkg/instrument"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,13 +17,15 @@ import (
 
 type couponPolicyHandler struct {
 	db     *gorm.DB
+	cache  cache.ICache
 	log    zerolog.Logger
 	tracer trace.Tracer
 }
 
-func NewCouponPolicyHandler(db *gorm.DB, log zerolog.Logger, tracer trace.Tracer) *couponPolicyHandler {
+func NewCouponPolicyHandler(db *gorm.DB, cache cache.ICache, log zerolog.Logger, tracer trace.Tracer) *couponPolicyHandler {
 	return &couponPolicyHandler{
 		db:     db,
+		cache:  cache,
 		log:    log,
 		tracer: tracer,
 	}
@@ -302,6 +305,14 @@ func (h *couponPolicyHandler) CreateCouponPolicyDummy(c *gin.Context) {
 	_, insertSpan := h.tracer.Start(ctx, "db.InsertDummyPolicies")
 	for _, p := range policies {
 		if err := h.db.Create(&p).Error; err != nil {
+			insertSpan.RecordError(err)
+			insertSpan.End()
+			log.Error().Err(err).Msg("Failed to create dummy coupon policy")
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create dummy policies"})
+			return
+		}
+
+		if err := h.cache.SetCouponPolicyQuantity(ctx, p.Code, int64(p.TotalQuantity), p.EndTime); err != nil {
 			insertSpan.RecordError(err)
 			insertSpan.End()
 			log.Error().Err(err).Msg("Failed to create dummy coupon policy")

@@ -15,22 +15,28 @@ export let successCount = new Counter('coupon_success');
 export let failCount = new Counter('coupon_failed');
 
 export let options = {
-    vus: 1000000,       // 1000000 virtual users
-    duration: '1s',     // short duration to simulate simultaneous requests
+    scenarios: {
+        mass_requests: {
+            executor: 'per-vu-iterations',
+            vus: 100000,       // 100k virtual users (adjust based on your machine/resources)
+            iterations: 10,    // each VU sends 10 requests → total ~1M requests
+            maxDuration: '5m', // 5 minutes max
+        },
+    },
     thresholds: {
-        'coupon_success': ['count>=10'],
-        'coupon_failed': ['count>=90'],
+        http_req_duration: ['p(95)<1000'],
+        http_req_failed: ['rate<0.01'],
     },
 };
 
 export default function () {
-    const url = 'http://localhost:8080/api/v2/coupons/issue';
+    const url = 'http://localhost:8080/api/v3/coupons/issue';
 
     const payload = JSON.stringify({
-        couponPolicyCode: 'COUPON-1000'  // only 10 quotas available
+        couponPolicyCode: 'COUPON-1100',  // limited quota coupon
     });
 
-    const USER_ID = `USER-${__VU}-${__ITER}-${Math.floor(Math.random() * 1000)}`;
+    const USER_ID = `USER-${__VU}-${__ITER}-${Math.floor(Math.random() * 1000000)}`;
 
     const params = {
         headers: {
@@ -43,11 +49,7 @@ export default function () {
 
     if (res.status === 200) {
         successCount.add(1);
-        console.log(`SUCCESS [VU ${__VU}] - USER_ID: ${USER_ID}`);
     } else {
         failCount.add(1);
-        console.error(`FAILED [VU ${__VU}] - USER_ID: ${USER_ID}, Status: ${res.status}, Body: ${res.body}`);
     }
-
-    sleep(1); // optional
 }

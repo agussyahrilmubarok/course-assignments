@@ -25,7 +25,7 @@ export let options = {
 };
 
 export default function () {
-    const url = 'http://localhost:8080/api/v2/coupons/issue';
+    const url = 'http://localhost:8080/api/v3/coupons/issue';
 
     const payload = JSON.stringify({
         couponPolicyCode: 'COUPON-1000'  // only 10 quotas available
