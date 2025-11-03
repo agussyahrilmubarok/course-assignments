@@ -36,7 +36,7 @@ func NewCouponHandler(couponFeature v4.ICouponFeature, log zerolog.Logger, trace
 // @Accept json
 // @Produce json
 // @Param payload body coupon.IssueCouponRequest true "Coupon issue request"
-// @Success 200 {object} coupon.Coupon
+// @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /coupons/issue [post]
@@ -69,7 +69,7 @@ func (h *couponHandler) IssueCoupon(c *gin.Context) {
 		attribute.String("coupon.policy_code", payload.CouponPolicyCode),
 	)
 
-	issuedCoupon, err := h.couponFeature.IssueCoupon(ctx, payload.CouponPolicyCode, userID)
+	err = h.couponFeature.IssueCoupon(ctx, payload.CouponPolicyCode, userID)
 	if err != nil {
 		span.RecordError(err)
 		if ex, ok := err.(*exception.Http); ok {
@@ -91,13 +91,11 @@ func (h *couponHandler) IssueCoupon(c *gin.Context) {
 		return
 	}
 
-	span.SetAttributes(attribute.String("coupon.code", issuedCoupon.Code))
 	log.Info().
-		Str("coupon_code", issuedCoupon.Code).
 		Str("coupon_policy_code", payload.CouponPolicyCode).
 		Str("user_id", userID).
 		Msg("Coupon issued successfully")
-	c.JSON(http.StatusOK, issuedCoupon)
+	c.JSON(http.StatusOK, gin.H{"message": "Issue coupon request successfully"})
 }
 
 // UseCoupon godoc

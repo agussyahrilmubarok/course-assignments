@@ -6,10 +6,12 @@ export let options = {
     iterations: 1 
 };
 
-export default function () {
-    const url = 'http://localhost:8080/api/v1/couponPolicies/dummy';
+const couponPolicyCode = __ENV.couponPolicyCode || 'DEFAULT_CODE';
 
-    const res = http.post(url);
+export default function () {
+    const url = `http://localhost:8080/api/v4/coupons/policy/${couponPolicyCode}`;
+
+    const res = http.get(url);
 
     check(res, {
         'status is 200': (r) => r.status === 200

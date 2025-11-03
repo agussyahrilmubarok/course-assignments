@@ -7,9 +7,20 @@ export let options = {
 };
 
 export default function () {
-    const url = 'http://localhost:8080/api/v1/couponPolicies/dummy';
+    const url = 'http://localhost:8080/api/v2/coupons/issue';
 
-    const res = http.post(url);
+    const payload = JSON.stringify({
+        couponPolicyCode: 'COUPON-100'
+    });
+
+    const params = {
+        headers: {
+            'Content-Type': 'application/json',
+            'X-USER-ID': 'USER-123'
+        },
+    };
+
+    const res = http.post(url, payload, params);
 
     check(res, {
         'status is 200': (r) => r.status === 200

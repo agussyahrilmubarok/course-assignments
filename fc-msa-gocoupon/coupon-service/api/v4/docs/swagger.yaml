@@ -266,7 +266,9 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/coupon.Coupon'
+            additionalProperties:
+              type: string
+            type: object
         "400":
           description: Bad Request
           schema:

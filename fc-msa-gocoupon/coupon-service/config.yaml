@@ -28,6 +28,11 @@ redis:
   password: ""
   db: 0
 
+kafka:
+  brokers:
+    - "localhost:9092"
+  groupid: "coupon-service-group"
+
 logger:
   level: "info"
   filepath: "logs/app.log"

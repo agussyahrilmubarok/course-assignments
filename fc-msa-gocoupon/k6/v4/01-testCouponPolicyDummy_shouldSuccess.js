@@ -7,7 +7,7 @@ export let options = {
 };
 
 export default function () {
-    const url = 'http://localhost:8080/api/v1/couponPolicies/dummy';
+    const url = 'http://localhost:8080/api/v4/couponPolicies/dummy';
 
     const res = http.post(url);
 

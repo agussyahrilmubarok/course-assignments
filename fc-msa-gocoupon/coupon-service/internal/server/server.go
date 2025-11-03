@@ -51,6 +51,7 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 	}
 
 	tracer := otel.Tracer(cfg.App.Name)
+	cache := cache.NewCache(rdb, log, tracer)
 
 	r := gin.Default()
 	r.Use(instrument.Middleware(tracer, log))
@@ -106,7 +107,6 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		))
 	}
 
-	cache := cache.NewCache(rdb, log, tracer)
 	couponFeatureV3 := featureV3.NewCouponFeature(db, rdb, cache, log, tracer)
 	couponPolicyHandlerV3 := v3.NewCouponPolicyHandler(db, cache, log, tracer)
 	couponHandlerV3 := v3.NewCouponHandler(couponFeatureV3, log, tracer)
@@ -131,9 +131,12 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		))
 	}
 
-	couponFeatureV4 := featureV4.NewCouponFeature(db, log, tracer)
-	couponPolicyHandlerV4 := v4.NewCouponPolicyHandler(db, log, tracer)
+	couponKafkaProducerV4 := featureV4.NewKafkaProducer(cfg.Kafka.Brokers, log, tracer)
+	couponFeatureV4 := featureV4.NewCouponFeature(db, rdb, cache, couponKafkaProducerV4, log, tracer)
+	couponPolicyHandlerV4 := v4.NewCouponPolicyHandler(db, cache, log, tracer)
 	couponHandlerV4 := v4.NewCouponHandler(couponFeatureV4, log, tracer)
+
+	CouponKafkaConsumerV4 = featureV4.NewKafkaConsumer(cfg.Kafka.Brokers, cfg.Kafka.GroupID, couponFeatureV4, log, tracer)
 
 	// V4 routes
 	v4Group := apiRoute.Group("/v4")

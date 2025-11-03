@@ -15,10 +15,6 @@ export default function () {
         'status is 200': (r) => r.status === 200
     });
 
-    try {
-        const jsonData = JSON.parse(res.body);
-        console.log('Response body (formatted JSON):\n', JSON.stringify(jsonData, null, 2));
-    } catch (e) {
-        console.log('Response is not valid JSON:', res.body);
-    }
+    const jsonData = JSON.parse(res.body);
+    console.log('Response body (formatted JSON):\n', JSON.stringify(jsonData, null, 2));
 }

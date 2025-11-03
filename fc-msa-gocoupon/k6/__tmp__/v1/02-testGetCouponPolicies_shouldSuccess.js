@@ -7,9 +7,9 @@ export let options = {
 };
 
 export default function () {
-    const url = 'http://localhost:8080/api/v1/couponPolicies/dummy';
+    const url = 'http://localhost:8080/api/v1/couponPolicies';
 
-    const res = http.post(url);
+    const res = http.get(url);
 
     check(res, {
         'status is 200': (r) => r.status === 200

@@ -34,6 +34,11 @@ type Config struct {
 		DB       int    `mapstructure:"db"`
 	} `mapstructure:"redis"`
 
+	Kafka struct {
+		Brokers []string `mapstructure:"brokers"`
+		GroupID string   `mapstructure:"groupid"`
+	} `json:"kafka"`
+
 	Logger struct {
 		Level    string `mapstructure:"level"`    // Example: "info", "debug"
 		Filepath string `mapstructure:"filepath"` // Example: "logs/account.log"

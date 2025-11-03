@@ -6,10 +6,19 @@ export let options = {
     iterations: 1 
 };
 
-export default function () {
-    const url = 'http://localhost:8080/api/v1/couponPolicies/dummy';
+const couponCode = __ENV.couponCode || 'DEFAULT_CODE';
 
-    const res = http.post(url);
+export default function () {
+    const url = `http://localhost:8080/api/v4/coupons/${couponCode}/cancel`;
+
+    const params = {
+        headers: {
+            'Content-Type': 'application/json',
+            'X-USER-ID': 'USER-123'
+        },
+    };
+
+    const res = http.post(url, '', params);
 
     check(res, {
         'status is 200': (r) => r.status === 200

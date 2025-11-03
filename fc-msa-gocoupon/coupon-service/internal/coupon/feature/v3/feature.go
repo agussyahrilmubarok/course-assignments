@@ -56,6 +56,27 @@ func NewCouponFeature(
 // IssueCoupon generates a new coupon for a given user under a specified coupon policy.
 // It validates the policy period, checks quota limits, and persists the coupon to the database.
 // Returns the issued coupon on success or an appropriate error if the operation fails.
+// Issue List:
+//  1. **Redis Lock Timeout** — The distributed lock may expire before the transaction completes
+//     under heavy load, leading to potential race conditions.
+//  2. **Redis Cache Inconsistency** — If Redis operations fail (e.g., quota rollback or state caching),
+//     the in-memory quota and database quota might become temporarily inconsistent.
+//  3. **Database Transaction Overhead** — Using GORM transactions for every coupon issuance
+//     could become a bottleneck when issuing coupons at very high concurrency.
+//  4. **Redis Availability Dependency** — The system relies on Redis for lock and quota management.
+//     If Redis is unavailable, issuing coupons will fail even though the database is up.
+//  5. **Quota Initialization Race** — If multiple requests initialize Redis quota at the same time,
+//     duplicate initialization may occur before one transaction commits.
+//  6. **Coupon Code Collision Risk** — Although UUIDs are highly unique, theoretically there’s still a
+//     very small risk of collision if UUID generation fails or is replaced.
+//  7. **Context Ignored** — The function replaces the incoming request context with `context.Background()`,
+//     which means client-side cancellations (e.g., timeout or user disconnect) won’t stop coupon issuance.
+//  8. **Non-Atomic Redis & DB Rollback** — Redis quota rollbacks happen separately from DB rollback,
+//     so failures during rollback could cause temporary mismatch between cache and persistent state.
+//  9. **Potential Slow Redis Operations** — Each Redis operation (lock, decrement, increment, set) adds latency;
+//     poor Redis performance can affect end-to-end latency of coupon issuance.
+//  10. **Stale Cached State** — Cached coupon states may remain stale if not deleted or updated after use,
+//     especially if TTLs are long or updates are missed.
 func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string, userID string) (*coupon.Coupon, error) {
 	// Use a background context to avoid client-side cancellation
 	bgCtx := context.Background()
@@ -79,7 +100,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		return nil, exception.NewInternal("Failed to acquire Redis lock", err)
 	}
 	if !acquired {
-		err := errors.New("Too many concurrent coupon requests")
+		err := coupon.ErrCouponTooManyRequests
 		span.RecordError(err)
 		return nil, exception.NewTooManyRequests("Please try again later", err)
 	}
@@ -126,7 +147,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 				Str("coupon_policy_code", couponPolicyCode).
 				Msg("User already has a coupon for this policy")
 			return exception.NewBadRequest("User already has a coupon for this policy", nil)
-		} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			span.RecordError(err)
 			log.Error().Err(err).Msg("Failed to check existing coupon")
 			return exception.NewInternal("Failed to check existing coupon", err)
@@ -168,12 +189,12 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 			CouponPolicyID: policy.ID,
 		}
 		if err := tx.Create(&newCoupon).Error; err != nil {
+			// Rollback Redis decrement
+			if _, err := f.cache.IncrementAndGetCouponPolicyQuantity(bgCtx, policy.Code); err != nil {
+				log.Warn().Err(err).Msg("Failed to rollback Redis quota")
+			}
 			span.RecordError(err)
 			log.Error().Err(err).Msg("Failed to issue new coupon")
-			// rollback quota in Redis
-			if _, rollbackErr := f.cache.IncrementAndGetCouponPolicyQuantity(bgCtx, policy.Code); rollbackErr != nil {
-				log.Warn().Err(rollbackErr).Msg("Failed to rollback Redis quota after DB error")
-			}
 			return exception.NewInternal("Failed to issue coupon", err)
 		}
 

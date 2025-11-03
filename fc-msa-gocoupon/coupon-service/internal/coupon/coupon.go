@@ -38,9 +38,10 @@ func (c *Coupon) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 var (
-	ErrCouponAlreadyUsed = errors.New("Coupon has already been used")
-	ErrCouponExpired     = errors.New("Coupon has expired")
-	ErrCouponNotUsed     = errors.New("Coupon has not been used")
+	ErrCouponAlreadyUsed     = errors.New("Coupon has already been used")
+	ErrCouponExpired         = errors.New("Coupon has expired")
+	ErrCouponNotUsed         = errors.New("Coupon has not been used")
+	ErrCouponTooManyRequests = errors.New("Too many concurrent coupon requests")
 )
 
 // IsExpired returns true if current time is before start or after end
