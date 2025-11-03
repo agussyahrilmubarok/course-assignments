@@ -1,0 +1,354 @@
+basePath: /api/v2
+definitions:
+  coupon.Coupon:
+    properties:
+      code:
+        type: string
+      couponPolicy:
+        $ref: '#/definitions/coupon.CouponPolicy'
+      couponPolicyId:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      orderId:
+        type: string
+      status:
+        $ref: '#/definitions/coupon.CouponStatus'
+      updatedAt:
+        type: string
+      usedAt:
+        type: string
+      userId:
+        type: string
+    type: object
+  coupon.CouponPolicy:
+    properties:
+      code:
+        type: string
+      coupons:
+        items:
+          $ref: '#/definitions/coupon.Coupon'
+        type: array
+      createdAt:
+        type: string
+      description:
+        type: string
+      discountType:
+        $ref: '#/definitions/coupon.DiscountType'
+      discountValue:
+        type: integer
+      endTime:
+        type: string
+      id:
+        type: string
+      maximumDiscountAmount:
+        type: integer
+      minimumOrderAmount:
+        type: integer
+      name:
+        type: string
+      startTime:
+        type: string
+      totalQuantity:
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  coupon.CouponStatus:
+    enum:
+    - AVAILABLE
+    - USED
+    - EXPIRED
+    - CANCELED
+    type: string
+    x-enum-varnames:
+    - CouponStatusAvailable
+    - CouponStatusUsed
+    - CouponStatusExpired
+    - CouponStatusCanceled
+  coupon.DiscountType:
+    enum:
+    - FIXED_AMOUNT
+    - PERCENTAGE
+    type: string
+    x-enum-varnames:
+    - DiscountTypeFixedAmount
+    - DiscountTypePercentage
+  coupon.IssueCouponRequest:
+    properties:
+      couponPolicyCode:
+        type: string
+    type: object
+  coupon.UseCouponRequest:
+    properties:
+      orderId:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Coupon API V2
+  title: Coupon API V2
+  version: "2.0"
+paths:
+  /couponPolicies:
+    get:
+      description: Get coupon policies by ID, code, or name. If no parameters are
+        provided, return all coupon policies.
+      parameters:
+      - description: Coupon Policy ID
+        in: query
+        name: id
+        type: string
+      - description: Coupon Code
+        in: query
+        name: code
+        type: string
+      - description: Coupon Name
+        in: query
+        name: name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/coupon.CouponPolicy'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search coupon policies (by ID, Code, Name, or all)
+      tags:
+      - Coupon Policy
+  /couponPolicies/dummy:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/coupon.CouponPolicy'
+            type: array
+      summary: Create dummy coupon policies
+      tags:
+      - Coupon Policy
+  /coupons/{code}:
+    get:
+      description: Retrieves coupon details by code for the current user
+      parameters:
+      - description: Coupon Code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coupon.Coupon'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get coupon by code
+      tags:
+      - Coupons
+  /coupons/{code}/cancel:
+    post:
+      description: Cancels a previously issued coupon
+      parameters:
+      - description: Coupon Code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coupon.Coupon'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel a coupon
+      tags:
+      - Coupons
+  /coupons/{code}/use:
+    post:
+      consumes:
+      - application/json
+      description: Marks the coupon as used for a given order
+      parameters:
+      - description: Coupon Code
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: Use coupon request
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/coupon.UseCouponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coupon.Coupon'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Use a coupon for an order
+      tags:
+      - Coupons
+  /coupons/issue:
+    post:
+      consumes:
+      - application/json
+      description: Issues a coupon based on the given coupon policy code
+      parameters:
+      - description: Coupon issue request
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/coupon.IssueCouponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coupon.Coupon'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Issue a coupon for the current user
+      tags:
+      - Coupons
+  /coupons/policy/{policyCode}:
+    get:
+      description: Retrieves all coupons issued for a specific coupon policy code
+      parameters:
+      - description: Coupon Policy Code
+        in: path
+        name: policyCode
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/coupon.Coupon'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get coupons by policy code
+      tags:
+      - Coupons
+  /coupons/user:
+    get:
+      description: Retrieves all coupons owned by the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/coupon.Coupon'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get all coupons of current user
+      tags:
+      - Coupons
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-USER-ID
+    type: apiKey
+swagger: "2.0"
