@@ -1,0 +1,24 @@
+{
+    "folders": [
+        {
+            "name": "user",
+            "path": "./app/user"
+        },
+        {
+            "name": "product",
+            "path": "./app/product"
+        },
+        {
+            "name": "order",
+            "path": "./app/order"
+        },
+        {
+            "name": "payment",
+            "path": "./app/payment"
+        },
+        {
+            "name": "root",
+            "path": "."
+        }
+    ]
+}
