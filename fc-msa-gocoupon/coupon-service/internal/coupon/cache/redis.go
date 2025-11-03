@@ -54,6 +54,7 @@ func (c *cache) SetCouponPolicyQuantity(ctx context.Context, couponPolicyCode st
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, c.log)
+	log = log.With().Str("func", "SetCouponPolicyQuantity").Logger()
 
 	key := "coupon:policy:quantity:" + couponPolicyCode
 	ttl := time.Until(endTime)
@@ -79,6 +80,7 @@ func (c *cache) GetCouponPolicyQuantity(ctx context.Context, couponPolicyCode st
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, c.log)
+	log = log.With().Str("func", "GetCouponPolicyQuantity").Logger()
 
 	key := "coupon:policy:quantity:" + couponPolicyCode
 	val, err := c.rdb.Get(ctx, key).Int64()
@@ -101,6 +103,7 @@ func (c *cache) DeleteCouponPolicyQuantity(ctx context.Context, couponPolicyCode
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, c.log)
+	log = log.With().Str("func", "DeleteCouponPolicyQuantity").Logger()
 
 	key := "coupon:policy:quantity:" + couponPolicyCode
 	if err := c.rdb.Del(ctx, key).Err(); err != nil {
@@ -119,6 +122,7 @@ func (c *cache) DecrementAndGetCouponPolicyQuantity(ctx context.Context, couponP
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, c.log)
+	log = log.With().Str("func", "DecrementAndGetCouponPolicyQuantity").Logger()
 
 	key := "coupon:policy:quantity:" + couponPolicyCode
 	val, err := c.rdb.Decr(ctx, key).Result()
@@ -138,6 +142,7 @@ func (c *cache) IncrementAndGetCouponPolicyQuantity(ctx context.Context, couponP
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, c.log)
+	log = log.With().Str("func", "IncrementAndGetCouponPolicyQuantity").Logger()
 
 	key := "coupon:policy:quantity:" + couponPolicyCode
 	val, err := c.rdb.Incr(ctx, key).Result()
@@ -157,6 +162,7 @@ func (c *cache) SetCouponState(ctx context.Context, cp coupon.Coupon, endTime ti
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, c.log)
+	log = log.With().Str("func", "SetCouponState").Logger()
 
 	key := "coupon:state:" + cp.Code
 	ttl := time.Until(endTime)
@@ -189,6 +195,7 @@ func (c *cache) GetCouponState(ctx context.Context, couponCode string) (*coupon.
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, c.log)
+	log = log.With().Str("func", "GetCouponState").Logger()
 
 	key := "coupon:state:" + couponCode
 	val, err := c.rdb.Get(ctx, key).Result()
@@ -218,6 +225,7 @@ func (c *cache) DeleteCouponState(ctx context.Context, couponCode string) error 
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, c.log)
+	log = log.With().Str("func", "DeleteCouponState").Logger()
 
 	key := "coupon:state:" + couponCode
 	if err := c.rdb.Del(ctx, key).Err(); err != nil {

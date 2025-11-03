@@ -45,11 +45,12 @@ func NewKafkaConsumer(
 	}
 }
 
-func (kc *KafkaConsumer) ConsumerdCouponIssueRequest(ctx context.Context) error {
+func (kc *KafkaConsumer) ConsumeCouponIssueRequest(ctx context.Context) error {
 	ctx, span := kc.tracer.Start(ctx, "feature.KafkaConsumer.ConsumeCouponIssueRequest")
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, kc.log)
+	log = log.With().Str("func", "ConsumeCouponIssueRequest").Logger()
 
 	for {
 		m, err := kc.reader.ReadMessage(ctx)

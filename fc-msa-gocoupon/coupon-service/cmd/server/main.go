@@ -54,7 +54,7 @@ func main() {
 
 	go func() {
 		logger.Info().Msg("Starting coupon kafka consumer")
-		if err := server.CouponKafkaConsumerV4.ConsumerdCouponIssueRequest(ctx); err != nil {
+		if err := server.CouponKafkaConsumerV4.ConsumeCouponIssueRequest(ctx); err != nil {
 			logger.Fatal().Err(err).Msg("Kafka consumer stopped unexpectedly")
 		}
 	}()

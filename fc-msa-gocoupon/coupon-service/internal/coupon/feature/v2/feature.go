@@ -63,6 +63,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, f.log)
+	log = log.With().Str("func", "IssueCoupon").Logger()
 
 	var issuedCoupon *coupon.Coupon
 	err := f.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -103,7 +104,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 				Str("coupon_policy_code", couponPolicyCode).
 				Msg("User already has a coupon for this policy")
 			return exception.NewBadRequest("User already has a coupon for this policy", nil)
-		} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			span.RecordError(err)
 			log.Error().
 				Str("user_id", userID).
@@ -187,6 +188,7 @@ func (f *couponFeature) IssueCouponNoContextCanceled(ctx context.Context, coupon
 	defer span.End()
 
 	log := instrument.GetLogger(bgCtx, f.log)
+	log = log.With().Str("func", "IssueCouponNoContextCanceled").Logger()
 
 	var issuedCoupon *coupon.Coupon
 	err := f.db.WithContext(bgCtx).Transaction(func(tx *gorm.DB) error {
@@ -226,7 +228,7 @@ func (f *couponFeature) IssueCouponNoContextCanceled(ctx context.Context, coupon
 				Str("coupon_policy_code", couponPolicyCode).
 				Msg("User already has a coupon for this policy")
 			return exception.NewBadRequest("User already has a coupon for this policy", nil)
-		} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			span.RecordError(err)
 			log.Error().
 				Str("user_id", userID).
@@ -306,6 +308,7 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, f.log)
+	log = log.With().Str("func", "UseCoupon").Logger()
 
 	var coupon coupon.Coupon
 	if err := f.db.WithContext(ctx).
@@ -373,6 +376,7 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, f.log)
+	log = log.With().Str("func", "CancelCoupon").Logger()
 
 	var coupon coupon.Coupon
 	if err := f.db.WithContext(ctx).
@@ -437,6 +441,7 @@ func (f *couponFeature) FindCouponByCode(ctx context.Context, couponCode string,
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, f.log)
+	log = log.With().Str("func", "FindCouponByCode").Logger()
 
 	var c coupon.Coupon
 	if err := f.db.WithContext(ctx).
@@ -475,6 +480,7 @@ func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) 
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, f.log)
+	log = log.With().Str("func", "FindCouponsByUserID").Logger()
 
 	var coupons []coupon.Coupon
 	if err := f.db.WithContext(ctx).
@@ -506,6 +512,7 @@ func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, coupo
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, f.log)
+	log = log.With().Str("func", "FindCouponsByCouponPolicyCode").Logger()
 
 	var policy coupon.CouponPolicy
 	if err := f.db.WithContext(ctx).

@@ -41,6 +41,7 @@ func (kp *KafkaProducer) SendCouponIssueRequest(ctx context.Context, message cou
 	defer span.End()
 
 	log := instrument.GetLogger(ctx, kp.log)
+	log = log.With().Str("func", "SendCouponIssueRequest").Logger()
 
 	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:  kp.brokers,
