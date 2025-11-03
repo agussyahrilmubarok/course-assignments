@@ -253,7 +253,7 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 			Str("user_id", userID).
 			Err(err).
 			Msg("Failed to save use coupon")
-		return nil, exception.NewInternal("Failed to save use coupon", err)
+		return nil, exception.NewInternal("Failed to save cancel coupon", err)
 	}
 
 	span.SetStatus(codes.Ok, "CancelCoupon")

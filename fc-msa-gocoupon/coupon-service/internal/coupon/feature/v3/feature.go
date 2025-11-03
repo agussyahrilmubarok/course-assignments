@@ -262,6 +262,18 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 		return nil, exception.NewInternal("Failed to save use coupon", err)
 	}
 
+	if err := f.cache.SetCouponState(ctx, coupon, coupon.CouponPolicy.EndTime); err != nil {
+		span.RecordError(err)
+		log.Error().
+			Str("coupon_code", coupon.Code).
+			Str("coupon_status", string(coupon.Status)).
+			Str("user_id", userID).
+			Str("order_id", orderID).
+			Err(err).
+			Msg("Failed to update coupon state")
+		return nil, exception.NewInternal("Failed to save use coupon", err)
+	}
+
 	log.Info().
 		Str("coupon_code", coupon.Code).
 		Str("coupon_status", string(coupon.Status)).
@@ -324,7 +336,29 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 			Str("user_id", userID).
 			Err(err).
 			Msg("Failed to save use coupon")
-		return nil, exception.NewInternal("Failed to save use coupon", err)
+		return nil, exception.NewInternal("Failed to save cancel coupon", err)
+	}
+
+	if _, err := f.cache.IncrementAndGetCouponPolicyQuantity(ctx, coupon.CouponPolicy.Code); err != nil {
+		span.RecordError(err)
+		log.Error().
+			Str("coupon_code", coupon.Code).
+			Str("coupon_status", string(coupon.Status)).
+			Str("user_id", userID).
+			Err(err).
+			Msg("Failed to increment coupon policy quantity (rollback)")
+		return nil, exception.NewInternal("Failed to save cancel coupon", err)
+	}
+
+	if err := f.cache.SetCouponState(ctx, coupon, coupon.CouponPolicy.EndTime); err != nil {
+		span.RecordError(err)
+		log.Error().
+			Str("coupon_code", coupon.Code).
+			Str("coupon_status", string(coupon.Status)).
+			Str("user_id", userID).
+			Err(err).
+			Msg("Failed to set coupon state")
+		return nil, exception.NewInternal("Failed to save cancel coupon", err)
 	}
 
 	log.Info().
