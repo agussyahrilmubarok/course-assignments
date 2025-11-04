@@ -1,0 +1,38 @@
+services:
+  mongo:
+    image: mongo:8.0.14
+    container_name: mongo
+    restart: on-failure
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - gostore_net
+  
+  mongo-express:
+    image: mongo-express:1.0-20-alpine3.19
+    container_name: mongo-express
+    restart: on-failure
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: secret
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: secret123
+    ports:
+      - "5050:8081"
+    networks:
+      - gostore_net
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:
+
+networks:
+  gostore_net:
+    driver: bridge

@@ -9,7 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 //go:generate mockery --name=IStore
@@ -17,7 +16,8 @@ type IStore interface {
 	FindAll(ctx context.Context) ([]User, error)
 	FindByID(ctx context.Context, userID string) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
-	Save(ctx context.Context, user *User) error
+	Create(ctx context.Context, user *User) error
+	UpdateByID(ctx context.Context, userID string, user *User) error
 	DeleteByID(ctx context.Context, userID string) error
 }
 
@@ -93,38 +93,61 @@ func (s *store) FindByEmail(ctx context.Context, email string) (*User, error) {
 	return &user, nil
 }
 
-func (s *store) Save(ctx context.Context, user *User) error {
+func (s *store) Create(ctx context.Context, user *User) error {
 	now := time.Now()
-	if user.CreatedAt.IsZero() {
-		user.CreatedAt = now
+	if user.ID == "" {
+		objID := primitive.NewObjectID()
+		user.ID = objID.Hex()
 	}
+
+	user.CreatedAt = now
 	user.UpdatedAt = now
 
-	var objID primitive.ObjectID
-	var err error
-
-	if user.ID == "" {
-		objID = primitive.NewObjectID()
-		user.ID = objID.Hex()
-	} else {
-		objID, err = primitive.ObjectIDFromHex(user.ID)
-		if err != nil {
-			s.log.Warn().Str("user_id", user.ID).Msg("Invalid user ID format during save")
-			return errors.New("invalid user ID format")
-		}
-	}
-
-	filter := bson.M{"_id": objID}
-	update := bson.M{"$set": user}
-	opts := options.Update().SetUpsert(true)
-
-	_, err = s.collection.UpdateOne(ctx, filter, update, opts)
+	_, err := s.collection.InsertOne(ctx, user)
 	if err != nil {
-		s.log.Error().Err(err).Str("user_id", user.ID).Msg("Failed to save user")
+		if mongo.IsDuplicateKeyError(err) {
+			s.log.Error().Err(err).Msg("Email already exists")
+			return err
+		}
+
+		s.log.Error().Err(err).Msg("Failed to create user")
 		return err
 	}
 
-	s.log.Info().Str("user_id", user.ID).Msg("User saved successfully")
+	s.log.Info().Str("user_id", user.ID).Msg("User created successfully")
+	return nil
+}
+
+func (s *store) UpdateByID(ctx context.Context, userID string, user *User) error {
+	objID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		s.log.Warn().Str("user_id", userID).Msg("Invalid user ID format during update")
+		return errors.New("invalid user ID format")
+	}
+
+	user.UpdatedAt = time.Now()
+
+	update := bson.M{
+		"$set": bson.M{
+			"name":       user.Name,
+			"email":      user.Email,
+			"password":   user.Password,
+			"updated_at": user.UpdatedAt,
+		},
+	}
+
+	res, err := s.collection.UpdateByID(ctx, objID, update)
+	if err != nil {
+		s.log.Error().Err(err).Str("user_id", userID).Msg("Failed to update user")
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		s.log.Warn().Str("user_id", userID).Msg("No user found to update")
+		return mongo.ErrNoDocuments
+	}
+
+	s.log.Info().Str("user_id", userID).Msg("User updated successfully")
 	return nil
 }
 

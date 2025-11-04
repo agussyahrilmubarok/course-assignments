@@ -1,0 +1,16 @@
+{
+    "app": {
+        "name": "user-app",
+        "host": "localhost",
+        "port": 8081,
+        "env": "development"
+    },
+    "logger": {
+        "level": "info",
+        "filepath": "logs/app.log"
+    },
+    "mongodb": {
+        "uri": "mongodb://root:secret@localhost:27017",
+        "dbname": "userdb"
+    }
+}
