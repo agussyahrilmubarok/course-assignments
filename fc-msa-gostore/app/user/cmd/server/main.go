@@ -16,7 +16,6 @@ import (
 	"example.com/user/pkg/mongodb"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/fiber/v2/middleware/requestid"
 
 	_ "example.com/user/cmd/server/docs"
 	swagger "github.com/swaggo/fiber-swagger"
@@ -67,8 +66,6 @@ func main() {
 	app := fiber.New()
 
 	app.Use(recover.New())
-	app.Use(logger.New())
-	app.Use(requestid.New())
 
 	v1 := app.Group("/api/v1/users")
 
