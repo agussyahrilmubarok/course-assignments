@@ -12,6 +12,8 @@ import (
 
 	"example.com/user/internal/user"
 	"example.com/user/pkg/config"
+	"example.com/user/pkg/logger"
+	"example.com/user/pkg/mongodb"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
@@ -43,19 +45,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	log, err := config.NewZerolog(cfg)
+	log, err := logger.GetLogger(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	mongoDB, err := config.NewMongoDB(cfg)
+	mongodbFactory := mongodb.NewMongoFactory(cfg)
+	mongoClient1, err := mongodbFactory.GetClient(cfg.MongoDB.URI)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to connect mongodb: %v\n", err)
 		os.Exit(1)
 	}
+	mongoDb1 := mongoClient1.Database(cfg.MongoDB.DbName)
 
-	store := user.NewStore(mongoDB, log)
+	store := user.NewStore(mongoDb1, log)
 	service := user.NewService(store, log)
 	handler := user.NewHandler(service, log)
 
@@ -95,6 +99,10 @@ func main() {
 
 	if err := app.ShutdownWithContext(ctxShutdown); err != nil {
 		log.Fatal().Err(err).Msg("Graceful shutdown failed")
+	}
+
+	if err := mongodbFactory.CloseAll(); err != nil {
+		log.Warn().Err(err).Msg("Failed to close MongoDB connections cleanly")
 	}
 
 	log.Info().Msg("Server stopped gracefully")

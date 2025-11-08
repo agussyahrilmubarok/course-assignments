@@ -23,10 +23,10 @@ type IStore interface {
 
 type store struct {
 	collection *mongo.Collection
-	log        zerolog.Logger
+	log        *zerolog.Logger
 }
 
-func NewStore(db *mongo.Database, log zerolog.Logger) IStore {
+func NewStore(db *mongo.Database, log *zerolog.Logger) IStore {
 	if db == nil {
 		log.Fatal().Msg("Database connection is nil")
 	}

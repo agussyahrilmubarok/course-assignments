@@ -17,10 +17,10 @@ type IService interface {
 
 type service struct {
 	store IStore
-	log   zerolog.Logger
+	log   *zerolog.Logger
 }
 
-func NewService(store IStore, log zerolog.Logger) IService {
+func NewService(store IStore, log *zerolog.Logger) IService {
 	return &service{
 		store: store,
 		log:   log,

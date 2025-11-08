@@ -10,10 +10,10 @@ import (
 
 type Handler struct {
 	service IService
-	log     zerolog.Logger
+	log     *zerolog.Logger
 }
 
-func NewHandler(service IService, log zerolog.Logger) *Handler {
+func NewHandler(service IService, log *zerolog.Logger) *Handler {
 	return &Handler{
 		service: service,
 		log:     log,
