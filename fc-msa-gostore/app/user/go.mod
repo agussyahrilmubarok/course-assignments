@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.9
-	github.com/google/uuid v1.6.0
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.21.0
 	github.com/swaggo/fiber-swagger v1.3.0
@@ -25,6 +25,7 @@ require (
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect

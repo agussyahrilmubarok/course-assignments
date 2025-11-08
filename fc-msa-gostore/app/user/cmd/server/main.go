@@ -16,6 +16,7 @@ import (
 	"example.com/user/pkg/mongodb"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
 
 	_ "example.com/user/cmd/server/docs"
 	swagger "github.com/swaggo/fiber-swagger"
@@ -60,12 +61,14 @@ func main() {
 	mongoDb1 := mongoClient1.Database(cfg.MongoDB.DbName)
 
 	store := user.NewStore(mongoDb1, log)
-	service := user.NewService(store, log)
+	service := user.NewService(store, cfg, log)
 	handler := user.NewHandler(service, log)
 
 	app := fiber.New()
 
 	app.Use(recover.New())
+	app.Use(logger.New())
+	app.Use(requestid.New())
 
 	v1 := app.Group("/api/v1/users")
 

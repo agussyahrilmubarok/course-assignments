@@ -19,6 +19,11 @@ type Config struct {
 		URI    string `mapstructure:"uri"`
 		DbName string `mapstructure:"dbname"`
 	} `mapstructure:"mongodb"`
+
+	JWT struct {
+		Secret string `mapstructure:"secret"`
+		TTL    int    `mapstructure:"ttl"`
+	} `mapstructure:"jwt"`
 }
 
 func NewConfig(filepath string) (*Config, error) {

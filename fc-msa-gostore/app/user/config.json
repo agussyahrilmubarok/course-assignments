@@ -12,5 +12,9 @@
     "mongodb": {
         "uri": "mongodb://root:secret@localhost:27017",
         "dbname": "userdb"
+    },
+    "jwt": {
+        "secret": "S3cr3tK#yS3cr3tK#yS3cr3tK#yS3cr3tK#yS3cr3tK#yS3cr3tK#yS3cr3tK#y",
+        "ttl": 24
     }
 }
