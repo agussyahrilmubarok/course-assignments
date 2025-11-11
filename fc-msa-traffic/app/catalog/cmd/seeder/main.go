@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"example.com/catalog/internal/catalog"
+	"github.com/agussyahrilmubarok/gox/pkg/xconfig/xviper"
+	"github.com/agussyahrilmubarok/gox/pkg/xgorm"
 	"github.com/go-faker/faker/v4"
 )
 
@@ -15,15 +17,33 @@ func main() {
 	configFlag := flag.String("config", "configs/catalog.yaml", "Path to config file")
 	flag.Parse()
 
-	cfg, err := catalog.NewConfig(*configFlag)
+	vCfg, err := xviper.NewConfig(*configFlag)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	db, err := catalog.NewPostgres(cfg)
+	var cfg *catalog.Config
+	if err := vCfg.Unmarshal(&cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	db, err := xgorm.NewGorm("postgres", fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Postgres.Host,
+		cfg.Postgres.Port,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DbName,
+		cfg.Postgres.SslMode,
+	), &xgorm.Options{
+		MaxOpenConns:    cfg.Postgres.MaxOpenConns,
+		MaxIdleConns:    cfg.Postgres.MaxIdleConns,
+		ConnMaxLifetime: cfg.Postgres.ConnMaxLifetime,
+	})
 	if err != nil {
-		log.Fatalf("Failed to connect to DB: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to connect to database: %v\n", err)
 		os.Exit(1)
 	}
 

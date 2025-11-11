@@ -11,8 +11,11 @@ import (
 	"time"
 
 	"example.com/catalog/internal/catalog"
-	"example.com/catalog/pkg/discovery"
-	"example.com/catalog/pkg/discovery/consul"
+	"github.com/agussyahrilmubarok/gox/pkg/xconfig/xviper"
+	"github.com/agussyahrilmubarok/gox/pkg/xdiscovery"
+	"github.com/agussyahrilmubarok/gox/pkg/xdiscovery/xconsul"
+	"github.com/agussyahrilmubarok/gox/pkg/xgorm"
+	"github.com/agussyahrilmubarok/gox/pkg/xlogger/xzerolog"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -39,19 +42,37 @@ func main() {
 	configFlag := flag.String("config", "configs/config.yaml", "Path to config file")
 	flag.Parse()
 
-	cfg, err := catalog.NewConfig(*configFlag)
+	vCfg, err := xviper.NewConfig(*configFlag)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	logger, err := catalog.NewZerolog(cfg)
+	var cfg *catalog.Config
+	if err := vCfg.Unmarshal(&cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	logger, err := xzerolog.NewLogger(cfg.Logger.Filepath, cfg.Logger.Level)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	db, err := catalog.NewPostgres(cfg)
+	db, err := xgorm.NewGorm("postgres", fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Postgres.Host,
+		cfg.Postgres.Port,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DbName,
+		cfg.Postgres.SslMode,
+	), &xgorm.Options{
+		MaxOpenConns:    cfg.Postgres.MaxOpenConns,
+		MaxIdleConns:    cfg.Postgres.MaxIdleConns,
+		ConnMaxLifetime: cfg.Postgres.ConnMaxLifetime,
+	})
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to connect to database")
 		os.Exit(1)
@@ -68,8 +89,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	instanceID := discovery.GenerateInstanceID(cfg.App.Name)
-	consulRegistry, err := consul.NewRegistry(cfg.Consul.Address)
+	instanceID := xdiscovery.GenerateInstanceID(cfg.App.Name)
+	consulRegistry, err := xconsul.NewRegistry(cfg.Consul.Address)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
 		os.Exit(1)

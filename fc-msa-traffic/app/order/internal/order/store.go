@@ -104,7 +104,7 @@ func (s *store) UpdateStatus(ctx context.Context, order *Order, status OrderStat
 		return errors.New("order object or ID is required")
 	}
 
-	db := s.getDBByOrderID(order.ID) 
+	db := s.getDBByOrderID(order.ID)
 
 	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existing Order
