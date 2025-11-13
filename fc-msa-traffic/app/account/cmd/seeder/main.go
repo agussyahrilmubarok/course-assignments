@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"example.com/account/internal/account"
+	"github.com/agussyahrilmubarok/gox/pkg/xconfig/xviper"
+	"github.com/agussyahrilmubarok/gox/pkg/xgorm"
 	"github.com/go-faker/faker/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -16,15 +18,34 @@ func main() {
 	configFlag := flag.String("config", "configs/account.yaml", "Path to config file")
 	flag.Parse()
 
-	cfg, err := account.NewConfig(*configFlag)
+	vCfg, err := xviper.NewConfig(*configFlag)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	db, err := account.NewPostgres(cfg)
+	var cfg *account.Config
+	if err := vCfg.Unmarshal(&cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	db, err := xgorm.NewGorm("postgres", fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Postgres.Host,
+		cfg.Postgres.Port,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DbName,
+		cfg.Postgres.SslMode,
+	), &xgorm.Options{
+		MaxOpenConns:    cfg.Postgres.MaxOpenConns,
+		MaxIdleConns:    cfg.Postgres.MaxIdleConns,
+		ConnMaxLifetime: cfg.Postgres.ConnMaxLifetime,
+	})
 	if err != nil {
-		log.Fatalf("Failed to connect to DB: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to connect to database: %v\n", err)
+		os.Exit(1)
 	}
 
 	const numberOfUsers = 10

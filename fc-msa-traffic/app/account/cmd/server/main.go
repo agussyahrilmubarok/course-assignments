@@ -10,14 +10,17 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/agussyahrilmubarok/gox/pkg/xconfig/xviper"
+	"github.com/agussyahrilmubarok/gox/pkg/xdiscovery"
+	"github.com/agussyahrilmubarok/gox/pkg/xdiscovery/xconsul"
+	"github.com/agussyahrilmubarok/gox/pkg/xgorm"
+	"github.com/agussyahrilmubarok/gox/pkg/xlogger/xzerolog"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
 	_ "example.com/account/cmd/server/docs"
 	"example.com/account/internal/account"
-	"example.com/account/pkg/discovery"
-	"example.com/account/pkg/discovery/consul"
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
@@ -43,40 +46,49 @@ func main() {
 	configFlag := flag.String("config", "configs/config.yaml", "Path to config file")
 	flag.Parse()
 
-	cfg, err := account.NewConfig(*configFlag)
+	vCfg, err := xviper.NewConfig(*configFlag)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	logger, err := account.NewZerolog(cfg)
+	var cfg *account.Config
+	if err := vCfg.Unmarshal(&cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	logger, err := xzerolog.NewLogger(cfg.Logger.Filepath, cfg.Logger.Level)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	db, err := account.NewPostgres(cfg)
+	db, err := xgorm.NewGorm("postgres", fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Postgres.Host,
+		cfg.Postgres.Port,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DbName,
+		cfg.Postgres.SslMode,
+	), &xgorm.Options{
+		MaxOpenConns:    cfg.Postgres.MaxOpenConns,
+		MaxIdleConns:    cfg.Postgres.MaxIdleConns,
+		ConnMaxLifetime: cfg.Postgres.ConnMaxLifetime,
+	})
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to connect to database")
 		os.Exit(1)
 	}
-
-	// Auto migrate (development only)
-	// if cfg.App.Env != "production" {
-	// 	if err := db.AutoMigrate(&account.User{}); err != nil {
-	// 		logger.Fatal().Err(err).Msg("AutoMigrate failed")
-	// 		os.Exit(1)
-	// 	}
-	// 	logger.Info().Msg("AutoMigrate executed")
-	// }
 
 	if err := db.AutoMigrate(&account.User{}); err != nil {
 		logger.Fatal().Err(err).Msg("AutoMigrate failed")
 		os.Exit(1)
 	}
 
-	instanceID := discovery.GenerateInstanceID(cfg.App.Name)
-	consulRegistry, err := consul.NewRegistry(cfg.Consul.Address)
+	instanceID := xdiscovery.GenerateInstanceID(cfg.App.Name)
+	consulRegistry, err := xconsul.NewRegistry(cfg.Consul.Address)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
 		os.Exit(1)

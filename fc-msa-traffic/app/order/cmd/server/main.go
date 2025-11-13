@@ -11,11 +11,15 @@ import (
 	"time"
 
 	"example.com/order/internal/order"
-	"example.com/order/pkg/discovery"
-	"example.com/order/pkg/discovery/consul"
+	"github.com/agussyahrilmubarok/gox/pkg/xconfig/xviper"
+	"github.com/agussyahrilmubarok/gox/pkg/xdiscovery"
+	"github.com/agussyahrilmubarok/gox/pkg/xdiscovery/xconsul"
+	"github.com/agussyahrilmubarok/gox/pkg/xgorm"
+	"github.com/agussyahrilmubarok/gox/pkg/xlogger/xzerolog"
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"gorm.io/gorm"
 
 	_ "example.com/order/cmd/server/docs"
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -39,26 +43,32 @@ func main() {
 	configFlag := flag.String("config", "configs/config.yaml", "Path to config file")
 	flag.Parse()
 
-	cfg, err := order.NewConfig(*configFlag)
+	vCfg, err := xviper.NewConfig(*configFlag)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	logger, err := order.NewZerolog(cfg)
+	var cfg *order.Config
+	if err := vCfg.Unmarshal(&cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	logger, err := xzerolog.NewLogger(cfg.Logger.Filepath, cfg.Logger.Level)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
 		os.Exit(1)
 	}
 
-	dbShards, err := order.NewDBShard(cfg)
+	dbShards, err := openDBShard(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to set up hybrid shards: %v\n", err)
 		os.Exit(1)
 	}
 
-	instanceID := discovery.GenerateInstanceID(cfg.App.Name)
-	consulRegistry, err := consul.NewRegistry(cfg.Consul.Address)
+	instanceID := xdiscovery.GenerateInstanceID(cfg.App.Name)
+	consulRegistry, err := xconsul.NewRegistry(cfg.Consul.Address)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
 		os.Exit(1)
@@ -130,4 +140,51 @@ func main() {
 	}
 
 	logger.Info().Msg("Server stopped gracefully")
+}
+
+func openDBShard(cfg *order.Config) ([]*gorm.DB, error) {
+	var shards []*gorm.DB
+
+	postgresDb, err := xgorm.NewGorm("postgres", fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Postgres.Host,
+		cfg.Postgres.Port,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DbName,
+		cfg.Postgres.SslMode,
+	), &xgorm.Options{
+		MaxOpenConns:    cfg.Postgres.MaxOpenConns,
+		MaxIdleConns:    cfg.Postgres.MaxIdleConns,
+		ConnMaxLifetime: cfg.Postgres.ConnMaxLifetime,
+	})
+	if err != nil {
+		return nil, err
+	}
+	shards = append(shards, postgresDb)
+
+	mysqlDb, err := xgorm.NewGorm("mysql", fmt.Sprintf(
+		"%s:%s@tcp(%s:%d)/%s?parseTime=true",
+		cfg.MySQL.User,
+		cfg.MySQL.Password,
+		cfg.MySQL.Host,
+		cfg.MySQL.Port,
+		cfg.MySQL.DbName,
+	), &xgorm.Options{
+		MaxOpenConns:    cfg.MySQL.MaxOpenConns,
+		MaxIdleConns:    cfg.MySQL.MaxIdleConns,
+		ConnMaxLifetime: cfg.MySQL.ConnMaxLifetime,
+	})
+	if err != nil {
+		return nil, err
+	}
+	shards = append(shards, mysqlDb)
+
+	for _, db := range shards {
+		if err := db.AutoMigrate(&order.Order{}, &order.OrderItem{}); err != nil {
+			return nil, err
+		}
+	}
+
+	return shards, nil
 }
