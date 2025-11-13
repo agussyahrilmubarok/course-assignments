@@ -2,15 +2,15 @@ package user
 
 import "time"
 
-type SignUpRequest struct {
-	Name     string `json:"name" validate:"required,min=3,max=100"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=6,max=50"`
+type SignUpParam struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-type SignInRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=6"`
+type SignInParam struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UserResponse struct {
@@ -21,12 +21,12 @@ type UserResponse struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func (r *UserResponse) FromUser(u *User) {
-	r.ID = u.ID
-	r.Name = u.Name
-	r.Email = u.Email
-	r.CreatedAt = u.CreatedAt
-	r.UpdatedAt = u.UpdatedAt
+func (ur *UserResponse) From(user *User) {
+	ur.ID = user.ID.Hex()
+	ur.Name = user.Name
+	ur.Email = user.Email
+	ur.CreatedAt = user.CreatedAt
+	ur.UpdatedAt = user.UpdatedAt
 }
 
 type UserWithTokenResponse struct {

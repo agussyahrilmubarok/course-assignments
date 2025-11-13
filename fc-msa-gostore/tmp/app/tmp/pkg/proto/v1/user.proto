@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package v1;
+
+option go_package = "pkg/proto/v1";
+
+// Service definition
+service UserService {
+  rpc GetUserByID (GetUserRequest) returns (UserResponse);
+}
+
+// Request message
+message GetUserRequest {
+  string id = 1;
+}
+
+// Response message
+message UserResponse {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string role = 4;
+}

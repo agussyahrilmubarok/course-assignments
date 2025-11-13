@@ -22,7 +22,7 @@ services:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
       ME_CONFIG_MONGODB_ADMINPASSWORD: secret
       ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: secret123
+      ME_CONFIG_BASICAUTH_PASSWORD: secret
     ports:
       - "5050:8081"
     networks:

@@ -2,106 +2,115 @@ package user
 
 import (
 	"context"
-	"fmt"
-	"time"
+	"errors"
 
-	"example.com/user/pkg/config"
-	"example.com/user/pkg/exception"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/agussyahrilmubarok/gox/pkg/xexception"
+	"github.com/agussyahrilmubarok/gox/pkg/xjwt"
+	"github.com/agussyahrilmubarok/gox/pkg/xpassword"
 	"github.com/rs/zerolog"
-	"golang.org/x/crypto/bcrypt"
 )
 
-//go:generate mockery --name=IService
 type IService interface {
-	SignUp(ctx context.Context, param SignUpRequest) (*UserResponse, error)
-	SignIn(ctx context.Context, param SignInRequest) (*UserWithTokenResponse, error)
-	FindByID(ctx context.Context, userID string) (*UserResponse, error)
+	SignUp(ctx context.Context, param SignUpParam) (UserResponse, error)
+	SignIn(ctx context.Context, param SignInParam) (UserWithTokenResponse, error)
 }
 
 type service struct {
-	store IStore
-	cfg   *config.Config
-	log   *zerolog.Logger
+	store  IStore
+	logger zerolog.Logger
 }
 
-func NewService(store IStore, cfg *config.Config, log *zerolog.Logger) IService {
+func NewServie(
+	store IStore,
+	logger zerolog.Logger,
+) IService {
 	return &service{
-		store: store,
-		cfg:   cfg,
-		log:   log,
+		store:  store,
+		logger: logger,
 	}
 }
 
-func (s *service) SignUp(ctx context.Context, param SignUpRequest) (*UserResponse, error) {
-	exists, _ := s.store.FindByEmail(ctx, param.Email)
-	if exists != nil {
-		s.log.Warn().Str("email", param.Email).Msg("Email already used")
-		return nil, exception.NewBadRequest("Email already used", nil)
-	}
-
-	hashPass, err := bcrypt.GenerateFromPassword([]byte(param.Password), bcrypt.DefaultCost)
+func (s *service) SignUp(ctx context.Context, param SignUpParam) (UserResponse, error) {
+	err := s.store.ExistsUserEmailByIgnoreCase(ctx, param.Email)
 	if err != nil {
-		s.log.Error().Err(err).Msg("Failed to hash password")
-		return nil, exception.NewBadRequest("Failed to sign up user", err)
+		err := errors.New("email already exists")
+		s.logger.Error().
+			Err(err).
+			Str("email", param.Email).
+			Msg("user email already exists")
+		return UserResponse{}, xexception.NewHTTPBadRequest("email already exits", nil)
 	}
 
-	var user User
-	user.Name = param.Name
-	user.Email = param.Email
-	user.Password = string(hashPass)
-	if err := s.store.Create(ctx, &user); err != nil {
-		s.log.Error().Err(err).Msg("Failed to save user")
-		return nil, exception.NewInternal("Failed to sign up user", err)
-	}
-
-	var userResp UserResponse
-	userResp.FromUser(&user)
-
-	return &userResp, nil
-}
-
-func (s *service) SignIn(ctx context.Context, param SignInRequest) (*UserWithTokenResponse, error) {
-	user, err := s.store.FindByEmail(ctx, param.Email)
-	if err != nil || user == nil {
-		s.log.Warn().Err(err).Str("email", param.Email).Msg("Failed to find user by email")
-		return nil, exception.NewBadRequest("Email not registered", err)
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(param.Password)); err != nil {
-		err := fmt.Errorf("compare hash and password error")
-		s.log.Warn().Err(err).Str("email", param.Email).Msg("Failed to compare password")
-		return nil, exception.NewBadRequest("Password does not match", err)
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Hour * time.Duration(s.cfg.JWT.TTL)).Unix(),
-	})
-	tokenString, err := token.SignedString([]byte(s.cfg.JWT.Secret))
+	hashPass, saltPass, err := xpassword.PBKDF2Hash(param.Password)
 	if err != nil {
-		s.log.Error().Err(err).Str("email", param.Email).Msg("Failed to generate jwt")
-		return nil, exception.NewInternal("Failed to sign in user", err)
+		s.logger.Error().
+			Err(err).
+			Str("email", param.Email).
+			Msg("failed to hash password")
+		return UserResponse{}, xexception.NewHTTPInternal("failed to sign up user", err)
 	}
 
-	var userResp UserResponse
-	userResp.FromUser(user)
+	user := &User{
+		Name:         param.Name,
+		Email:        param.Email,
+		HashPassword: hashPass,
+		SaltPassword: saltPass,
+	}
 
-	return &UserWithTokenResponse{
-		Token: tokenString,
-		User:  userResp,
-	}, nil
+	if err := s.store.CreateUser(ctx, user); err != nil {
+		s.logger.Error().
+			Err(err).
+			Str("email", param.Email).
+			Msg("failed to create user")
+		return UserResponse{}, xexception.NewHTTPInternal("failed to sign up user", err)
+	}
+
+	var res UserResponse
+	res.From(user)
+
+	s.logger.Info().
+		Str("email", param.Email).
+		Msg("signup user successfully")
+	return res, nil
 }
 
-func (s *service) FindByID(ctx context.Context, userID string) (*UserResponse, error) {
-	user, err := s.store.FindByID(ctx, userID)
+func (s *service) SignIn(ctx context.Context, param SignInParam) (UserWithTokenResponse, error) {
+	user, err := s.store.FindUserByEmail(ctx, param.Email)
 	if err != nil || user == nil {
-		s.log.Warn().Err(err).Str("user_id", userID).Msg("Failed to find user by id")
-		return nil, exception.NewBadRequest("User not found", err)
+		s.logger.Error().
+			Err(err).
+			Str("email", param.Email).
+			Msg("email is not found")
+		return UserWithTokenResponse{}, xexception.NewHTTPBadRequest("email not found", nil)
 	}
 
-	var userResp UserResponse
-	userResp.FromUser(user)
+	if err := xpassword.PBKDF2Compare(param.Password, user.HashPassword, user.SaltPassword); err != nil {
+		s.logger.Error().
+			Err(err).
+			Str("email", param.Email).
+			Msg("password does not match")
+		return UserWithTokenResponse{}, xexception.NewHTTPBadRequest("password does not match", nil)
+	}
 
-	return &userResp, nil
+	claims := map[string]interface{}{
+		"user_id": user.ID.Hex(),
+	}
+	xjwt.SecretKey = []byte("secret_secret_secret_secret")
+	tokenString, err := xjwt.Generate(claims, 600)
+	if err != nil {
+		s.logger.Error().
+			Err(err).
+			Msg("failed to generate jwt")
+		return UserWithTokenResponse{}, xexception.NewHTTPInternal("sign in failed", nil)
+	}
+
+	var res UserWithTokenResponse
+	res.Token = tokenString
+	res.User.From(user)
+
+	s.logger.Info().
+		Str("email", param.Email).
+		Msg("signup user successfully")
+
+	return res, nil
 }

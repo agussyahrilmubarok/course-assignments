@@ -1,32 +1,20 @@
 basePath: /api/v1/users
 definitions:
-  user.SignInRequest:
+  user.SignInParam:
     properties:
       email:
         type: string
       password:
-        minLength: 6
         type: string
-    required:
-    - email
-    - password
     type: object
-  user.SignUpRequest:
+  user.SignUpParam:
     properties:
       email:
         type: string
       name:
-        maxLength: 100
-        minLength: 3
         type: string
       password:
-        maxLength: 50
-        minLength: 6
         type: string
-    required:
-    - email
-    - name
-    - password
     type: object
   user.UserResponse:
     properties:
@@ -62,33 +50,6 @@ info:
   title: User Application API
   version: "1.0"
 paths:
-  /{id}:
-    get:
-      consumes:
-      - application/json
-      description: Retrieve a user's data by their unique ID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/user.UserResponse'
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get User by ID
-      tags:
-      - Users
   /auth/signin:
     post:
       consumes:
@@ -100,7 +61,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/user.SignInRequest'
+          $ref: '#/definitions/user.SignInParam'
       produces:
       - application/json
       responses:
@@ -128,7 +89,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/user.SignUpRequest'
+          $ref: '#/definitions/user.SignUpParam'
       produces:
       - application/json
       responses:

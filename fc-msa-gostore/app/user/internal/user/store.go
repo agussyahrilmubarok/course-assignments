@@ -11,164 +11,144 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-//go:generate mockery --name=IStore
 type IStore interface {
-	FindAll(ctx context.Context) ([]User, error)
-	FindByID(ctx context.Context, userID string) (*User, error)
-	FindByEmail(ctx context.Context, email string) (*User, error)
-	Create(ctx context.Context, user *User) error
-	UpdateByID(ctx context.Context, userID string, user *User) error
-	DeleteByID(ctx context.Context, userID string) error
+	CreateUser(ctx context.Context, user *User) error
+	FindUserByID(ctx context.Context, userID string) (*User, error)
+	FindUserByEmail(ctx context.Context, email string) (*User, error)
+	ExistsUserEmailByIgnoreCase(ctx context.Context, email string) error
 }
 
 type store struct {
-	collection *mongo.Collection
-	log        *zerolog.Logger
+	db     *mongo.Database
+	logger zerolog.Logger
 }
 
-func NewStore(db *mongo.Database, log *zerolog.Logger) IStore {
-	if db == nil {
-		log.Fatal().Msg("Database connection is nil")
-	}
-
+func NewStore(db *mongo.Database, logger zerolog.Logger) IStore {
 	return &store{
-		collection: db.Collection("users"),
-		log:        log,
+		db:     db,
+		logger: logger,
 	}
 }
 
-func (s *store) FindAll(ctx context.Context) ([]User, error) {
-	cur, err := s.collection.Find(ctx, bson.M{})
-	if err != nil {
-		s.log.Error().Err(err).Msg("Failed to fetch users from database")
-		return nil, err
-	}
-	defer cur.Close(ctx)
+var (
+	userColl = "users"
+)
 
-	var users []User
-	if err := cur.All(ctx, &users); err != nil {
-		s.log.Error().Err(err).Msg("Failed to decode user list")
-		return nil, err
-	}
-
-	s.log.Info().Int("count", len(users)).Msg("Successfully fetched all users")
-	return users, nil
-}
-
-func (s *store) FindByID(ctx context.Context, userID string) (*User, error) {
-	objID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		s.log.Warn().Str("user_id", userID).Msg("Invalid user ID format")
-		return nil, errors.New("invalid user ID format")
-	}
-
-	var user User
-	err = s.collection.FindOne(ctx, bson.M{"_id": objID}).Decode(&user)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			s.log.Warn().Str("user_id", userID).Msg("User not found")
-			return nil, nil
-		}
-		s.log.Error().Err(err).Str("user_id", userID).Msg("failed to find user by ID")
-		return nil, err
-	}
-
-	s.log.Info().Str("user_id", userID).Msg("User found by ID")
-	return &user, nil
-}
-
-func (s *store) FindByEmail(ctx context.Context, email string) (*User, error) {
-	var user User
-	err := s.collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			s.log.Warn().Str("email", email).Msg("User not found by email")
-			return nil, nil
-		}
-		s.log.Error().Err(err).Str("email", email).Msg("Failed to find user by email")
-		return nil, err
-	}
-
-	s.log.Info().Str("email", email).Msg("User found by email")
-	return &user, nil
-}
-
-func (s *store) Create(ctx context.Context, user *User) error {
+func (s *store) CreateUser(ctx context.Context, user *User) error {
 	now := time.Now()
-	if user.ID == "" {
-		objID := primitive.NewObjectID()
-		user.ID = objID.Hex()
-	}
 
 	user.CreatedAt = now
 	user.UpdatedAt = now
 
-	_, err := s.collection.InsertOne(ctx, user)
+	result, err := s.db.Collection(userColl).InsertOne(ctx, user)
 	if err != nil {
-		if mongo.IsDuplicateKeyError(err) {
-			s.log.Error().Err(err).Msg("Email already exists")
-			return err
-		}
-
-		s.log.Error().Err(err).Msg("Failed to create user")
+		s.logger.Error().Err(err).Msg("failed to create user in mongo db")
 		return err
 	}
 
-	s.log.Info().Str("user_id", user.ID).Msg("User created successfully")
+	if id, ok := result.InsertedID.(primitive.ObjectID); ok {
+		s.logger.Error().Err(err).Msg("failed to create user in mongo db")
+		user.ID = id
+	}
+
+	s.logger.Info().
+		Str("user_id", result.InsertedID.(primitive.ObjectID).Hex()).
+		Msg("create user successfully")
 	return nil
 }
 
-func (s *store) UpdateByID(ctx context.Context, userID string, user *User) error {
-	objID, err := primitive.ObjectIDFromHex(userID)
+func (s *store) FindUserByID(ctx context.Context, userID string) (*User, error) {
+	userIDObj, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		s.log.Warn().Str("user_id", userID).Msg("Invalid user ID format during update")
-		return errors.New("invalid user ID format")
+		s.logger.Error().
+			Err(err).
+			Str("user_id", userID).
+			Msg("failed to find user not found by id in mongo db")
+		return nil, err
 	}
 
-	user.UpdatedAt = time.Now()
+	filter := bson.M{"_id": userIDObj}
 
-	update := bson.M{
-		"$set": bson.M{
-			"name":       user.Name,
-			"email":      user.Email,
-			"password":   user.Password,
-			"updated_at": user.UpdatedAt,
+	var user User
+	err = s.db.Collection(userColl).FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			s.logger.Error().
+				Err(err).
+				Str("user_id", userID).
+				Msg("failed to find user not found by id in mongo db")
+			return nil, errors.New("user not found")
+		}
+
+		s.logger.Error().
+			Err(err).
+			Str("user_id", userID).
+			Msg("failed to find user by id in mongo db")
+		return nil, err
+	}
+
+	s.logger.Info().
+		Str("user_id", user.ID.Hex()).
+		Msg("find user by id successfully")
+	return &user, nil
+}
+
+func (s *store) FindUserByEmail(ctx context.Context, email string) (*User, error) {
+	filter := bson.M{"email": email}
+
+	var user User
+	err := s.db.Collection(userColl).FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			s.logger.Error().
+				Err(err).
+				Str("user_email", email).
+				Msg("failed to find user not found by email in mongo db")
+			return nil, errors.New("user not found")
+		}
+		s.logger.Error().
+			Err(err).
+			Str("user_email", email).
+			Msg("failed to find user by email in mongo db")
+		return nil, err
+	}
+
+	s.logger.Info().
+		Str("user_email", user.Email).
+		Msg("find user by email successfully")
+	return &user, nil
+}
+
+func (s *store) ExistsUserEmailByIgnoreCase(ctx context.Context, email string) error {
+	filter := bson.M{
+		"email": bson.M{
+			"$regex": primitive.Regex{
+				Pattern: "^" + email + "$",
+				Options: "i",
+			},
 		},
 	}
 
-	res, err := s.collection.UpdateByID(ctx, objID, update)
+	var user struct {
+		ID primitive.ObjectID `bson:"_id"`
+	}
+
+	err := s.db.Collection(userColl).FindOne(ctx, filter).Decode(&user)
+
 	if err != nil {
-		s.log.Error().Err(err).Str("user_id", userID).Msg("Failed to update user")
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil
+		}
+
+		s.logger.Error().
+			Err(err).
+			Str("user_email", email).
+			Msg("failed to check existence of email by case-insensitive in mongo db")
 		return err
 	}
 
-	if res.MatchedCount == 0 {
-		s.log.Warn().Str("user_id", userID).Msg("No user found to update")
-		return mongo.ErrNoDocuments
-	}
-
-	s.log.Info().Str("user_id", userID).Msg("User updated successfully")
-	return nil
-}
-
-func (s *store) DeleteByID(ctx context.Context, userID string) error {
-	objID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		s.log.Warn().Str("user_id", userID).Msg("Invalid user ID format during delete")
-		return errors.New("invalid user ID format")
-	}
-
-	res, err := s.collection.DeleteOne(ctx, bson.M{"_id": objID})
-	if err != nil {
-		s.log.Error().Err(err).Str("user_id", userID).Msg("Failed to delete user")
-		return err
-	}
-
-	if res.DeletedCount == 0 {
-		s.log.Warn().Str("user_id", userID).Msg("No user deleted (user not found)")
-		return nil
-	}
-
-	s.log.Info().Str("user_id", userID).Msg("User deleted successfully")
-	return nil
+	s.logger.Error().
+		Str("user_email", email).
+		Msg("email already exists in mongo db")
+	return errors.New("email already exists (case-insensitive)")
 }
