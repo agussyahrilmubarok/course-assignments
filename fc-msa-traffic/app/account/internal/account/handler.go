@@ -12,18 +12,18 @@ import (
 type Handler struct {
 	store   IStore
 	service IService
-	log     zerolog.Logger
+	logger  zerolog.Logger
 }
 
 func NewHandler(
 	store IStore,
 	service IService,
-	log zerolog.Logger,
+	logger zerolog.Logger,
 ) *Handler {
 	return &Handler{
 		store:   store,
 		service: service,
-		log:     log,
+		logger:  logger,
 	}
 }
 
@@ -43,35 +43,35 @@ func (h *Handler) SignUp(c echo.Context) error {
 
 	var req SignUpRequest
 	if err := c.Bind(&req); err != nil {
-		h.log.Warn().Err(err).Msg("Failed to bind request")
-		return c.JSON(400, echo.Map{"error": "Invalid request format"})
+		h.logger.Warn().Err(err).Msg("failed to bind request")
+		return c.JSON(400, echo.Map{"error": "invalid request format"})
 	}
 
 	if err := c.Validate(&req); err != nil {
-		h.log.Warn().Err(err).Msg("Validation failed")
+		h.logger.Warn().Err(err).Msg("validation failed")
 		validationErrors := err.(validator.ValidationErrors)
 		errors := make(map[string]string)
 		for _, fieldErr := range validationErrors {
 			errors[fieldErr.Field()] = fieldErr.Tag()
 		}
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation error", "errors": errors})
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "validation error", "errors": errors})
 	}
 
 	if h.store.ExistsUserByEmailIgnoreCase(ctx, req.Email) {
-		h.log.Warn().Msg("Failed to sign up, email already in use")
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Email already in use"})
+		h.logger.Warn().Msg("failed to sign up, email already in use")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "email already in use"})
 	}
 
 	user := req.ToUser()
 	if err := h.store.SaveUser(ctx, user); err != nil {
-		h.log.Error().Err(err).Msg("Failed to save user")
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "Failed to sign up"})
+		h.logger.Error().Err(err).Msg("failed to save user")
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to sign up"})
 	}
 
 	var res UserResponse
 	res.FromUser(user)
 
-	h.log.Info().Str("user_id", user.ID).Msg("Sign up user successfully")
+	h.logger.Info().Str("user_id", user.ID).Msg("sign up user successfully")
 	return c.JSON(http.StatusOK, res)
 }
 
@@ -90,41 +90,41 @@ func (h *Handler) SignIn(c echo.Context) error {
 
 	var req SignInRequest
 	if err := c.Bind(&req); err != nil {
-		h.log.Warn().Err(err).Msg("Failed to bind request")
-		return c.JSON(400, echo.Map{"error": "Invalid request format"})
+		h.logger.Warn().Err(err).Msg("failed to bind request")
+		return c.JSON(400, echo.Map{"error": "invalid request format"})
 	}
 
 	if err := c.Validate(&req); err != nil {
-		h.log.Warn().Err(err).Msg("Validation failed")
+		h.logger.Warn().Err(err).Msg("validation failed")
 		validationErrors := err.(validator.ValidationErrors)
 		errors := make(map[string]string)
 		for _, fieldErr := range validationErrors {
 			errors[fieldErr.Field()] = fieldErr.Tag()
 		}
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Validation error", "errors": errors})
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "validation error", "errors": errors})
 	}
 
 	user, err := h.store.FindUserByEmail(ctx, req.Email)
 	if err != nil || user == nil {
-		h.log.Warn().Err(err).Msg("Failed to find email when sign in")
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Email is not registered"})
+		h.logger.Warn().Err(err).Msg("failed to find email when sign in")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "email is not registered"})
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		h.log.Warn().Err(err).Msg("Failed to compare password")
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Wrong password"})
+		h.logger.Warn().Err(err).Msg("failed to compare password")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "wrong password"})
 	}
 
 	tokenString, err := h.service.GenerateJwt(user.ID)
 	if err != nil {
-		h.log.Warn().Err(err).Msg("Failed to generate jwt")
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Failed to sign in"})
+		h.logger.Warn().Err(err).Msg("failed to generate jwt")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "failed to sign in"})
 	}
 
 	var userRes UserResponse
 	userRes.FromUser(user)
 
-	h.log.Info().Str("user_id", user.ID).Msg("Sign in user successfully")
+	h.logger.Info().Str("user_id", user.ID).Msg("sign in user successfully")
 	return c.JSON(http.StatusOK, AccountResponse{
 		Token: tokenString,
 		User:  userRes,
@@ -146,26 +146,26 @@ func (h *Handler) Validate(c echo.Context) error {
 
 	var req ValidateRequest
 	if err := c.Bind(&req); err != nil {
-		h.log.Warn().Err(err).Msg("Failed to bind request")
-		return c.JSON(400, echo.Map{"error": "Invalid request format"})
+		h.logger.Warn().Err(err).Msg("failed to bind request")
+		return c.JSON(400, echo.Map{"error": "invalid request format"})
 	}
 
 	userID, err := h.service.ValidateJwt(req.Token)
 	if err != nil {
-		h.log.Warn().Err(err).Msg("Failed to validate token")
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Failed to validate account"})
+		h.logger.Warn().Err(err).Msg("failed to validate token")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "failed to validate account"})
 	}
 
 	user, err := h.store.FindUserByID(ctx, userID)
 	if err != nil || user == nil {
-		h.log.Warn().Err(err).Msg("Failed to find user by id")
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Account is not registered"})
+		h.logger.Warn().Err(err).Msg("failed to find user by id")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "account is not registered"})
 	}
 
 	var userRes UserResponse
 	userRes.FromUser(user)
 
-	h.log.Info().Str("user_id", user.ID).Msg("Validate user successfully")
+	h.logger.Info().Str("user_id", user.ID).Msg("validate user successfully")
 	return c.JSON(http.StatusOK, AccountResponse{
 		Token: req.Token,
 		User:  userRes,
@@ -188,19 +188,19 @@ func (h *Handler) GetMe(c echo.Context) error {
 
 	userID, ok := c.Get("user_id").(string)
 	if !ok || userID == "" {
-		h.log.Warn().Msg("user_id not found in context")
-		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "Unauthorized"})
+		h.logger.Warn().Msg("user_id not found in context")
+		return c.JSON(http.StatusUnauthorized, echo.Map{"error": "unauthorized"})
 	}
 
 	user, err := h.store.FindUserByID(ctx, userID)
 	if err != nil || user == nil {
-		h.log.Warn().Err(err).Msg("Failed to find user by id")
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "Account is not registered"})
+		h.logger.Warn().Err(err).Msg("failed to find user by id")
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "account is not registered"})
 	}
 
 	var userRes UserResponse
 	userRes.FromUser(user)
 
-	h.log.Info().Str("user_id", user.ID).Msg("Get user by id successfully")
+	h.logger.Info().Str("user_id", user.ID).Msg("Get user by id successfully")
 	return c.JSON(http.StatusOK, userRes)
 }

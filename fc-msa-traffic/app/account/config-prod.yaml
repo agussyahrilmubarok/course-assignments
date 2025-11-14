@@ -1,8 +1,10 @@
 app:
   name: "account-service"
+  env: "production"
+
+http:
   host: "account-service"
   port: 8081
-  env: "production"
 
 postgres:
   host: "postgres"

@@ -3,6 +3,7 @@ package account
 import (
 	"time"
 
+	"example.com/account/internal/config"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
 )
@@ -14,23 +15,20 @@ type IService interface {
 }
 
 type service struct {
-	cfg *Config
-	log zerolog.Logger
+	config *config.Config
+	logger zerolog.Logger
 }
 
-func NewService(
-	cfg *Config,
-	log zerolog.Logger,
-) IService {
+func NewService(config *config.Config, logger zerolog.Logger) IService {
 	return &service{
-		cfg: cfg,
-		log: log,
+		config: config,
+		logger: logger,
 	}
 }
 
 func (s *service) GenerateJwt(userID string) (string, error) {
-	secretKey := s.cfg.Jwt.SecretKey
-	expiresIn, err := time.ParseDuration(s.cfg.Jwt.ExpiresIn)
+	secretKey := s.config.Jwt.SecretKey
+	expiresIn, err := time.ParseDuration(s.config.Jwt.ExpiresIn)
 	if err != nil {
 		return "", err
 	}
@@ -44,41 +42,41 @@ func (s *service) GenerateJwt(userID string) (string, error) {
 
 	signedToken, err := token.SignedString([]byte(secretKey))
 	if err != nil {
-		s.log.Error().Err(err).Str("user_id", userID).Msg("Failed to sign JWT token")
+		s.logger.Error().Err(err).Str("user_id", userID).Msg("failed to sign jwt")
 		return "", err
 	}
 
-	s.log.Info().Str("user_id", userID).Msg("Generate jwt for user successfully")
+	s.logger.Info().Str("user_id", userID).Msg("generate jwt for user successfully")
 	return signedToken, nil
 }
 
 func (s *service) ValidateJwt(tokenString string) (string, error) {
-	secretKey := s.cfg.Jwt.SecretKey
+	secretKey := s.config.Jwt.SecretKey
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			s.log.Error().Msg("Unexpected signing method")
+			s.logger.Error().Msg("unexpected signing method")
 			return nil, jwt.ErrSignatureInvalid
 		}
 		return []byte(secretKey), nil
 	})
 	if err != nil {
-		s.log.Error().Err(err).Msg("Failed to parse JWT")
+		s.logger.Error().Err(err).Msg("failed to parse JWT")
 		return "", err
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		s.log.Error().Err(err).Msg("Invalid JWT claims or token")
+		s.logger.Error().Err(err).Msg("invalid JWT claims or token")
 		return "", jwt.ErrTokenInvalidClaims
 	}
 
 	userID, ok := claims["user_id"].(string)
 	if !ok {
-		s.log.Error().Msg("user_id claim is missing or invalid")
+		s.logger.Error().Msg("user_id claim is missing or invalid")
 		return "", jwt.ErrInvalidKeyType
 	}
 
-	s.log.Info().Str("user_id", userID).Msg("Validate jwt user successfully")
+	s.logger.Info().Str("user_id", userID).Msg("validate jwt user successfully")
 	return userID, nil
 }
