@@ -1,0 +1,11 @@
+userfc,8081
+productfc,8082
+orderfc,8083
+paymentfc,8084
+
+mongo,27017
+mongo-express,5050
+kafka1,9092
+kafka2,9094
+kafka3,9096
+redpanda-console,5052

@@ -1,0 +1,58 @@
+{"level":"info","time":"2025-11-13T10:46:30+07:00","message":"server running at http://localhost:8081"}
+{"level":"info","time":"2025-11-13T10:47:21+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T10:47:21+07:00","message":"Server stopped gracefully"}
+{"level":"info","time":"2025-11-13T10:47:27+07:00","message":"server running at http://localhost:8081"}
+{"level":"info","time":"2025-11-13T10:49:33+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T10:49:33+07:00","message":"Server stopped gracefully"}
+{"level":"info","time":"2025-11-13T10:55:28+07:00","message":"server running at http://localhost:8081"}
+{"level":"info","time":"2025-11-13T11:03:53+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:03:53+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:04:00+07:00","message":"server running at http://localhost:8081"}
+{"level":"error","error":"mongo: no documents in result","email":"johndoe@mail.com","time":"2025-11-13T11:04:07+07:00","message":"failed to find user not found by email in mongo db"}
+{"level":"info","time":"2025-11-13T11:08:13+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:08:13+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:08:21+07:00","message":"server running at http://localhost:8081"}
+{"level":"info","time":"2025-11-13T11:09:24+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:09:24+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:10:19+07:00","message":"server running at http://localhost:8081"}
+{"level":"error","error":"mongo: no documents in result","email":"johndoe@mail.com","time":"2025-11-13T11:10:27+07:00","message":"failed to find user not found by email in mongo db"}
+{"level":"info","time":"2025-11-13T11:10:46+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:10:46+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:11:01+07:00","message":"server running at http://localhost:8081"}
+{"level":"error","error":"mongo: no documents in result","email":"johndoe@mail.com","time":"2025-11-13T11:11:07+07:00","message":"failed to find user not found by email in mongo db"}
+{"level":"info","time":"2025-11-13T11:12:43+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:12:43+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:12:50+07:00","message":"server running at http://localhost:8081"}
+{"level":"error","error":"mongo: no documents in result","email":"johndoe@mail.com","time":"2025-11-13T11:12:56+07:00","message":"failed to find user not found by email in mongo db"}
+{"level":"info","time":"2025-11-13T11:13:20+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:13:20+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:13:27+07:00","message":"server running at http://localhost:8081"}
+{"level":"error","error":"mongo: no documents in result","email":"johndoe@mail.com","time":"2025-11-13T11:13:33+07:00","message":"failed to find user not found by email in mongo db"}
+{"level":"info","time":"2025-11-13T11:15:06+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:15:06+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:15:12+07:00","message":"server running at http://localhost:8081"}
+{"level":"error","error":"email already exists","email":"johndoe@mail.com","time":"2025-11-13T11:15:21+07:00","message":"user email already exists"}
+{"level":"error","error":"email already exits","time":"2025-11-13T11:15:21+07:00","message":"Sign up user failed"}
+{"level":"error","error":"mongo: no documents in result","email":"johndoe@mail.com","time":"2025-11-13T11:15:31+07:00","message":"failed to find user not found by email in mongo db"}
+{"level":"info","time":"2025-11-13T11:15:39+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:15:39+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:15:52+07:00","message":"server running at http://localhost:8081"}
+{"level":"info","time":"2025-11-13T11:18:23+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:18:23+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:18:29+07:00","message":"server running at http://localhost:8081"}
+{"level":"error","error":"email already exists","email":"johndoe@mail.com","time":"2025-11-13T11:18:37+07:00","message":"user email already exists"}
+{"level":"error","error":"email already exits","time":"2025-11-13T11:18:37+07:00","message":"Sign up user failed"}
+{"level":"error","error":"email already exists","email":"johndoe@mail.com","time":"2025-11-13T11:18:42+07:00","message":"user email already exists"}
+{"level":"error","error":"email already exits","time":"2025-11-13T11:18:42+07:00","message":"Sign up user failed"}
+{"level":"info","time":"2025-11-13T11:19:26+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:19:26+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T11:19:32+07:00","message":"server running at http://localhost:8081"}
+{"level":"info","time":"2025-11-13T11:19:49+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T11:19:49+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T17:09:06+07:00","message":"server running at http://localhost:8081"}
+{"level":"info","time":"2025-11-13T17:09:27+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T17:09:27+07:00","message":"server stopped gracefully"}
+{"level":"info","time":"2025-11-13T17:09:40+07:00","message":"server running at http://localhost:8081"}
+{"level":"info","email":"johndoe@mail.com","time":"2025-11-13T17:09:54+07:00","message":"signup user successfully"}
+{"level":"info","time":"2025-11-13T17:17:14+07:00","message":"shutting down server..."}
+{"level":"info","time":"2025-11-13T17:17:14+07:00","message":"server stopped gracefully"}
