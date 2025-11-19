@@ -1,14 +1,17 @@
-package account
+package config
 
 import "time"
 
 type Config struct {
 	App struct {
 		Name string `mapstructure:"name"`
+		Env  string `mapstructure:"env"`
+	} `mapstructure:"app"`
+
+	Http struct {
 		Host string `mapstructure:"host"`
 		Port int    `mapstructure:"port"`
-		Env  string `mapstructure:"env"`
-	} `json:"app"`
+	} `mapstructure:"http"`
 
 	Postgres struct {
 		Host            string        `mapstructure:"host"`

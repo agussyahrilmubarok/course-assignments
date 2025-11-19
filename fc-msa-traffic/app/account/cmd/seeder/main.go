@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"example.com/account/internal/account"
+	"example.com/account/internal/config"
 	"github.com/agussyahrilmubarok/gox/pkg/xconfig/xviper"
 	"github.com/agussyahrilmubarok/gox/pkg/xgorm"
 	"github.com/go-faker/faker/v4"
@@ -24,7 +25,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var cfg *account.Config
+	var cfg *config.Config
 	if err := vCfg.Unmarshal(&cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
 		os.Exit(1)

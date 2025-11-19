@@ -7,6 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 )
 
@@ -18,11 +19,13 @@ type ICustomMiddleware interface {
 
 type customMiddleware struct {
 	service IService
+	logger  zerolog.Logger
 }
 
-func NewCustomMiddleware(service IService) ICustomMiddleware {
+func NewCustomMiddleware(service IService, logger zerolog.Logger) ICustomMiddleware {
 	return &customMiddleware{
 		service: service,
+		logger:  logger,
 	}
 }
 
@@ -67,14 +70,32 @@ func (m *customMiddleware) RateLimiterConfig() middleware.RateLimiterConfig {
 		),
 		IdentifierExtractor: func(c echo.Context) (string, error) {
 			// You can customize this as needed (e.g., use user ID instead of IP)
-			return c.Request().RemoteAddr, nil
+			// return c.Request().RemoteAddr, nil
+			return c.RealIP(), nil
 		},
 		ErrorHandler: func(c echo.Context, err error) error {
+			msg := "unknown error"
+			if err != nil {
+				msg = err.Error()
+			}
+
+			m.logger.Error().
+				Str("method", c.Request().Method).
+				Str("path", c.Request().URL.Path).
+				Str("ip", c.RealIP()).
+				Str("error", msg).
+				Msg("Rate limiter error")
 			return c.JSON(http.StatusTooManyRequests, echo.Map{
 				"error": err.Error(),
 			})
 		},
 		DenyHandler: func(c echo.Context, identifier string, err error) error {
+			m.logger.Warn().
+				Str("identifier", identifier).
+				Str("method", c.Request().Method).
+				Str("path", c.Request().URL.Path).
+				Str("ip", c.RealIP()).
+				Msg("Rate limit exceeded: Too many requests")
 			return c.JSON(http.StatusTooManyRequests, echo.Map{
 				"error": "Too many requests",
 			})

@@ -15,13 +15,10 @@ import (
 	"github.com/agussyahrilmubarok/gox/pkg/xdiscovery/xconsul"
 	"github.com/agussyahrilmubarok/gox/pkg/xgorm"
 	"github.com/agussyahrilmubarok/gox/pkg/xlogger/xzerolog"
-	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 
-	_ "example.com/account/cmd/server/docs"
 	"example.com/account/internal/account"
-	echoSwagger "github.com/swaggo/echo-swagger"
+	"example.com/account/internal/config"
+	"example.com/account/internal/server"
 )
 
 // @title Account Service API
@@ -43,24 +40,24 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	configFlag := flag.String("config", "configs/config.yaml", "Path to config file")
+	configFlag := flag.String("config", "configs/config.yaml", "path to config file")
 	flag.Parse()
 
 	vCfg, err := xviper.NewConfig(*configFlag)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
-	var cfg *account.Config
+	var cfg *config.Config
 	if err := vCfg.Unmarshal(&cfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
 	logger, err := xzerolog.NewLogger(cfg.Logger.Filepath, cfg.Logger.Level)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to setup logger: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -78,70 +75,43 @@ func main() {
 		ConnMaxLifetime: cfg.Postgres.ConnMaxLifetime,
 	})
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to connect to database")
+		logger.Fatal().Err(err).Msg("failed to connect to database")
 		os.Exit(1)
 	}
 
 	if err := db.AutoMigrate(&account.User{}); err != nil {
-		logger.Fatal().Err(err).Msg("AutoMigrate failed")
+		logger.Fatal().Err(err).Msg("auto migrate failed")
 		os.Exit(1)
 	}
 
 	instanceID := xdiscovery.GenerateInstanceID(cfg.App.Name)
 	consulRegistry, err := xconsul.NewRegistry(cfg.Consul.Address)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
+		logger.Fatal().Err(err).Msg("failed to register consul discovery")
 		os.Exit(1)
 	}
 
 	ctx := context.Background()
-	if err := consulRegistry.Register(ctx, instanceID, cfg.App.Name, fmt.Sprintf("%v:%d", cfg.App.Host, cfg.App.Port)); err != nil {
-		logger.Fatal().Err(err).Msg("Failed to register consul discovery")
+	if err := consulRegistry.Register(ctx, instanceID, cfg.App.Name, fmt.Sprintf("%v:%d", cfg.Http.Host, cfg.Http.Port)); err != nil {
+		logger.Fatal().Err(err).Msg("failed to register consul discovery")
 		os.Exit(1)
 	}
 
 	go func() {
 		for {
 			if err := consulRegistry.ReportHealthyState(instanceID, cfg.App.Name); err != nil {
-				logger.Info().Msg("Failed to report healthy state: " + err.Error())
+				logger.Info().Msg("failed to report healthy state: " + err.Error())
 			}
 			time.Sleep(1 * time.Second)
 		}
 	}()
 	defer consulRegistry.Deregister(ctx, instanceID, cfg.App.Name)
 
-	store := account.NewStore(db, logger)
-	service := account.NewService(cfg, logger)
-	handler := account.NewHandler(store, service, logger)
-	customMiddleware := account.NewCustomMiddleware(service)
-
-	e := echo.New()
-	e.HideBanner = false
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Validator = &account.CustomValidator{Validator: validator.New()}
-
-	v1 := e.Group("/api/v1/accounts")
-	{
-		v1.GET("/healthz", func(c echo.Context) error {
-			return c.JSON(http.StatusOK, map[string]string{
-				"status":  "ok",
-				"service": "account-service",
-			})
-		})
-		v1.GET("/swagger/*", echoSwagger.WrapHandler)
-
-		v1.POST("/sign-up", handler.SignUp)
-		v1.POST("/sign-in", handler.SignIn, middleware.RateLimiterWithConfig(customMiddleware.RateLimiterConfig()))
-		v1.POST("/validate", handler.Validate)
-		v1.GET("/me", handler.GetMe, customMiddleware.XUserID())
-	}
+	httpServer := server.NewHttpServer(cfg, logger, db)
 
 	go func() {
-		addr := fmt.Sprintf(":%d", cfg.App.Port)
-		logger.Info().Msgf("Server running at %s", addr)
-		if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
-			logger.Fatal().Err(err).Msg("Failed to start server")
+		if err := httpServer.Start(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal().Err(err).Msg("failed to start server")
 			os.Exit(1)
 		}
 	}()
@@ -150,15 +120,15 @@ func main() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
 	<-quit
-	logger.Info().Msg("Shutting down server...")
+	logger.Info().Msg("shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := e.Shutdown(ctx); err != nil {
-		logger.Fatal().Err(err).Msg("Graceful shutdown failed")
+	if err := httpServer.Stop(ctx); err != nil {
+		logger.Fatal().Err(err).Msg("graceful shutdown failed")
 		os.Exit(1)
 	}
 
-	logger.Info().Msg("Server stopped gracefully")
+	logger.Info().Msg("server stopped gracefully")
 }
