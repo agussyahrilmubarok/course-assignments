@@ -5,7 +5,7 @@
 - [🧩 dicoding-be-javascript](../dicoding-be-javascript/)
 - [🧩 dicoding-md-android](../dicoding-md-android/)
 - [💤 fc-msa-blackfriday](../fc-msa-blackfriday/)
-- [🌟 fc-msa-gocoupon](../fc-msa-gocoupon/)
+- [🧰 fc-msa-gocoupon](../fc-msa-gocoupon/)
 - [🌟 fc-msa-promotions](../fc-msa-promotions/)
 - [🌟 fc-msa-traffic](../fc-msa-traffic/)
 - [🧩 fc-spring-top-kr](../fc-spring-top-kr/)
