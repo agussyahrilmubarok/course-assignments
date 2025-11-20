@@ -13,12 +13,18 @@ import (
 
 type Handler struct {
 	db     *config.Postgres
+	rdb    *config.Redis
 	logger *zap.Logger
 }
 
-func NewHandler(db *config.Postgres, logger *zap.Logger) *Handler {
+func NewHandler(
+	db *config.Postgres,
+	rdb *config.Redis,
+	logger *zap.Logger,
+) *Handler {
 	return &Handler{
 		db:     db,
+		rdb:    rdb,
 		logger: logger,
 	}
 }
@@ -62,6 +68,7 @@ func (h *Handler) InitDummyV1(c echo.Context) error {
 			UpdatedAt:             now,
 		}
 
+		// Insert Coupon Policy Records
 		_, err := h.db.Pool.Exec(ctx, `
 			INSERT INTO coupon_policies (
 				id, code, name, description, total_quantity,
@@ -83,6 +90,8 @@ func (h *Handler) InitDummyV1(c echo.Context) error {
 
 func (h *Handler) CleanDummyV1(c echo.Context) error {
 	ctx := c.Request().Context()
+
+	// Delete CouponPolicy records in Postgres
 	_, err := h.db.Pool.Exec(ctx, `DELETE FROM coupon_policies`)
 	if err != nil {
 		h.logger.Error("failed to clean dummy data", zap.Error(err))
@@ -116,6 +125,7 @@ func (h *Handler) InitDummyV2(c echo.Context) error {
 
 	for _, e := range events {
 		policyID := uuid.New().String()
+
 		policy := &coupon.CouponPolicy{
 			ID:                    policyID,
 			Code:                  e.Code,
@@ -132,6 +142,7 @@ func (h *Handler) InitDummyV2(c echo.Context) error {
 			UpdatedAt:             now,
 		}
 
+		// Insert CouponPolicy records in Postgres
 		_, err := h.db.Pool.Exec(ctx, `
 			INSERT INTO coupon_policies (
 				id, code, name, description, total_quantity,
@@ -145,20 +156,58 @@ func (h *Handler) InitDummyV2(c echo.Context) error {
 			h.logger.Error("failed to insert policy", zap.Error(err))
 			return c.JSON(500, map[string]string{"error": err.Error()})
 		}
+
+		// Insert CouponPolicy quantity in Redis
+		redisKey := "coupon:policy:quantity:" + e.Code
+		ttl := time.Until(now.Add(e.EndOffset))
+		if ttl <= 0 {
+			ttl = time.Millisecond
+		}
+
+		if err := h.rdb.Client.Set(ctx, redisKey, e.TotalQty, ttl).Err(); err != nil {
+			h.logger.Error("failed to insert coupon policy quantity", zap.Error(err))
+			_, _ = h.db.Pool.Exec(ctx, `DELETE FROM coupon_policies WHERE code = $1`, e.Code)
+			return c.JSON(500, map[string]string{"error": err.Error()})
+		}
 	}
 
-	h.logger.Info("coupon policy dummy data v1 successfully inserted")
-	return c.JSON(200, map[string]string{"status": "coupon policy dummy data v1 initialized"})
+	h.logger.Info("coupon policy dummy data v2 successfully inserted")
+	return c.JSON(200, map[string]string{"status": "coupon policy dummy data v2 initialized"})
 }
 
 func (h *Handler) CleanDummyV2(c echo.Context) error {
 	ctx := c.Request().Context()
-	_, err := h.db.Pool.Exec(ctx, `DELETE FROM coupon_policies`)
+
+	rows, err := h.db.Pool.Query(ctx, `SELECT code FROM coupon_policies`)
+	if err != nil {
+		h.logger.Error("failed to fetch policy codes", zap.Error(err))
+		return c.JSON(500, map[string]string{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	var codes []string
+	for rows.Next() {
+		var code string
+		if err := rows.Scan(&code); err == nil {
+			codes = append(codes, code)
+		}
+	}
+
+	// Delete CouponPolicy quantity in Redis
+	for _, code := range codes {
+		redisKey := "coupon:policy:quantity:" + code
+		if err := h.rdb.Client.Del(ctx, redisKey).Err(); err != nil {
+			h.logger.Warn("failed to delete redis key", zap.String("key", redisKey), zap.Error(err))
+		}
+	}
+
+	// Delete CouponPolicy records in Postgres
+	_, err = h.db.Pool.Exec(ctx, `DELETE FROM coupon_policies`)
 	if err != nil {
 		h.logger.Error("failed to clean dummy data", zap.Error(err))
 		return c.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	h.logger.Info("coupon policy dummy data v1 cleaned successfully")
-	return c.JSON(200, map[string]string{"status": "coupon policy dummy data v1 cleaned"})
+	h.logger.Info("coupon policy dummy data v2 cleaned successfully")
+	return c.JSON(200, map[string]string{"status": "coupon policy dummy data v2 cleaned"})
 }

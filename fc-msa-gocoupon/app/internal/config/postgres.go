@@ -30,7 +30,9 @@ func NewPostgres(ctx context.Context, cfg *Config) (*Postgres, error) {
 		return nil, err
 	}
 
-	return &Postgres{Pool: pool}, nil
+	return &Postgres{
+		Pool: pool,
+	}, nil
 }
 
 func (d *Postgres) Close() {

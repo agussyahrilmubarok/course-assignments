@@ -49,5 +49,7 @@ func NewLogging(cfg *Config) (*Logging, error) {
 
 	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
-	return &Logging{Logger: logger}, nil
+	return &Logging{
+		Logger: logger,
+	}, nil
 }

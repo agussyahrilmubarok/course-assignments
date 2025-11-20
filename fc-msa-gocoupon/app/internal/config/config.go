@@ -7,6 +7,11 @@ import (
 )
 
 type Config struct {
+	Logging struct {
+		Filepath string `mapstructure:"filepath"`
+		Level    string `mapstructure:"level"`
+	} `mapstructure:"logging"`
+
 	Postgres struct {
 		URL               string        `mapstructure:"url"`
 		MaxConns          int32         `mapstructure:"max_conns"`
@@ -15,10 +20,12 @@ type Config struct {
 		HealthCheckPeriod time.Duration `mapstructure:"health_check_period"`
 	} `mapstructure:"postgres"`
 
-	Logging struct {
-		Filepath string `mapstructure:"filepath"`
-		Level    string `mapstructure:"level"`
-	} `mapstructure:"logging"`
+	Redis struct {
+		Host     string `mapstructure:"host"`
+		Port     int    `mapstructure:"port"`
+		Password string `mapstructure:"password"`
+		DB       int    `mapstructure:"db"`
+	} `mapstructure:"redis"`
 }
 
 func NewConfig(filepath string) (*Config, error) {

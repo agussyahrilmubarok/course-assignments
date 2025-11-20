@@ -35,20 +35,29 @@ func main() {
 	logger := logging.Logger
 
 	ctx := context.Background()
+
 	pg, err := config.NewPostgres(ctx, cfg)
 	if err != nil {
 		logger.Fatal("failed to connect postgres", zap.Error(err))
 	}
 	defer pg.Close()
 
+	rdb, err := config.NewRedis(ctx, cfg)
+	if err != nil {
+		logger.Fatal("failed to connect postgres", zap.Error(err))
+	}
+	defer rdb.Close()
+
 	e := echo.New()
 	e.GET("/health", func(c echo.Context) error {
 		return c.String(http.StatusOK, "OK")
 	})
 
-	dummyHandler := dummy.NewHandler(pg, logger)
+	dummyHandler := dummy.NewHandler(pg, rdb, logger)
 	e.GET("/init-dummy-v1", dummyHandler.InitDummyV1)
 	e.GET("/clean-dummy-v1", dummyHandler.CleanDummyV1)
+	e.GET("/init-dummy-v2", dummyHandler.InitDummyV2)
+	e.GET("/clean-dummy-v2", dummyHandler.CleanDummyV2)
 
 	serverAddr := ":8080"
 	go func() {
