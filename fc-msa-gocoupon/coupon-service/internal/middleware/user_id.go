@@ -37,12 +37,12 @@ func UserIDMiddleware() gin.HandlerFunc {
 func GetCurrentUserID(c *gin.Context) (string, error) {
 	userID, exists := c.Get(userIDKey)
 	if !exists {
-		return "", errors.New("user ID not found in context")
+		return "", errors.New("user id not found in context")
 	}
 
 	idStr, ok := userID.(string)
 	if !ok || idStr == "" {
-		return "", errors.New("user ID is invalid in context")
+		return "", errors.New("user id is invalid in context")
 	}
 
 	return idStr, nil

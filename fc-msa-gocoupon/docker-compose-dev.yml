@@ -6,10 +6,10 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: my-secret-pw
+      POSTGRES_DB: coupon_db
     ports:
       - "5432:5432"
     volumes:
-      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
     networks:
       - coupon_net
@@ -104,3 +104,4 @@ volumes:
 
 networks:
   coupon_net:
+    driver: bridge

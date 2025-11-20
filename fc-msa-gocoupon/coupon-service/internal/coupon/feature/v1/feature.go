@@ -71,14 +71,14 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("coupon_policy_code", couponPolicyCode).
-				Msg("Coupon policy not found")
-			return nil, exception.NewNotFound("Coupon policy not found", err)
+				Msg("coupon policy not found")
+			return nil, exception.NewNotFound("coupon policy not found", err)
 		}
 		log.Error().
 			Str("coupon_policy_code", couponPolicyCode).
 			Err(err).
 			Msg("Failed to get coupon policy")
-		return nil, exception.NewInternal("Failed to get coupon policy", err)
+		return nil, exception.NewInternal("failed to get coupon policy", err)
 	}
 
 	if !couponPolicy.IsValidPeriodUnix() {
@@ -88,8 +88,8 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 			Str("coupon_policy_code", couponPolicy.Code).
 			Str("coupon_policy_start_time", couponPolicy.StartTime.Format(time.RFC3339)).
 			Str("coupon_policy_end_time", couponPolicy.EndTime.Format(time.RFC3339)).
-			Msg("Coupon policy is not valid in the current period")
-		return nil, exception.NewBadRequest("Coupon policy is not valid in current period", err)
+			Msg("coupon policy is not valid in the current period")
+		return nil, exception.NewBadRequest("coupon policy is not valid in current period", err)
 	}
 
 	if couponPolicy.GetIssuedQuantity() >= couponPolicy.TotalQuantity {
@@ -99,8 +99,8 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 			Str("coupon_policy_code", couponPolicy.Code).
 			Int("coupon_policy_total_quantity", couponPolicy.TotalQuantity).
 			Int("coupon_policy_issued_quantity", couponPolicy.GetIssuedQuantity()).
-			Msg("Coupon policy quota exceeded")
-		return nil, exception.NewBadRequest("Coupon policy quota exceeded", err)
+			Msg("coupon policy quota exceeded")
+		return nil, exception.NewBadRequest("coupon policy quota exceeded", err)
 	}
 
 	newCoupon := coupon.Coupon{
@@ -117,7 +117,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 			Str("user_id", userID).
 			Err(err).
 			Msg("Failed to issue new coupon")
-		return nil, exception.NewInternal("Failed to issue coupon", err)
+		return nil, exception.NewInternal("failed to issue coupon", err)
 	}
 
 	instrument.CouponQuota.WithLabelValues(couponPolicy.Code).Set(float64(couponPolicy.TotalQuantity))
@@ -129,7 +129,7 @@ func (f *couponFeature) IssueCoupon(ctx context.Context, couponPolicyCode string
 		Str("coupon_policy_code", couponPolicyCode).
 		Str("coupon_code", newCoupon.Code).
 		Str("user_id", userID).
-		Msg("Coupon issued successfully")
+		Msg("coupon issued successfully")
 	return &newCoupon, nil
 }
 
@@ -158,15 +158,15 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 			log.Warn().
 				Str("coupon_code", couponCode).
 				Str("user_id", userID).
-				Msg("Coupon not found")
-			return nil, exception.NewNotFound("Coupon not found", err)
+				Msg("coupon not found")
+			return nil, exception.NewNotFound("coupon not found", err)
 		}
 		log.Error().
 			Str("coupon_code", couponCode).
 			Str("user_id", userID).
 			Err(err).
-			Msg("Failed to fetch coupon")
-		return nil, exception.NewInternal("Failed to fetch coupon", err)
+			Msg("failed to fetch coupon")
+		return nil, exception.NewInternal("failed to fetch coupon", err)
 	}
 
 	if err := coupon.Use(orderID); err != nil {
@@ -176,8 +176,8 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 			Str("coupon_status", string(coupon.Status)).
 			Str("user_id", userID).
 			Err(err).
-			Msg("Failed to use coupon")
-		return nil, exception.NewBadRequest("Failed to use coupon", err)
+			Msg("failed to use coupon")
+		return nil, exception.NewBadRequest("failed to use coupon", err)
 	}
 
 	if err := f.db.WithContext(ctx).Save(&coupon).Error; err != nil {
@@ -188,8 +188,8 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 			Str("user_id", userID).
 			Str("order_id", orderID).
 			Err(err).
-			Msg("Failed to save use coupon")
-		return nil, exception.NewInternal("Failed to save use coupon", err)
+			Msg("failed to save use coupon")
+		return nil, exception.NewInternal("failed to save use coupon", err)
 	}
 
 	span.SetStatus(codes.Ok, "UseCoupon")
@@ -198,7 +198,7 @@ func (f *couponFeature) UseCoupon(ctx context.Context, couponCode string, userID
 		Str("coupon_status", string(coupon.Status)).
 		Str("user_id", userID).
 		Str("order_id", orderID).
-		Msg("Coupon used successfully")
+		Msg("coupon used successfully")
 	return &coupon, nil
 }
 
@@ -226,15 +226,15 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 			log.Warn().
 				Str("coupon_code", couponCode).
 				Str("user_id", userID).
-				Msg("Coupon not found")
-			return nil, exception.NewNotFound("Coupon not found", err)
+				Msg("coupon not found")
+			return nil, exception.NewNotFound("coupon not found", err)
 		}
 		log.Error().
 			Str("coupon_code", couponCode).
 			Str("user_id", userID).
 			Err(err).
-			Msg("Failed to fetch coupon")
-		return nil, exception.NewInternal("Failed to fetch coupon", err)
+			Msg("failed to fetch coupon")
+		return nil, exception.NewInternal("failed to fetch coupon", err)
 	}
 
 	if err := coupon.Cancel(); err != nil {
@@ -244,8 +244,8 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 			Str("coupon_status", string(coupon.Status)).
 			Str("user_id", userID).
 			Err(err).
-			Msg("Failed to cancel coupon")
-		return nil, exception.NewBadRequest("Failed to cancel coupon", err)
+			Msg("failed to cancel coupon")
+		return nil, exception.NewBadRequest("failed to cancel coupon", err)
 	}
 
 	if err := f.db.WithContext(ctx).Save(&coupon).Error; err != nil {
@@ -255,8 +255,8 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 			Str("coupon_status", string(coupon.Status)).
 			Str("user_id", userID).
 			Err(err).
-			Msg("Failed to save use coupon")
-		return nil, exception.NewInternal("Failed to save cancel coupon", err)
+			Msg("failed to save use coupon")
+		return nil, exception.NewInternal("failed to save cancel coupon", err)
 	}
 
 	span.SetStatus(codes.Ok, "CancelCoupon")
@@ -264,7 +264,7 @@ func (f *couponFeature) CancelCoupon(ctx context.Context, couponCode string, use
 		Str("coupon_code", coupon.Code).
 		Str("coupon_status", string(coupon.Status)).
 		Str("user_id", userID).
-		Msg("Coupon cancel successfully")
+		Msg("coupon cancel successfully")
 	return &coupon, nil
 }
 
@@ -291,22 +291,22 @@ func (f *couponFeature) FindCouponByCode(ctx context.Context, couponCode string,
 			log.Warn().
 				Str("coupon_code", couponCode).
 				Str("user_id", userID).
-				Msg("Coupon not found")
-			return nil, exception.NewNotFound("Coupon not found", err)
+				Msg("coupon not found")
+			return nil, exception.NewNotFound("coupon not found", err)
 		}
 		log.Error().
 			Str("coupon_code", couponCode).
 			Str("user_id", userID).
 			Err(err).
-			Msg("Failed to fetch coupon")
-		return nil, exception.NewInternal("Failed to fetch coupon", err)
+			Msg("failed to fetch coupon")
+		return nil, exception.NewInternal("failed to fetch coupon", err)
 	}
 
 	span.SetStatus(codes.Ok, "FindCouponByCode")
 	log.Info().
 		Str("coupon_code", c.Code).
 		Str("user_id", userID).
-		Msg("Coupon found successfully")
+		Msg("coupon found successfully")
 	return &c, nil
 }
 
@@ -330,15 +330,15 @@ func (f *couponFeature) FindCouponsByUserID(ctx context.Context, userID string) 
 		log.Error().
 			Str("user_id", userID).
 			Err(err).
-			Msg("Failed to fetch coupons by user")
-		return nil, exception.NewInternal("Failed to fetch coupons by user", err)
+			Msg("failed to fetch coupons by user")
+		return nil, exception.NewInternal("failed to fetch coupons by user", err)
 	}
 
 	span.SetStatus(codes.Ok, "FindCouponsByUserID")
 	log.Info().
 		Str("user_id", userID).
 		Int("coupon_count", len(coupons)).
-		Msg("Fetched coupons for user successfully")
+		Msg("fetched coupons for user successfully")
 	return coupons, nil
 }
 
@@ -361,14 +361,14 @@ func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, coupo
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Warn().
 				Str("coupon_policy_code", couponPolicyCode).
-				Msg("Coupon policy not found")
-			return nil, exception.NewNotFound("Coupon policy not found", err)
+				Msg("coupon policy not found")
+			return nil, exception.NewNotFound("coupon policy not found", err)
 		}
 		log.Error().
 			Str("coupon_policy_code", couponPolicyCode).
 			Err(err).
-			Msg("Failed to fetch coupon policy")
-		return nil, exception.NewInternal("Failed to fetch coupon policy", err)
+			Msg("failed to fetch coupon policy")
+		return nil, exception.NewInternal("failed to fetch coupon policy", err)
 	}
 
 	var coupons []coupon.Coupon
@@ -379,8 +379,8 @@ func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, coupo
 		log.Error().
 			Str("coupon_policy_code", couponPolicyCode).
 			Err(err).
-			Msg("Failed to fetch coupons by policy code")
-		return nil, exception.NewInternal("Failed to fetch coupons by policy code", err)
+			Msg("failed to fetch coupons by policy code")
+		return nil, exception.NewInternal("failed to fetch coupons by policy code", err)
 	}
 
 	instrument.CouponQuota.WithLabelValues(policy.Code).Set(float64(policy.TotalQuantity))
@@ -390,6 +390,6 @@ func (f *couponFeature) FindCouponsByCouponPolicyCode(ctx context.Context, coupo
 	log.Info().
 		Str("coupon_policy_code", couponPolicyCode).
 		Int("coupon_count", len(coupons)).
-		Msg("Fetched coupons for policy successfully")
+		Msg("fetched coupons for policy successfully")
 	return coupons, nil
 }

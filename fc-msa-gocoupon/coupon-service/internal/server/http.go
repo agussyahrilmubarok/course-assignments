@@ -32,36 +32,54 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
-	db, err := config.NewPostgres(cfg)
+type HttpServer struct {
+	ginEngine *gin.Engine
+	cfg       *config.Config
+	logger    zerolog.Logger
+}
+
+func NewHttpServer(cfg *config.Config, logger zerolog.Logger) *HttpServer {
+	return &HttpServer{
+		ginEngine: gin.Default(),
+		cfg:       cfg,
+		logger:    logger,
+	}
+}
+
+func (s *HttpServer) Run() error {
+	db, err := config.NewPostgres(s.cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to database")
-		os.Exit(1)
+		s.logger.Fatal().Err(err).Msg("failed to connect to database")
 	}
 
 	if err := db.AutoMigrate(&coupon.Coupon{}, &coupon.CouponPolicy{}); err != nil {
-		log.Fatal().Err(err).Msg("AutoMigrate failed")
+		s.logger.Fatal().Err(err).Msg("auto migrate failed")
 		os.Exit(1)
 	}
 
-	rdb, err := config.NewRedis(cfg)
+	rdb, err := config.NewRedis(s.cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to redis")
+		s.logger.Fatal().Err(err).Msg("failed to connect to redis")
 		os.Exit(1)
 	}
 
-	tracer := otel.Tracer(cfg.App.Name)
-	cache := cache.NewCache(rdb, log, tracer)
+	tracer := otel.Tracer(s.cfg.App.Name)
+	cache := cache.NewCache(rdb, s.logger, tracer)
 
-	r := gin.Default()
-	r.Use(instrument.Middleware(tracer, log))
-	r.Use(instrument.MetricAppMiddleware)
+	s.ginEngine.Use(instrument.Middleware(tracer, s.logger))
+	s.ginEngine.Use(instrument.MetricAppMiddleware)
 
-	apiRoute := r.Group("/api")
+	s.ginEngine.GET("/healthz", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
+		})
+	})
 
-	couponFeatureV1 := featureV1.NewCouponFeature(db, log, tracer)
-	couponPolicyHandlerV1 := v1.NewCouponPolicyHandler(db, log, tracer)
-	couponHandlerV1 := v1.NewCouponHandler(couponFeatureV1, log, tracer)
+	apiRoute := s.ginEngine.Group("/api")
+
+	couponFeatureV1 := featureV1.NewCouponFeature(db, s.logger, tracer)
+	couponPolicyHandlerV1 := v1.NewCouponPolicyHandler(db, s.logger, tracer)
+	couponHandlerV1 := v1.NewCouponHandler(couponFeatureV1, s.logger, tracer)
 
 	// V1 routes
 	v1Group := apiRoute.Group("/v1")
@@ -83,9 +101,9 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		))
 	}
 
-	couponFeatureV2 := featureV2.NewCouponFeature(db, log, tracer)
-	couponPolicyHandlerV2 := v2.NewCouponPolicyHandler(db, log, tracer)
-	couponHandlerV2 := v2.NewCouponHandler(couponFeatureV2, log, tracer)
+	couponFeatureV2 := featureV2.NewCouponFeature(db, s.logger, tracer)
+	couponPolicyHandlerV2 := v2.NewCouponPolicyHandler(db, s.logger, tracer)
+	couponHandlerV2 := v2.NewCouponHandler(couponFeatureV2, s.logger, tracer)
 
 	// V2 routes
 	v2Group := apiRoute.Group("/v2")
@@ -107,9 +125,9 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		))
 	}
 
-	couponFeatureV3 := featureV3.NewCouponFeature(db, rdb, cache, log, tracer)
-	couponPolicyHandlerV3 := v3.NewCouponPolicyHandler(db, cache, log, tracer)
-	couponHandlerV3 := v3.NewCouponHandler(couponFeatureV3, log, tracer)
+	couponFeatureV3 := featureV3.NewCouponFeature(db, rdb, cache, s.logger, tracer)
+	couponPolicyHandlerV3 := v3.NewCouponPolicyHandler(db, cache, s.logger, tracer)
+	couponHandlerV3 := v3.NewCouponHandler(couponFeatureV3, s.logger, tracer)
 
 	// V3 routes
 	v3Group := apiRoute.Group("/v3")
@@ -131,12 +149,13 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		))
 	}
 
-	couponKafkaProducerV4 := featureV4.NewKafkaProducer(cfg.Kafka.Brokers, log, tracer)
-	couponFeatureV4 := featureV4.NewCouponFeature(db, rdb, cache, couponKafkaProducerV4, log, tracer)
-	couponPolicyHandlerV4 := v4.NewCouponPolicyHandler(db, cache, log, tracer)
-	couponHandlerV4 := v4.NewCouponHandler(couponFeatureV4, log, tracer)
+	couponKafkaProducerV4 := featureV4.NewKafkaProducer(s.cfg.Kafka.Brokers, s.logger, tracer)
 
-	CouponKafkaConsumerV4 = featureV4.NewKafkaConsumer(cfg.Kafka.Brokers, cfg.Kafka.GroupID, couponFeatureV4, log, tracer)
+	couponFeatureV4 := featureV4.NewCouponFeature(db, rdb, cache, couponKafkaProducerV4, s.logger, tracer)
+	couponPolicyHandlerV4 := v4.NewCouponPolicyHandler(db, cache, s.logger, tracer)
+	couponHandlerV4 := v4.NewCouponHandler(couponFeatureV4, s.logger, tracer)
+
+	CouponKafkaConsumerV4 = featureV4.NewKafkaConsumer(s.cfg.Kafka.Brokers, s.cfg.Kafka.GroupID, couponFeatureV4, s.logger, tracer)
 
 	// V4 routes
 	v4Group := apiRoute.Group("/v4")
@@ -158,17 +177,6 @@ func NewGinRouter(cfg *config.Config, log zerolog.Logger) *http.Server {
 		))
 	}
 
-	r.GET("/healthz", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "ok",
-			"service": cfg.App.Name,
-		})
-	})
-
-	serverAddr := fmt.Sprintf(":%v", cfg.App.Port)
-
-	return &http.Server{
-		Addr:    serverAddr,
-		Handler: r,
-	}
+	serverPort := fmt.Sprintf(":%d", 8080)
+	return s.ginEngine.Run(serverPort)
 }

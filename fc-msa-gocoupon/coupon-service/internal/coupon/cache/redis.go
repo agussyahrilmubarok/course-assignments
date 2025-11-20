@@ -64,7 +64,7 @@ func (c *cache) SetCouponPolicyQuantity(ctx context.Context, couponPolicyCode st
 
 	if err := c.rdb.Set(ctx, key, quantity, ttl).Err(); err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("key", key).Msg("Failed to set coupon policy quantity")
+		log.Error().Err(err).Str("key", key).Msg("failed to set coupon policy quantity")
 		return err
 	}
 
@@ -89,7 +89,7 @@ func (c *cache) GetCouponPolicyQuantity(ctx context.Context, couponPolicyCode st
 	}
 	if err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("key", key).Msg("Failed to get coupon policy quantity")
+		log.Error().Err(err).Str("key", key).Msg("failed to get coupon policy quantity")
 		return 0, err
 	}
 
@@ -108,7 +108,7 @@ func (c *cache) DeleteCouponPolicyQuantity(ctx context.Context, couponPolicyCode
 	key := "coupon:policy:quantity:" + couponPolicyCode
 	if err := c.rdb.Del(ctx, key).Err(); err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("key", key).Msg("Failed to delete coupon policy quantity")
+		log.Error().Err(err).Str("key", key).Msg("failed to delete coupon policy quantity")
 		return err
 	}
 
@@ -128,7 +128,7 @@ func (c *cache) DecrementAndGetCouponPolicyQuantity(ctx context.Context, couponP
 	val, err := c.rdb.Decr(ctx, key).Result()
 	if err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("key", key).Msg("Failed to decrement and get coupon policy quantity")
+		log.Error().Err(err).Str("key", key).Msg("failed to decrement and get coupon policy quantity")
 		return 0, err
 	}
 
@@ -148,7 +148,7 @@ func (c *cache) IncrementAndGetCouponPolicyQuantity(ctx context.Context, couponP
 	val, err := c.rdb.Incr(ctx, key).Result()
 	if err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("key", key).Msg("Failed to increment and get coupon policy quantity")
+		log.Error().Err(err).Str("key", key).Msg("failed to increment and get coupon policy quantity")
 		return 0, err
 	}
 
@@ -174,17 +174,17 @@ func (c *cache) SetCouponState(ctx context.Context, cp coupon.Coupon, endTime ti
 	data, err := json.Marshal(cp)
 	if err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("coupon_code", cp.Code).Msg("Failed to marshal coupon state")
+		log.Error().Err(err).Str("coupon_code", cp.Code).Msg("failed to marshal coupon state")
 		return err
 	}
 
 	if err := c.rdb.Set(ctx, key, data, ttl).Err(); err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("key", key).Msg("Failed to set coupon state")
+		log.Error().Err(err).Str("key", key).Msg("failed to set coupon state")
 		return err
 	}
 
-	log.Debug().Str("coupon_code", cp.Code).Msg("Coupon state cached successfully")
+	log.Debug().Str("coupon_code", cp.Code).Msg("coupon state cached successfully")
 	return nil
 }
 
@@ -204,14 +204,14 @@ func (c *cache) GetCouponState(ctx context.Context, couponCode string) (*coupon.
 	}
 	if err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("key", key).Msg("Failed to get coupon state")
+		log.Error().Err(err).Str("key", key).Msg("failed to get coupon state")
 		return nil, err
 	}
 
 	var cp coupon.Coupon
 	if err := json.Unmarshal([]byte(val), &cp); err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("coupon_code", couponCode).Msg("Failed to unmarshal coupon state")
+		log.Error().Err(err).Str("coupon_code", couponCode).Msg("failed to unmarshal coupon state")
 		return nil, err
 	}
 
@@ -230,10 +230,10 @@ func (c *cache) DeleteCouponState(ctx context.Context, couponCode string) error 
 	key := "coupon:state:" + couponCode
 	if err := c.rdb.Del(ctx, key).Err(); err != nil {
 		span.RecordError(err)
-		log.Error().Err(err).Str("key", key).Msg("Failed to delete coupon state")
+		log.Error().Err(err).Str("key", key).Msg("failed to delete coupon state")
 		return err
 	}
 
-	log.Debug().Str("coupon_code", couponCode).Msg("Coupon state deleted successfully")
+	log.Debug().Str("coupon_code", couponCode).Msg("coupon state deleted successfully")
 	return nil
 }

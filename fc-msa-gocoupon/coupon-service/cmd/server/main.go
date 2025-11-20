@@ -21,13 +21,13 @@ func main() {
 
 	cfg, err := config.NewConfig(*configFlag)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
 		os.Exit(1)
 	}
 
 	logger, err := config.NewZerolog(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to setup logger: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to setup logger: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -36,26 +36,28 @@ func main() {
 	shutdownTrace := instrument.InitTraceProvider(ctx, cfg.App.Name, traceExporter)
 	defer shutdownTrace(ctx)
 
-	srv := server.NewGinRouter(cfg, logger)
+	logger.Info().Msg("starting server...")
+
+	httpServer := server.NewHttpServer(cfg, logger)
 	go func() {
-		logger.Info().Msg("Starting server on " + srv.Addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal().Err(err).Msg("Server failed")
+		if err := httpServer.Run(); err != nil && err != http.ErrServerClosed {
+			fmt.Fprintf(os.Stderr, "server failed: %v\n", err)
+			os.Exit(1)
 		}
 	}()
 
 	metricsServer := instrument.NewMetricServer(cfg)
 	go func() {
-		logger.Info().Msg("Starting server on " + metricsServer.Addr)
 		if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal().Err(err).Msg("Server failed")
+			fmt.Fprintf(os.Stderr, "metrics server failed: %v\n", err)
+			os.Exit(1)
 		}
 	}()
 
 	go func() {
-		logger.Info().Msg("Starting coupon kafka consumer")
 		if err := server.CouponKafkaConsumerV4.ConsumeCouponIssueRequest(ctx); err != nil {
-			logger.Fatal().Err(err).Msg("Kafka consumer stopped unexpectedly")
+			fmt.Fprintf(os.Stderr, "kafka consumer failed: %v\n", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -63,18 +65,15 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	<-stop
-	logger.Info().Msg("Shutting down server...")
+	logger.Info().Msg("shutting down server...")
 
 	ctxShutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctxShutdown); err != nil {
-		logger.Fatal().Err(err).Msg("Graceful shutdown failed")
-	}
-
 	if err := metricsServer.Shutdown(ctxShutdown); err != nil {
-		logger.Fatal().Err(err).Msg("Graceful shutdown failed")
+		logger.Fatal().Err(err).Msg("graceful shutdown failed")
 	}
 
-	logger.Info().Msg("Server stopped gracefully")
+	<-ctxShutdown.Done()
+	logger.Info().Msg("server stopped gracefully")
 }

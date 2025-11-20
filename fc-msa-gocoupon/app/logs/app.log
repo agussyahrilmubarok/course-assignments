@@ -1,0 +1,17 @@
+{"level":"INFO","time":"2025-11-20T13:54:41.063+0700","caller":"api/main.go:48","msg":"database connection successful","test_query":1}
+{"level":"INFO","time":"2025-11-20T13:54:41.068+0700","caller":"api/main.go:57","msg":"starting Echo server","addr":":8080"}
+{"level":"INFO","time":"2025-11-20T13:55:01.812+0700","caller":"api/main.go:66","msg":"shutting down server...","signal":"interrupt"}
+{"level":"INFO","time":"2025-11-20T13:55:01.816+0700","caller":"api/main.go:74","msg":"server exited gracefully"}
+{"level":"INFO","time":"2025-11-20T14:07:42.246+0700","caller":"api/main.go:49","msg":"database connection successful","test_query":1}
+{"level":"INFO","time":"2025-11-20T14:07:42.247+0700","caller":"api/main.go:62","msg":"starting echo server","addr":":8080"}
+{"level":"INFO","time":"2025-11-20T14:07:53.797+0700","caller":"dummy/handler.go:105","msg":"coupon policy dummy data v1 successfully"}
+{"level":"INFO","time":"2025-11-20T14:08:36.018+0700","caller":"dummy/handler.go:117","msg":"coupon policy dummy data v1 cleaned successfully"}
+{"level":"INFO","time":"2025-11-20T14:10:19.448+0700","caller":"api/main.go:71","msg":"shutting down server...","signal":"interrupt"}
+{"level":"INFO","time":"2025-11-20T14:10:19.448+0700","caller":"api/main.go:79","msg":"server exited gracefully"}
+{"level":"INFO","time":"2025-11-20T14:10:26.273+0700","caller":"api/main.go:49","msg":"database connection successful","test_query":1}
+{"level":"INFO","time":"2025-11-20T14:10:26.277+0700","caller":"api/main.go:62","msg":"starting echo server","addr":":8080"}
+{"level":"INFO","time":"2025-11-20T14:11:14.487+0700","caller":"dummy/handler.go:92","msg":"coupon policy dummy data v1 cleaned successfully"}
+{"level":"INFO","time":"2025-11-20T14:11:22.208+0700","caller":"dummy/handler.go:80","msg":"coupon policy dummy data v1 successfully inserted"}
+{"level":"INFO","time":"2025-11-20T14:13:18.757+0700","caller":"api/main.go:71","msg":"shutting down server...","signal":"interrupt"}
+{"level":"INFO","time":"2025-11-20T14:13:18.757+0700","caller":"api/main.go:79","msg":"server exited gracefully"}
+{"level":"FATAL","time":"2025-11-20T14:14:22.854+0700","caller":"api/main.go:40","msg":"failed to connect postgres","error":"failed to connect to `host=localhost user=postgres database=coupon_db`: dial error (dial tcp [::1]:5432: connect: connection refused)","stacktrace":"main.main\n\t/home/something/Workspaces/personal/course-assignments/fc-msa-gocoupon/course-assignments/fc-msa-gocoupon/app/cmd/api/main.go:40\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:285"}
