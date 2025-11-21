@@ -1,6 +1,9 @@
 package coupon
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type DiscountType string
 
@@ -25,4 +28,20 @@ type CouponPolicy struct {
 	UpdatedAt             time.Time    `json:"updated_at"`
 
 	Coupons []Coupon `json:"coupons,omitempty"`
+}
+
+func (c *CouponPolicy) IsValidPeriod() error {
+	now := time.Now().UTC()
+	start := c.StartTime.UTC()
+	end := c.EndTime.UTC()
+
+	if now.Before(start) {
+		return fmt.Errorf("coupon policy not active yet, starts at %s", start)
+	}
+	
+	if now.After(end) {
+		return fmt.Errorf("coupon policy expired at %s", end)
+	}
+
+	return nil
 }

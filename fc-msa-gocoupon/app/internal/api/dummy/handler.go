@@ -31,7 +31,7 @@ func NewHandler(
 
 func (h *Handler) InitDummyV1(c echo.Context) error {
 	ctx := c.Request().Context()
-	now := time.Now()
+	now := time.Now().UTC()
 
 	// 5 real-world cases, mix of ongoing, future, past events
 	events := []struct {
@@ -64,8 +64,6 @@ func (h *Handler) InitDummyV1(c echo.Context) error {
 			DiscountValue:         e.Discount,
 			MinimumOrderAmount:    50000,
 			MaximumDiscountAmount: 100000,
-			CreatedAt:             now,
-			UpdatedAt:             now,
 		}
 
 		// Insert Coupon Policy Records
@@ -73,11 +71,11 @@ func (h *Handler) InitDummyV1(c echo.Context) error {
 			INSERT INTO coupon_policies (
 				id, code, name, description, total_quantity,
 				start_time, end_time, discount_type, discount_value,
-				minimum_order_amount, maximum_discount_amount, created_at, updated_at
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+				minimum_order_amount, maximum_discount_amount
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 		`, policy.ID, policy.Code, policy.Name, policy.Description, policy.TotalQuantity,
-			policy.StartTime, policy.EndTime, policy.DiscountType, policy.DiscountValue,
-			policy.MinimumOrderAmount, policy.MaximumDiscountAmount, policy.CreatedAt, policy.UpdatedAt)
+			policy.StartTime.UTC(), policy.EndTime.UTC(), policy.DiscountType, policy.DiscountValue,
+			policy.MinimumOrderAmount, policy.MaximumDiscountAmount)
 		if err != nil {
 			h.logger.Error("failed to insert policy", zap.Error(err))
 			return c.JSON(500, map[string]string{"error": err.Error()})
@@ -104,7 +102,7 @@ func (h *Handler) CleanDummyV1(c echo.Context) error {
 
 func (h *Handler) InitDummyV2(c echo.Context) error {
 	ctx := c.Request().Context()
-	now := time.Now()
+	now := time.Now().UTC()
 
 	// 5 real-world cases, mix of ongoing, future, past events
 	events := []struct {
@@ -138,8 +136,6 @@ func (h *Handler) InitDummyV2(c echo.Context) error {
 			DiscountValue:         e.Discount,
 			MinimumOrderAmount:    50000,
 			MaximumDiscountAmount: 100000,
-			CreatedAt:             now,
-			UpdatedAt:             now,
 		}
 
 		// Insert CouponPolicy records in Postgres
@@ -147,11 +143,11 @@ func (h *Handler) InitDummyV2(c echo.Context) error {
 			INSERT INTO coupon_policies (
 				id, code, name, description, total_quantity,
 				start_time, end_time, discount_type, discount_value,
-				minimum_order_amount, maximum_discount_amount, created_at, updated_at
-			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+				minimum_order_amount, maximum_discount_amount
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
 		`, policy.ID, policy.Code, policy.Name, policy.Description, policy.TotalQuantity,
-			policy.StartTime, policy.EndTime, policy.DiscountType, policy.DiscountValue,
-			policy.MinimumOrderAmount, policy.MaximumDiscountAmount, policy.CreatedAt, policy.UpdatedAt)
+			policy.StartTime.UTC(), policy.EndTime.UTC(), policy.DiscountType, policy.DiscountValue,
+			policy.MinimumOrderAmount, policy.MaximumDiscountAmount)
 		if err != nil {
 			h.logger.Error("failed to insert policy", zap.Error(err))
 			return c.JSON(500, map[string]string{"error": err.Error()})

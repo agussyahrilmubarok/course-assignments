@@ -1,4 +1,8 @@
--- Create type for CouponStatus
+-- ==========================================
+-- Types
+-- ==========================================
+
+-- CouponStatus enum
 CREATE TYPE coupon_status AS ENUM (
     'AVAILABLE',
     'USED',
@@ -6,13 +10,17 @@ CREATE TYPE coupon_status AS ENUM (
     'CANCELED'
 );
 
--- Create type for DiscountType
+-- DiscountType enum
 CREATE TYPE discount_type AS ENUM (
     'FIXED_AMOUNT',
     'PERCENTAGE'
 );
 
--- CouponPolicy table first (parent)
+-- ==========================================
+-- Tables
+-- ==========================================
+
+-- CouponPolicy table (parent)
 CREATE TABLE coupon_policies (
     id TEXT PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
@@ -25,8 +33,8 @@ CREATE TABLE coupon_policies (
     discount_value INT NOT NULL,
     minimum_order_amount INT NOT NULL,
     maximum_discount_amount INT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Coupon table (child)
@@ -38,12 +46,52 @@ CREATE TABLE coupons (
     user_id TEXT NOT NULL,
     order_id TEXT,
     coupon_policy_id TEXT NOT NULL REFERENCES coupon_policies(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- ==========================================
 -- Indexes
+-- ==========================================
+
 CREATE INDEX idx_coupons_code ON coupons (code);
 CREATE INDEX idx_coupons_status ON coupons (status);
 CREATE INDEX idx_coupons_user_id ON coupons (user_id);
 CREATE INDEX idx_coupons_coupon_policy_id ON coupons (coupon_policy_id);
+
+-- ==========================================
+-- Triggers for automatic updated_at
+-- ==========================================
+
+-- Function for coupon_policies
+CREATE OR REPLACE FUNCTION update_coupon_policies_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_coupon_policies_updated_at
+BEFORE UPDATE ON coupon_policies
+FOR EACH ROW
+EXECUTE FUNCTION update_coupon_policies_updated_at();
+
+-- Function for coupons
+CREATE OR REPLACE FUNCTION update_coupons_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_coupons_updated_at
+BEFORE UPDATE ON coupons
+FOR EACH ROW
+EXECUTE FUNCTION update_coupons_updated_at();
+
+-- ==========================================
+-- Set database default timezone to UTC
+-- ==========================================
+ALTER DATABASE current_database() SET timezone = 'UTC';

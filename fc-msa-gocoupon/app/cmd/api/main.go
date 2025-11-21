@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"example.com/coupon-service/internal/api/dummy"
+	v1 "example.com/coupon-service/internal/api/v1"
 	"example.com/coupon-service/internal/config"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -58,6 +59,9 @@ func main() {
 	e.GET("/clean-dummy-v1", dummyHandler.CleanDummyV1)
 	e.GET("/init-dummy-v2", dummyHandler.InitDummyV2)
 	e.GET("/clean-dummy-v2", dummyHandler.CleanDummyV2)
+
+	apiV1 := e.Group("/api/v1")
+	v1.RegisterAPIV1(apiV1, pg, logger)
 
 	serverAddr := ":8080"
 	go func() {
