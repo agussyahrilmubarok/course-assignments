@@ -24,3 +24,34 @@ type Coupon struct {
 
 	CouponPolicy *CouponPolicy `json:"coupon_policy,omitempty"`
 }
+
+// Use marks the coupon as used with given orderId, or returns an error
+func (c *Coupon) Use(orderId string) error {
+	if c.Status == CouponStatusUsed {
+		return ErrCouponAlreadyUsed
+	}
+	if c.Status == CouponStatusExpired {
+		return ErrCouponExpired
+	}
+	if c.Status == CouponStatusCanceled {
+		return ErrCouponCanceled
+	}
+
+	now := time.Now()
+	c.Status = CouponStatusUsed
+	c.OrderID = &orderId
+	c.UsedAt = &now
+	return nil
+}
+
+// Cancel reverts the coupon to CANCELED if previously used, or returns an error
+func (c *Coupon) Cancel() error {
+	if c.Status != CouponStatusUsed {
+		return ErrCouponNotUsed
+	}
+
+	c.Status = CouponStatusCanceled
+	c.OrderID = nil
+	c.UsedAt = nil
+	return nil
+}

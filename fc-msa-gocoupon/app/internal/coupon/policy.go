@@ -30,17 +30,18 @@ type CouponPolicy struct {
 	Coupons []Coupon `json:"coupons,omitempty"`
 }
 
+// IsValidPeriod returns true if the current time is within the start and end time of the coupon policy.
 func (c *CouponPolicy) IsValidPeriod() error {
 	now := time.Now().UTC()
 	start := c.StartTime.UTC()
 	end := c.EndTime.UTC()
 
 	if now.Before(start) {
-		return fmt.Errorf("coupon policy not active yet, starts at %s", start)
+		return fmt.Errorf("%w, starts at %s", ErrCouponPolicyNotActive, start)
 	}
-	
+
 	if now.After(end) {
-		return fmt.Errorf("coupon policy expired at %s", end)
+		return fmt.Errorf("%w, ends at %s", ErrCouponPolicyExpired, end)
 	}
 
 	return nil

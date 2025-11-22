@@ -57,6 +57,7 @@ func main() {
 	dummyHandler := dummy.NewHandler(pg, rdb, logger)
 	e.GET("/init-dummy-v1", dummyHandler.InitDummyV1)
 	e.GET("/clean-dummy-v1", dummyHandler.CleanDummyV1)
+	e.GET("/check-quantity-v1/:policy_code", dummyHandler.CheckQuantityV1)
 	e.GET("/init-dummy-v2", dummyHandler.InitDummyV2)
 	e.GET("/clean-dummy-v2", dummyHandler.CleanDummyV2)
 

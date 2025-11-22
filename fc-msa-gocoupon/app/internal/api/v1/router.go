@@ -14,4 +14,7 @@ func RegisterAPIV1(group *echo.Group, pg *config.Postgres, logger *zap.Logger) {
 
 	coupons := group.Group("/coupons")
 	coupons.POST("/issue", handler.IssueCoupon, middleware.UserIDMiddleware())
+	coupons.POST("/use", handler.UseCoupon, middleware.UserIDMiddleware())
+	coupons.POST("/cancel", handler.CancelCoupon, middleware.UserIDMiddleware())
+	coupons.GET("/:coupon_code", handler.FindCouponByCode, middleware.UserIDMiddleware())
 }
