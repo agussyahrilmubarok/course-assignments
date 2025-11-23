@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"example.com/coupon-service/internal/api/dummy"
-	v1 "example.com/coupon-service/internal/api/v1"
 	"example.com/coupon-service/internal/config"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+
+	v1 "example.com/coupon-service/internal/api/v1"
+	v2 "example.com/coupon-service/internal/api/v2"
 )
 
 func main() {
@@ -55,14 +57,15 @@ func main() {
 	})
 
 	dummyHandler := dummy.NewHandler(pg, rdb, logger)
-	e.GET("/init-dummy-v1", dummyHandler.InitDummyV1)
-	e.GET("/clean-dummy-v1", dummyHandler.CleanDummyV1)
-	e.GET("/check-quantity-v1/:policy_code", dummyHandler.CheckQuantityV1)
-	e.GET("/init-dummy-v2", dummyHandler.InitDummyV2)
-	e.GET("/clean-dummy-v2", dummyHandler.CleanDummyV2)
+	e.GET("/init-dummy-db", dummyHandler.InitDummyDB)
+	e.GET("/clean-dummy-db", dummyHandler.CleanDummyDB)
+	e.GET("/init-dummy-redis-db", dummyHandler.InitDummyRedisAndDB)
+	e.GET("/clean-dummy-redis-db", dummyHandler.CleanDummyRedisAndDB)
+	e.GET("/check-quantity/:policy_code", dummyHandler.CheckQuantity)
 
-	apiV1 := e.Group("/api/v1")
-	v1.RegisterAPIV1(apiV1, pg, logger)
+	api := e.Group("/api")
+	v1.RegisterAPIV1(api, pg, logger)
+	v2.RegisterAPIV2(api, pg, logger)
 
 	serverAddr := ":8080"
 	go func() {

@@ -34,7 +34,7 @@ func NewHandler(
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
-// @Router       /api/v1/coupons/issue [post]
+// @Router       /coupons/issue [post]
 func (h *Handler) IssueCoupon(c echo.Context) error {
 	var payload coupon.IssueCouponRequest
 	if err := c.Bind(&payload); err != nil {
@@ -71,7 +71,7 @@ func (h *Handler) IssueCoupon(c echo.Context) error {
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
-// @Router       /api/v1/coupons/use [post]
+// @Router       /coupons/use [post]
 func (h *Handler) UseCoupon(c echo.Context) error {
 	var payload coupon.UseCouponRequest
 	if err := c.Bind(&payload); err != nil {
@@ -108,7 +108,7 @@ func (h *Handler) UseCoupon(c echo.Context) error {
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
-// @Router       /api/v1/coupons/cancel [post]
+// @Router       /coupons/cancel [post]
 func (h *Handler) CancelCoupon(c echo.Context) error {
 	var payload coupon.CancelCouponRequest
 	if err := c.Bind(&payload); err != nil {
@@ -145,7 +145,7 @@ func (h *Handler) CancelCoupon(c echo.Context) error {
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
-// @Router       /api/v1/coupons/{coupon_code} [get]
+// @Router       /coupons/{coupon_code} [get]
 func (h *Handler) FindCouponByCode(c echo.Context) error {
 	couponCode := c.Param("coupon_code")
 	if couponCode == "" {

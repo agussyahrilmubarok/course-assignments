@@ -30,4 +30,13 @@ migrater/command:
 	--dir $(DIR) \
 	--action $(C)
 
+#####################################################################################
+### swagger
+#####################################################################################
+swagger/install:
+	go install github.com/swaggo/swag/cmd/swag@latest
+	go get github.com/swaggo/swag@latest
+	go mod tidy
 
+swagger/generate:
+	swag init -g internal/api/$(version)/router.go -o internal/api/$(version)/docs

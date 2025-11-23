@@ -1,4 +1,4 @@
-# HTTP v1 Example
+# HTTP v2 Example
 
 ## Init Dummy Coupon Policy
 
@@ -16,10 +16,10 @@ curl -X GET http://localhost:8080/clean-dummy-db \
   -i
 ```
 
-## Issue Coupon Request V1
+## Issue Coupon Request V2
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/coupons/issue \
+curl -X POST http://localhost:8080/api/v2/coupons/issue \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: USER_1" \
   -d '{
@@ -28,7 +28,7 @@ curl -X POST http://localhost:8080/api/v1/coupons/issue \
   -i
 ```
 
-## Issue Coupon Request V1 Loop (11 requests)
+## Issue Coupon Request V2 Loop (11 requests)
 
 ```bash
 for i in {1..11}
@@ -36,7 +36,7 @@ do
   USER_ID="USER_$i"
   echo "Request ke-$i dengan X-USER-ID: $USER_ID"
 
-  curl -X POST http://localhost:8080/api/v1/coupons/issue \
+  curl -X POST http://localhost:8080/api/v2/coupons/issue \
     -H "Content-Type: application/json" \
     -H "X-USER-ID: $USER_ID" \
     -d '{"policy_code": "BF-C1"}' \
@@ -46,10 +46,10 @@ do
 done
 ```
 
-## Use Coupon Request V1
+## Use Coupon Request V2
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/coupons/use \
+curl -X POST http://localhost:8080/api/v2/coupons/use \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: USER_1" \
   -d '{
@@ -59,10 +59,10 @@ curl -X POST http://localhost:8080/api/v1/coupons/use \
   -i
 ```
 
-## Cancel Coupon Request V1
+## Cancel Coupon Request V2
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/coupons/cancel \
+curl -X POST http://localhost:8080/api/v2/coupons/cancel \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: USER_1" \
   -d '{
@@ -74,7 +74,7 @@ curl -X POST http://localhost:8080/api/v1/coupons/cancel \
 ## Find Coupon By Code
 
 ```bash
-curl -X GET http://localhost:8080/api/v1/coupons/78e6b21b-2f98-4fa5-bff7-2cb4ba96db61 \
+curl -X GET http://localhost:8080/api/v2/coupons/dab671d9-8b39-453c-bf13-0d74b66c8e1e \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: USER_1" \
   -i
