@@ -1,8 +1,8 @@
 {
     "folders": [
         {
-            "name": "user",
-            "path": "./app/user"
+            "name": "account",
+            "path": "./app/account"
         },
         {
             "name": "product",

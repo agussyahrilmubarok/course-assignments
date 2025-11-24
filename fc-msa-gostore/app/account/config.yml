@@ -1,0 +1,12 @@
+server:
+  host: "localhost"
+  port: 8081  
+
+mongodb:
+  uri: "mongodb://root:secret@localhost:27017"
+  db: "account_db"
+  timeout: 5s
+
+logging:
+  filepath: "./logs/app.log"
+  level: "info"
