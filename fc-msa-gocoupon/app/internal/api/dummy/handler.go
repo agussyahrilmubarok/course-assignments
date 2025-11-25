@@ -7,6 +7,7 @@ import (
 
 	"example.com/coupon-service/internal/config"
 	"example.com/coupon-service/internal/coupon"
+	"example.com/coupon-service/internal/logger"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
@@ -14,25 +15,23 @@ import (
 )
 
 type Handler struct {
-	pg     *config.Postgres
-	rdb    *config.Redis
-	logger *zap.Logger
+	pg  *config.Postgres
+	rdb *config.Redis
 }
 
 func NewHandler(
 	pg *config.Postgres,
 	rdb *config.Redis,
-	logger *zap.Logger,
 ) *Handler {
 	return &Handler{
-		pg:     pg,
-		rdb:    rdb,
-		logger: logger,
+		pg:  pg,
+		rdb: rdb,
 	}
 }
 
 // Dummy save in DB
 func (h *Handler) InitDummyDB(c echo.Context) error {
+	log := logger.GetLogger()
 	ctx := c.Request().Context()
 	now := time.Now().UTC()
 
@@ -47,11 +46,17 @@ func (h *Handler) InitDummyDB(c echo.Context) error {
 		EndOffset   time.Duration
 	}{
 		// CouponPolicy `ongoing` with 10 qoutas
-		{"Black Friday Mega Sale 10", "BF-C1", 50, coupon.DiscountTypePercentage, 10, -1 * time.Hour, 24 * time.Hour},
+		{"Black Friday Mega Sale 10", "BF-C10", 50, coupon.DiscountTypePercentage, 10, -1 * time.Hour, 24 * time.Hour},
 		// CouponPolicy `ongoing` with 100 qoutas
-		{"Black Friday Mega Sale 100", "BF-C2", 50, coupon.DiscountTypePercentage, 100, -1 * time.Hour, 24 * time.Hour},
-		// CouponPolicy `ongoing` with 100 qoutas
-		{"Black Friday Mega Sale 1000", "BF-C3", 50, coupon.DiscountTypePercentage, 100, -1 * time.Hour, 24 * time.Hour},
+		{"Black Friday Mega Sale 100", "BF-C100", 50, coupon.DiscountTypePercentage, 100, -1 * time.Hour, 24 * time.Hour},
+		// CouponPolicy `ongoing` with 1_000 qoutas
+		{"Black Friday Mega Sale 1000", "BF-C1k", 50, coupon.DiscountTypePercentage, 1000, -1 * time.Hour, 24 * time.Hour},
+		// CouponPolicy `ongoing` with 10_000 qoutas
+		{"Black Friday Mega Sale 1000", "BF-C10k", 50, coupon.DiscountTypePercentage, 10000, -1 * time.Hour, 24 * time.Hour},
+		// CouponPolicy `ongoing` with 1_000_000 qoutas
+		{"Black Friday Mega Sale 1m", "BF-C1m", 50, coupon.DiscountTypePercentage, 1000000, -1 * time.Hour, 24 * time.Hour},
+		// CouponPolicy `ongoing` with 1_000_000 + 1 qoutas
+		{"Black Friday Mega Sale 1m+1", "BF-C1m+1", 50, coupon.DiscountTypePercentage, 1000001, -1 * time.Hour, 24 * time.Hour},
 
 		{"Christmas Special", "XMAS-2025", 20000, coupon.DiscountTypeFixedAmount, 50, 24 * time.Hour, 10 * 24 * time.Hour},    // future
 		{"New Year Promo", "NY-2025", 15, coupon.DiscountTypePercentage, 75, -48 * time.Hour, -24 * time.Hour},                // past
@@ -86,30 +91,32 @@ func (h *Handler) InitDummyDB(c echo.Context) error {
 			policy.StartTime.UTC(), policy.EndTime.UTC(), policy.DiscountType, policy.DiscountValue,
 			policy.MinimumOrderAmount, policy.MaximumDiscountAmount)
 		if err != nil {
-			h.logger.Error("failed to insert policy", zap.Error(err))
+			log.Error("failed to insert policy", zap.Error(err))
 			return c.JSON(500, map[string]string{"error": err.Error()})
 		}
 	}
 
-	h.logger.Info("coupon policy dummy data v1 successfully inserted")
+	log.Info("coupon policy dummy data v1 successfully inserted")
 	return c.JSON(200, map[string]string{"status": "coupon policy dummy data v1 initialized"})
 }
 
 func (h *Handler) CleanDummyDB(c echo.Context) error {
+	log := logger.GetLogger()
 	ctx := c.Request().Context()
 
 	// Delete CouponPolicy records in Postgres
 	_, err := h.pg.Pool.Exec(ctx, `DELETE FROM coupon_policies`)
 	if err != nil {
-		h.logger.Error("failed to clean dummy data", zap.Error(err))
+		log.Error("failed to clean dummy data", zap.Error(err))
 		return c.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	h.logger.Info("coupon policy dummy data v1 cleaned successfully")
+	log.Info("coupon policy dummy data v1 cleaned successfully")
 	return c.JSON(200, map[string]string{"status": "coupon policy dummy data v1 cleaned"})
 }
 
 func (h *Handler) InitDummyRedisAndDB(c echo.Context) error {
+	log := logger.GetLogger()
 	ctx := c.Request().Context()
 	now := time.Now().UTC()
 
@@ -158,7 +165,7 @@ func (h *Handler) InitDummyRedisAndDB(c echo.Context) error {
 			policy.StartTime.UTC(), policy.EndTime.UTC(), policy.DiscountType, policy.DiscountValue,
 			policy.MinimumOrderAmount, policy.MaximumDiscountAmount)
 		if err != nil {
-			h.logger.Error("failed to insert policy", zap.Error(err))
+			log.Error("failed to insert policy", zap.Error(err))
 			return c.JSON(500, map[string]string{"error": err.Error()})
 		}
 
@@ -170,22 +177,23 @@ func (h *Handler) InitDummyRedisAndDB(c echo.Context) error {
 		}
 
 		if err := h.rdb.Client.Set(ctx, redisKey, e.TotalQty, ttl).Err(); err != nil {
-			h.logger.Error("failed to insert coupon policy quantity", zap.Error(err))
+			log.Error("failed to insert coupon policy quantity", zap.Error(err))
 			_, _ = h.pg.Pool.Exec(ctx, `DELETE FROM coupon_policies WHERE code = $1`, e.Code)
 			return c.JSON(500, map[string]string{"error": err.Error()})
 		}
 	}
 
-	h.logger.Info("coupon policy dummy data v2 successfully inserted")
+	log.Info("coupon policy dummy data v2 successfully inserted")
 	return c.JSON(200, map[string]string{"status": "coupon policy dummy data v2 initialized"})
 }
 
 func (h *Handler) CleanDummyRedisAndDB(c echo.Context) error {
+	log := logger.GetLogger()
 	ctx := c.Request().Context()
 
 	rows, err := h.pg.Pool.Query(ctx, `SELECT code FROM coupon_policies`)
 	if err != nil {
-		h.logger.Error("failed to fetch policy codes", zap.Error(err))
+		log.Error("failed to fetch policy codes", zap.Error(err))
 		return c.JSON(500, map[string]string{"error": err.Error()})
 	}
 	defer rows.Close()
@@ -202,27 +210,29 @@ func (h *Handler) CleanDummyRedisAndDB(c echo.Context) error {
 	for _, code := range codes {
 		redisKey := "coupon:policy:quantity:" + code
 		if err := h.rdb.Client.Del(ctx, redisKey).Err(); err != nil {
-			h.logger.Warn("failed to delete redis key", zap.String("key", redisKey), zap.Error(err))
+			log.Warn("failed to delete redis key", zap.String("key", redisKey), zap.Error(err))
 		}
 	}
 
 	// Delete CouponPolicy records in Postgres
 	_, err = h.pg.Pool.Exec(ctx, `DELETE FROM coupon_policies`)
 	if err != nil {
-		h.logger.Error("failed to clean dummy data", zap.Error(err))
+		log.Error("failed to clean dummy data", zap.Error(err))
 		return c.JSON(500, map[string]string{"error": err.Error()})
 	}
 
-	h.logger.Info("coupon policy dummy data v2 cleaned successfully")
+	log.Info("coupon policy dummy data v2 cleaned successfully")
 	return c.JSON(200, map[string]string{"status": "coupon policy dummy data v2 cleaned"})
 }
 
 // Dummy Validation
 
 func (h *Handler) CheckQuantity(c echo.Context) error {
+	log := logger.GetLogger()
+
 	policyCode := c.Param("policy_code")
 	if policyCode == "" {
-		h.logger.Error("invalid policy_code")
+		log.Error("invalid policy_code")
 		return c.JSON(400, map[string]string{"error": "policy_code is required"})
 	}
 
@@ -257,7 +267,7 @@ func (h *Handler) CheckQuantity(c echo.Context) error {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return c.JSON(404, map[string]string{"error": "policy not found"})
 		}
-		h.logger.Error("failed to get coupon policy", zap.Error(err))
+		log.Error("failed to get coupon policy", zap.Error(err))
 		return c.JSON(500, map[string]string{"error": err.Error()})
 	}
 
@@ -270,7 +280,7 @@ func (h *Handler) CheckQuantity(c echo.Context) error {
 		cp.ID,
 	).Scan(&totalIssued)
 	if err != nil {
-		h.logger.Error("failed to count coupon", zap.Error(err))
+		log.Error("failed to count coupon", zap.Error(err))
 		return c.JSON(500, map[string]string{"error": err.Error()})
 	}
 
@@ -283,6 +293,5 @@ func (h *Handler) CheckQuantity(c echo.Context) error {
 		"total_issued":       totalIssued,
 		"remaining_quantity": cp.TotalQuantity - totalIssued,
 	}
-
 	return c.JSON(200, result)
 }

@@ -6,6 +6,8 @@ import (
 
 	"example.com/coupon-service/internal/config"
 	"example.com/coupon-service/internal/coupon"
+	"example.com/coupon-service/internal/instrument"
+	"example.com/coupon-service/internal/logger"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
@@ -21,21 +23,21 @@ type IRepository interface {
 }
 
 type repository struct {
-	pg     *config.Postgres
-	logger *zap.Logger
+	pg *config.Postgres
 }
 
-func NewRepository(
-	pg *config.Postgres,
-	logger *zap.Logger,
-) IRepository {
+func NewRepository(pg *config.Postgres) IRepository {
 	return &repository{
-		pg:     pg,
-		logger: logger,
+		pg: pg,
 	}
 }
 
 func (r *repository) FindCouponPolicyByCodeForUpdateTx(ctx context.Context, tx pgx.Tx, code string) (*coupon.CouponPolicy, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Repository.FindCouponPolicyByCodeForUpdateTx")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	row := tx.QueryRow(ctx, `
 		SELECT 
 			id,
@@ -74,15 +76,21 @@ func (r *repository) FindCouponPolicyByCodeForUpdateTx(ctx context.Context, tx p
 		&policy.UpdatedAt,
 	)
 	if err != nil {
-		r.logger.Error("failed to fetch coupon policy by code", zap.String("policy_code", code), zap.Error(err))
+		span.RecordError(err)
+		log.Error("failed to fetch coupon policy by code", zap.String("policy_code", code), zap.Error(err))
 		return nil, coupon.ErrCouponPolicyNotFound
 	}
 
-	r.logger.Info("fetched coupon policy successfully", zap.String("policy_id", policy.ID), zap.String("policy_code", code))
+	log.Info("fetched coupon policy successfully", zap.String("policy_id", policy.ID), zap.String("policy_code", code))
 	return &policy, nil
 }
 
 func (r *repository) CountIssuedCouponsTx(ctx context.Context, tx pgx.Tx, policyID string) (int, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Repository.CountIssuedCouponsTx")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	row := tx.QueryRow(ctx, `
         SELECT COUNT(*)
         FROM coupons
@@ -91,15 +99,21 @@ func (r *repository) CountIssuedCouponsTx(ctx context.Context, tx pgx.Tx, policy
 
 	var count int
 	if err := row.Scan(&count); err != nil {
-		r.logger.Error("failed to count issued coupons", zap.String("policy_id", policyID), zap.Error(err))
+		span.RecordError(err)
+		log.Error("failed to count issued coupons", zap.String("policy_id", policyID), zap.Error(err))
 		return 0, coupon.ErrCouponCounted
 	}
 
-	r.logger.Info("counted issued coupons successfully", zap.String("policy_id", policyID), zap.Int("issued_count", count))
+	log.Info("counted issued coupons successfully", zap.String("policy_id", policyID), zap.Int("issued_count", count))
 	return count, nil
 }
 
 func (r *repository) CreateCouponTx(ctx context.Context, tx pgx.Tx, c *coupon.Coupon) (*coupon.Coupon, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Repository.CreateCouponTx")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	row := tx.QueryRow(ctx, `
 		INSERT INTO coupons (
 			id,
@@ -147,15 +161,21 @@ func (r *repository) CreateCouponTx(ctx context.Context, tx pgx.Tx, c *coupon.Co
 		&result.UpdatedAt,
 	)
 	if err != nil {
-		r.logger.Error("failed to create coupon", zap.Error(err))
+		span.RecordError(err)
+		log.Error("failed to create coupon", zap.Error(err))
 		return nil, errors.New("")
 	}
 
-	r.logger.Info("coupon created successfully", zap.String("coupon_id", result.ID), zap.String("coupon_code", result.Code))
+	log.Info("coupon created successfully", zap.String("coupon_id", result.ID), zap.String("coupon_code", result.Code))
 	return &result, nil
 }
 
 func (r *repository) FindCouponByCode(ctx context.Context, code string) (*coupon.Coupon, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Repository.FindCouponByCode")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	row := r.pg.Pool.QueryRow(ctx, `
 		SELECT 
 			id,
@@ -185,15 +205,21 @@ func (r *repository) FindCouponByCode(ctx context.Context, code string) (*coupon
 		&c.UpdatedAt,
 	)
 	if err != nil {
-		r.logger.Error("failed to fetch coupon by code", zap.String("coupon_code", code), zap.Error(err))
+		span.RecordError(err)
+		log.Error("failed to fetch coupon by code", zap.String("coupon_code", code), zap.Error(err))
 		return nil, coupon.ErrCouponNotFound
 	}
 
-	r.logger.Info("fetched coupon successfully", zap.String("coupon_id", c.ID), zap.String("coupon_code", c.Code))
+	log.Info("fetched coupon successfully", zap.String("coupon_id", c.ID), zap.String("coupon_code", c.Code))
 	return &c, nil
 }
 
 func (r *repository) UpdateCoupon(ctx context.Context, c *coupon.Coupon) (*coupon.Coupon, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Repository.UpdateCoupon")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	row := r.pg.Pool.QueryRow(ctx, `
 		UPDATE coupons
 		SET
@@ -234,15 +260,21 @@ func (r *repository) UpdateCoupon(ctx context.Context, c *coupon.Coupon) (*coupo
 		&result.UpdatedAt,
 	)
 	if err != nil {
-		r.logger.Error("failed to update coupon", zap.String("coupon_id", c.ID), zap.Error(err))
+		span.RecordError(err)
+		log.Error("failed to update coupon", zap.String("coupon_id", c.ID), zap.Error(err))
 		return nil, errors.New("failed to update coupon")
 	}
 
-	r.logger.Info("coupon updated successfully", zap.String("coupon_id", result.ID), zap.String("coupon_code", result.Code), zap.String("status", string(result.Status)))
+	log.Info("coupon updated successfully", zap.String("coupon_id", result.ID), zap.String("coupon_code", result.Code), zap.String("status", string(result.Status)))
 	return &result, nil
 }
 
 func (r *repository) FindCouponPolicyByID(ctx context.Context, id string) (*coupon.CouponPolicy, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Repository.FindCouponPolicyByID")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	row := r.pg.Pool.QueryRow(ctx, `
 		SELECT 
 			id,
@@ -281,11 +313,12 @@ func (r *repository) FindCouponPolicyByID(ctx context.Context, id string) (*coup
 		&policy.UpdatedAt,
 	)
 	if err != nil {
-		r.logger.Error("failed to fetch coupon policy by code", zap.String("policy_id", id), zap.Error(err))
+		span.RecordError(err)
+		log.Error("failed to fetch coupon policy by code", zap.String("policy_id", id), zap.Error(err))
 		return nil, coupon.ErrCouponPolicyNotFound
 	}
 
-	r.logger.Info("fetched coupon policy successfully", zap.String("policy_id", policy.ID), zap.String("policy_code", policy.Code))
+	log.Info("fetched coupon policy successfully", zap.String("policy_id", policy.ID), zap.String("policy_code", policy.Code))
 	return &policy, nil
 }
 

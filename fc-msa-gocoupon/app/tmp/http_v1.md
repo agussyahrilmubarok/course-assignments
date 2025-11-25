@@ -23,7 +23,7 @@ curl -X POST http://localhost:8080/api/v1/coupons/issue \
   -H "Content-Type: application/json" \
   -H "X-USER-ID: USER_1" \
   -d '{
-    "policy_code": "BF-C1"
+    "policy_code": "BF-C10"
   }' \
   -i
 ```
@@ -39,7 +39,7 @@ do
   curl -X POST http://localhost:8080/api/v1/coupons/issue \
     -H "Content-Type: application/json" \
     -H "X-USER-ID: $USER_ID" \
-    -d '{"policy_code": "BF-C1"}' \
+    -d '{"policy_code": "BF-C10"}' \
     -i
 
   echo "" 

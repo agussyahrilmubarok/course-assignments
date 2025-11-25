@@ -6,10 +6,10 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: my-secret-pw
-      POSTGRES_DB: coupon_db
     ports:
       - "5432:5432"
     volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
     networks:
       - coupon_net
@@ -93,6 +93,30 @@ services:
       - coupon_net
     depends_on:
       - kafka
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: zipkin
+    environment:
+      - STORAGE_TYPE=elasticsearch
+      - ES_HOSTS=http://elasticsearch:9200
+    ports:
+      - "9411:9411"
+    networks:
+      - coupon_net
+    depends_on:
+      - elasticsearch
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    networks:
+      - coupon_net
 
 volumes:
   postgres_data:

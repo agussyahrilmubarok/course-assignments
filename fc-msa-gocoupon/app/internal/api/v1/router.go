@@ -5,8 +5,6 @@ import (
 	"example.com/coupon-service/internal/config"
 	"github.com/labstack/echo/v4"
 
-	"go.uber.org/zap"
-
 	_ "example.com/coupon-service/internal/api/v1/docs"
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
@@ -19,10 +17,10 @@ import (
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name X-USER-ID
-func RegisterAPIV1(group *echo.Group, pg *config.Postgres, logger *zap.Logger) {
-	repository := NewRepository(pg, logger)
-	service := NewService(repository, logger)
-	handler := NewHandler(service, logger)
+func RegisterAPIV1(group *echo.Group, pg *config.Postgres) {
+	repository := NewRepository(pg)
+	service := NewService(repository)
+	handler := NewHandler(service)
 
 	coupons := group.Group("/v1/coupons")
 	coupons.POST("/issue", handler.IssueCoupon, middleware.UserIDMiddleware())

@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"example.com/coupon-service/internal/coupon"
+	"example.com/coupon-service/internal/instrument"
+	"example.com/coupon-service/internal/logger"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
@@ -18,17 +20,14 @@ type IService interface {
 }
 
 type service struct {
-	repo   IRepository
-	logger *zap.Logger
+	repo IRepository
 }
 
 func NewService(
 	repo IRepository,
-	logger *zap.Logger,
 ) IService {
 	return &service{
-		repo:   repo,
-		logger: logger,
+		repo: repo,
 	}
 }
 
@@ -122,32 +121,40 @@ func NewService(
 // - Add retry/backoff and refine timeouts to avoid lock starvation.
 // - Improve transaction efficiency to prevent DB hotspot issues.
 func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID string) (*coupon.Coupon, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Service.IssueCoupon")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	var createdCoupon *coupon.Coupon
 
 	err := s.repo.WithTx(ctx, func(tx pgx.Tx) error {
 		// Retrieve Coupon Policy
 		policy, err := s.repo.FindCouponPolicyByCodeForUpdateTx(ctx, tx, policyCode)
 		if err != nil || policy == nil {
-			s.logger.Warn("failed to get coupon policy not found", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
+			span.RecordError(err)
+			log.Warn("failed to get coupon policy not found", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
 			return coupon.ErrCouponPolicyNotFound
 		}
 
 		// Check Valid Period
 		if err := policy.IsValidPeriod(); err != nil {
-			s.logger.Warn("coupon policy not valid period", zap.String("policy_code", policyCode), zap.Error(err))
+			span.RecordError(err)
+			log.Warn("coupon policy not valid period", zap.String("policy_code", policyCode), zap.Error(err))
 			return err
 		}
 
 		// Check Available Quantity
 		issued, err := s.repo.CountIssuedCouponsTx(ctx, tx, policy.ID)
 		if err != nil {
-			s.logger.Error("failed to count issued coupons", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
+			span.RecordError(err)
+			log.Error("failed to count issued coupons", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
 			return coupon.ErrCouponInternal
 		}
 
 		if issued >= policy.TotalQuantity {
 			err := fmt.Errorf("%w, %v qoutas", coupon.ErrCouponPolicyQuantityExceed, policy.TotalQuantity)
-			s.logger.Warn("coupon quantity exhausted", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
+			log.Warn("coupon quantity exhausted", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
 			return err
 		}
 
@@ -167,7 +174,8 @@ func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID str
 
 		tempCoupon, err = s.repo.CreateCouponTx(ctx, tx, tempCoupon)
 		if err != nil {
-			s.logger.Error("failed to issue coupon not created", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
+			span.RecordError(err)
+			log.Error("failed to issue coupon not created", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
 			return coupon.ErrCouponInternal
 		}
 
@@ -180,22 +188,29 @@ func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID str
 	}
 
 	// Return New Coupon
-	s.logger.Info("issue coupon successfully", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.String("coupon_code", createdCoupon.Code))
+	log.Info("issue coupon successfully", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.String("coupon_code", createdCoupon.Code))
 	return createdCoupon, nil
 }
 
 func (s *service) UseCoupon(ctx context.Context, couponCode string, userID string, orderID string) (*coupon.Coupon, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Service.UseCoupon")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	// Retrieve Coupon Policy
 	c, err := s.repo.FindCouponByCode(ctx, couponCode)
 	if err != nil || c == nil {
-		s.logger.Warn("failed to get coupon by code", zap.String("coupon_code", couponCode), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to get coupon by code", zap.String("coupon_code", couponCode), zap.Error(err))
 		return nil, coupon.ErrCouponNotFound
 	}
 
 	// Check Coupon Owner
 	if c.UserID != userID {
 		err := coupon.ErrCouponNotOwner
-		s.logger.Warn("failed to use coupon not owner", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to use coupon not owner", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.Error(err))
 		return nil, err
 	}
 
@@ -204,77 +219,96 @@ func (s *service) UseCoupon(ctx context.Context, couponCode string, userID strin
 
 	// Check Coupon Status
 	if err := c.Use(orderID); err != nil {
-		s.logger.Warn("failed to use coupon not match status", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.String("order_id", orderID), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to use coupon not match status", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.String("order_id", orderID), zap.Error(err))
 		return nil, err
 	}
 
 	// Update Coupon
 	updatedCoupon, err := s.repo.UpdateCoupon(ctx, c)
 	if err != nil {
-		s.logger.Error("failed to update coupon", zap.String("coupon_code", couponCode), zap.Error(err))
+		span.RecordError(err)
+		log.Error("failed to update coupon", zap.String("coupon_code", couponCode), zap.Error(err))
 		return nil, coupon.ErrCouponInternal
 	}
 
-	s.logger.Info("coupon used successfully", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.String("order_id", orderID))
+	log.Info("coupon used successfully", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.String("order_id", orderID))
 	return updatedCoupon, nil
 }
 
 func (s *service) CancelCoupon(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Service.CancelCoupon")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	// Retrieve Coupon Policy
 	c, err := s.repo.FindCouponByCode(ctx, couponCode)
 	if err != nil || c == nil {
-		s.logger.Warn("failed to get coupon by code", zap.String("coupon_code", couponCode), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to get coupon by code", zap.String("coupon_code", couponCode), zap.Error(err))
 		return nil, coupon.ErrCouponNotFound
 	}
 
 	// Check Coupon Owner
 	if c.UserID != userID {
 		err := coupon.ErrCouponNotOwner
-		s.logger.Warn("failed to cancel coupon not owner", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to cancel coupon not owner", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.Error(err))
 		return nil, err
 	}
 
 	// Check Coupon Status
 	if err := c.Cancel(); err != nil {
-		s.logger.Warn("failed to cancel coupon not match status", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to cancel coupon not match status", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.Error(err))
 		return nil, err
 	}
 
 	// Update Coupon
 	updatedCoupon, err := s.repo.UpdateCoupon(ctx, c)
 	if err != nil {
-		s.logger.Error("failed to update coupon", zap.String("coupon_code", couponCode), zap.Error(err))
+		span.RecordError(err)
+		log.Error("failed to update coupon", zap.String("coupon_code", couponCode), zap.Error(err))
 		return nil, coupon.ErrCouponInternal
 	}
 
-	s.logger.Info("coupon cancel successfully", zap.String("coupon_code", couponCode), zap.String("user_id", userID))
+	log.Info("coupon cancel successfully", zap.String("coupon_code", couponCode), zap.String("user_id", userID))
 	return updatedCoupon, nil
 }
 
 func (s *service) FindCouponByCode(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
+	ctx, span := instrument.StartSpan(ctx, "V2.Service.FindCouponByCode")
+	defer span.End()
+
+	log := logger.GetLoggerFromContext(ctx)
+
 	// Retrieve Coupon Policy
 	c, err := s.repo.FindCouponByCode(ctx, couponCode)
 	if err != nil || c == nil {
-		s.logger.Warn("failed to get coupon by code", zap.String("coupon_code", couponCode), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to get coupon by code", zap.String("coupon_code", couponCode), zap.Error(err))
 		return nil, coupon.ErrCouponNotFound
 	}
 
 	// Check Coupon Owner
 	if c.UserID != userID {
 		err := coupon.ErrCouponNotOwner
-		s.logger.Warn("failed to get coupon not owner", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to get coupon not owner", zap.String("coupon_code", couponCode), zap.String("user_id", userID), zap.Error(err))
 		return nil, err
 	}
 
 	// Retrieve Coupon Policy
 	policy, err := s.repo.FindCouponPolicyByID(ctx, c.CouponPolicyID)
 	if err != nil || policy == nil {
-		s.logger.Warn("failed to get coupon policy", zap.String("coupon_id", c.ID), zap.String("coupon_code", couponCode), zap.Error(err))
+		span.RecordError(err)
+		log.Warn("failed to get coupon policy", zap.String("coupon_id", c.ID), zap.String("coupon_code", couponCode), zap.Error(err))
 		return nil, coupon.ErrCouponPolicyNotFound
 	}
 	c.CouponPolicy = policy
 
 	// Return coupon with policy
-	s.logger.Info("returning coupon with attached policy", zap.String("coupon_id", c.ID), zap.String("coupon_code", couponCode), zap.String("user_id", userID))
+	log.Info("returning coupon with attached policy", zap.String("coupon_id", c.ID), zap.String("coupon_code", couponCode), zap.String("user_id", userID))
 	return c, nil
 }

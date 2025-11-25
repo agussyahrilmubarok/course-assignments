@@ -7,6 +7,12 @@ import (
 )
 
 type Config struct {
+	Server struct {
+		Name string `mapstructure:"name"`
+		Host string `mapstructure:"host"`
+		Port int    `mapstructure:"port"`
+	}
+
 	Logging struct {
 		Filepath string `mapstructure:"filepath"`
 		Level    string `mapstructure:"level"`
@@ -26,6 +32,10 @@ type Config struct {
 		Password string `mapstructure:"password"`
 		DB       int    `mapstructure:"db"`
 	} `mapstructure:"redis"`
+
+	Zipkin struct {
+		Url string `mapstructure:"url"`
+	} `mapstructure:"zipkin"`
 }
 
 func NewConfig(filepath string) (*Config, error) {
