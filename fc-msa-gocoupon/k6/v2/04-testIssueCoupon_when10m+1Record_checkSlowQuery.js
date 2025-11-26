@@ -9,8 +9,21 @@ export const failCount = new Counter('fail_count');
 export const requestTime = new Trend('request_time');
 
 export const options = {
-    vus: 1000,
-    iterations: 1000000,
+  scenarios: {
+    million_requests: {
+      executor: 'constant-arrival-rate',
+      // Send 2000 requests per second
+      // 2000 RPS × 500 seconds = 1,000,000 requests
+      rate: 2000,
+      timeUnit: '1s',
+      // Total test duration
+      duration: '500s',
+      // Pre-allocated VUs (threads). K6 will scale these automatically.
+      preAllocatedVUs: 200,
+      // Maximum VUs allowed. Needed if the system slows down.
+      maxVUs: 1000,
+    },
+  },
 };
 
 export default function () {

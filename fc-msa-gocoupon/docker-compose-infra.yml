@@ -94,30 +94,6 @@ services:
     depends_on:
       - kafka
 
-  zipkin:
-    image: openzipkin/zipkin:3
-    container_name: zipkin
-    environment:
-      - STORAGE_TYPE=elasticsearch
-      - ES_HOSTS=http://elasticsearch:9200
-    ports:
-      - "9411:9411"
-    networks:
-      - coupon_net
-    depends_on:
-      - elasticsearch
-
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
-    ports:
-      - "9200:9200"
-    networks:
-      - coupon_net
-
 volumes:
   postgres_data:
   redis_data:
@@ -128,4 +104,4 @@ volumes:
 
 networks:
   coupon_net:
-    driver: bridge
+    external: true
