@@ -154,6 +154,7 @@ func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID str
 
 		if issued >= policy.TotalQuantity {
 			err := fmt.Errorf("%w, %v qoutas", coupon.ErrCouponPolicyQuantityExceed, policy.TotalQuantity)
+			span.RecordError(err)
 			log.Warn("coupon quantity exhausted", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
 			return err
 		}
