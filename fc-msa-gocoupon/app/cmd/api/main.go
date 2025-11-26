@@ -20,6 +20,7 @@ import (
 
 	v1 "example.com/coupon-service/internal/api/v1"
 	v2 "example.com/coupon-service/internal/api/v2"
+	v3 "example.com/coupon-service/internal/api/v3"
 )
 
 func main() {
@@ -78,6 +79,7 @@ func main() {
 	api := e.Group("/api")
 	v1.RegisterAPIV1(api, pg)
 	v2.RegisterAPIV2(api, pg)
+	v3.RegisterAPIV3(api, pg, rdb)
 
 	serverAddr := ":8080"
 	go func() {
