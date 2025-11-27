@@ -6,7 +6,7 @@
         "contact": {},
         "version": "3.0"
     },
-    "basePath": "/api/v3",
+    "basePath": "/api/V3",
     "paths": {
         "/coupons/cancel": {
             "post": {
@@ -376,14 +376,12 @@
         "coupon.CouponStatus": {
             "type": "string",
             "enum": [
-                "PENDING",
                 "AVAILABLE",
                 "USED",
                 "EXPIRED",
                 "CANCELED"
             ],
             "x-enum-varnames": [
-                "CouponStatusPending",
                 "CouponStatusAvailable",
                 "CouponStatusUsed",
                 "CouponStatusExpired",

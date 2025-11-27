@@ -5,8 +5,8 @@ import (
 
 	"example.com/coupon-service/internal/api/middleware"
 	"example.com/coupon-service/internal/coupon"
-	"example.com/coupon-service/internal/instrument"
-	"example.com/coupon-service/internal/logger"
+	"example.com/coupon-service/internal/instrument/logging"
+	"example.com/coupon-service/internal/instrument/tracing"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
@@ -35,10 +35,10 @@ func NewHandler(service IService) *Handler {
 // @Failure      500  {object}  map[string]string
 // @Router       /coupons/issue [post]
 func (h *Handler) IssueCoupon(c echo.Context) error {
-	ctx, span := instrument.StartSpan(c.Request().Context(), "V2.Handler.IssueCoupon")
+	ctx, span := tracing.StartSpan(c.Request().Context(), "V2.Handler.IssueCoupon")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	var payload coupon.IssueCouponRequest
 	if err := c.Bind(&payload); err != nil {
@@ -88,10 +88,10 @@ func (h *Handler) IssueCoupon(c echo.Context) error {
 // @Failure      500  {object}  map[string]string
 // @Router       /coupons/use [post]
 func (h *Handler) UseCoupon(c echo.Context) error {
-	ctx, span := instrument.StartSpan(c.Request().Context(), "V2.Handler.IssueCoupon")
+	ctx, span := tracing.StartSpan(c.Request().Context(), "V2.Handler.IssueCoupon")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	var payload coupon.UseCouponRequest
 	if err := c.Bind(&payload); err != nil {
@@ -133,10 +133,10 @@ func (h *Handler) UseCoupon(c echo.Context) error {
 // @Failure      500  {object}  map[string]string
 // @Router       /coupons/cancel [post]
 func (h *Handler) CancelCoupon(c echo.Context) error {
-	ctx, span := instrument.StartSpan(c.Request().Context(), "V2.Handler.CancelCoupon")
+	ctx, span := tracing.StartSpan(c.Request().Context(), "V2.Handler.CancelCoupon")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	var payload coupon.CancelCouponRequest
 	if err := c.Bind(&payload); err != nil {
@@ -178,10 +178,10 @@ func (h *Handler) CancelCoupon(c echo.Context) error {
 // @Failure      500  {object}  map[string]string
 // @Router       /coupons/{coupon_code} [get]
 func (h *Handler) FindCouponByCode(c echo.Context) error {
-	ctx, span := instrument.StartSpan(c.Request().Context(), "V2.Handler.FindCouponByCode")
+	ctx, span := tracing.StartSpan(c.Request().Context(), "V2.Handler.FindCouponByCode")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	couponCode := c.Param("coupon_code")
 	if couponCode == "" {

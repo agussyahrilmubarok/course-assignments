@@ -6,8 +6,8 @@ import (
 
 	"example.com/coupon-service/internal/config"
 	"example.com/coupon-service/internal/coupon"
-	"example.com/coupon-service/internal/instrument"
-	"example.com/coupon-service/internal/logger"
+	"example.com/coupon-service/internal/instrument/logging"
+	"example.com/coupon-service/internal/instrument/tracing"
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
@@ -33,10 +33,10 @@ func NewRepository(pg *config.Postgres) IRepository {
 }
 
 func (r *repository) FindCouponPolicyByCodeForUpdateTx(ctx context.Context, tx pgx.Tx, code string) (*coupon.CouponPolicy, error) {
-	ctx, span := instrument.StartSpan(ctx, "V2.Repository.FindCouponPolicyByCodeForUpdateTx")
+	ctx, span := tracing.StartSpan(ctx, "V2.Repository.FindCouponPolicyByCodeForUpdateTx")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := tx.QueryRow(ctx, `
 		SELECT 
@@ -86,10 +86,10 @@ func (r *repository) FindCouponPolicyByCodeForUpdateTx(ctx context.Context, tx p
 }
 
 func (r *repository) CountIssuedCouponsTx(ctx context.Context, tx pgx.Tx, policyID string) (int, error) {
-	ctx, span := instrument.StartSpan(ctx, "V2.Repository.CountIssuedCouponsTx")
+	ctx, span := tracing.StartSpan(ctx, "V2.Repository.CountIssuedCouponsTx")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := tx.QueryRow(ctx, `
         SELECT COUNT(*)
@@ -109,10 +109,10 @@ func (r *repository) CountIssuedCouponsTx(ctx context.Context, tx pgx.Tx, policy
 }
 
 func (r *repository) CreateCouponTx(ctx context.Context, tx pgx.Tx, c *coupon.Coupon) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V2.Repository.CreateCouponTx")
+	ctx, span := tracing.StartSpan(ctx, "V2.Repository.CreateCouponTx")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := tx.QueryRow(ctx, `
 		INSERT INTO coupons (
@@ -171,10 +171,10 @@ func (r *repository) CreateCouponTx(ctx context.Context, tx pgx.Tx, c *coupon.Co
 }
 
 func (r *repository) FindCouponByCode(ctx context.Context, code string) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V2.Repository.FindCouponByCode")
+	ctx, span := tracing.StartSpan(ctx, "V2.Repository.FindCouponByCode")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := r.pg.Pool.QueryRow(ctx, `
 		SELECT 
@@ -215,10 +215,10 @@ func (r *repository) FindCouponByCode(ctx context.Context, code string) (*coupon
 }
 
 func (r *repository) UpdateCoupon(ctx context.Context, c *coupon.Coupon) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V2.Repository.UpdateCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V2.Repository.UpdateCoupon")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := r.pg.Pool.QueryRow(ctx, `
 		UPDATE coupons
@@ -270,10 +270,10 @@ func (r *repository) UpdateCoupon(ctx context.Context, c *coupon.Coupon) (*coupo
 }
 
 func (r *repository) FindCouponPolicyByID(ctx context.Context, id string) (*coupon.CouponPolicy, error) {
-	ctx, span := instrument.StartSpan(ctx, "V2.Repository.FindCouponPolicyByID")
+	ctx, span := tracing.StartSpan(ctx, "V2.Repository.FindCouponPolicyByID")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := r.pg.Pool.QueryRow(ctx, `
 		SELECT 

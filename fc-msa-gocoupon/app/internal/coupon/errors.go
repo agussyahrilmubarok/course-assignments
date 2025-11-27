@@ -9,6 +9,7 @@ var (
 	ErrCouponAlreadyUsed           = errors.New("coupon has already been used")
 	ErrCouponCanceled              = errors.New("coupon canceled")
 	ErrCouponExpired               = errors.New("coupon has expired")
+	ErrCouponPending               = errors.New("coupon is pending")
 	ErrCouponNotUsed               = errors.New("coupon has not been used")
 	ErrCouponNotOwner              = errors.New("not the owner of this coupon")
 	ErrCouponTooManyRequests       = errors.New("too many concurrent coupon requests")

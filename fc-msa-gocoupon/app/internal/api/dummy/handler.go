@@ -1,14 +1,13 @@
 package dummy
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"example.com/coupon-service/internal/config"
 	"example.com/coupon-service/internal/coupon"
-	"example.com/coupon-service/internal/logger"
+	"example.com/coupon-service/internal/instrument/logging"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/labstack/echo/v4"
@@ -32,7 +31,7 @@ func NewHandler(
 
 // Dummy save in DB
 func (h *Handler) InitDummyDB(c echo.Context) error {
-	log := logger.GetLogger()
+	log := logging.GetLogger()
 	ctx := c.Request().Context()
 	now := time.Now().UTC()
 
@@ -102,7 +101,7 @@ func (h *Handler) InitDummyDB(c echo.Context) error {
 }
 
 func (h *Handler) CleanDummyDB(c echo.Context) error {
-	log := logger.GetLogger()
+	log := logging.GetLogger()
 	ctx := c.Request().Context()
 
 	// Delete CouponPolicy records in Postgres
@@ -117,7 +116,7 @@ func (h *Handler) CleanDummyDB(c echo.Context) error {
 }
 
 func (h *Handler) InitDummyRedisAndDB(c echo.Context) error {
-	log := logger.GetLogger()
+	log := logging.GetLogger()
 	ctx := c.Request().Context()
 	now := time.Now().UTC()
 
@@ -182,27 +181,15 @@ func (h *Handler) InitDummyRedisAndDB(c echo.Context) error {
 			return c.JSON(500, map[string]string{"error": err.Error()})
 		}
 
-		// Insert CouponPolicy in Redis
-		policyRedisKey := "coupon:policy:" + e.Code
 		ttl := time.Until(now.Add(e.EndOffset))
 		if ttl <= 0 {
 			ttl = time.Millisecond
 		}
 
-		policyJSON, err := json.Marshal(policy)
-		if err != nil {
-			log.Error("failed to marshal policy", zap.Error(err))
-			continue
-		}
-
-		if err := h.rdb.Client.Set(ctx, policyRedisKey, policyJSON, ttl).Err(); err != nil {
-			log.Error("failed to set policy in Redis", zap.Error(err))
-			continue
-		}
-
-		policyIssuedRedisKey := "coupon:policy:issued:" + e.Code
-		if err := h.rdb.Client.Set(ctx, policyIssuedRedisKey, 0, ttl).Err(); err != nil {
-			log.Error("failed to set policy issued in Redis", zap.Error(err))
+		// Insert CouponPolicy quantity
+		policyQuantityKey := "coupon:policy:quantity:" + e.Code
+		if err := h.rdb.Client.Set(ctx, policyQuantityKey, e.TotalQty, ttl).Err(); err != nil {
+			log.Error("failed to set policy quantity in Redis", zap.Error(err))
 			continue
 		}
 	}
@@ -212,7 +199,7 @@ func (h *Handler) InitDummyRedisAndDB(c echo.Context) error {
 }
 
 func (h *Handler) CleanDummyRedisAndDB(c echo.Context) error {
-	log := logger.GetLogger()
+	log := logging.GetLogger()
 	ctx := c.Request().Context()
 
 	rows, err := h.pg.Pool.Query(ctx, `SELECT code FROM coupon_policies`)
@@ -232,18 +219,11 @@ func (h *Handler) CleanDummyRedisAndDB(c echo.Context) error {
 
 	// Delete CouponPolicy in Redis
 	for _, code := range codes {
-		policyRedisKey := "coupon:policy:" + code
-		if err := h.rdb.Client.Del(ctx, policyRedisKey).Err(); err != nil {
-			log.Warn("failed to delete redis key", zap.String("key", policyRedisKey), zap.Error(err))
+		policyQuantityKey := "coupon:policy:quantity:" + code
+		if err := h.rdb.Client.Del(ctx, policyQuantityKey).Err(); err != nil {
+			log.Warn("failed to delete redis key", zap.String("key", policyQuantityKey), zap.Error(err))
 		} else {
-			log.Info("successfully deleted redis key", zap.String("key", policyRedisKey))
-		}
-
-		policyIssuedRedisKey := "coupon:policy:issued:" + code
-		if err := h.rdb.Client.Del(ctx, policyIssuedRedisKey).Err(); err != nil {
-			log.Warn("failed to delete redis key", zap.String("key", policyRedisKey), zap.Error(err))
-		} else {
-			log.Info("successfully deleted redis key", zap.String("key", policyRedisKey))
+			log.Info("successfully deleted redis key", zap.String("key", policyQuantityKey))
 		}
 	}
 
@@ -261,7 +241,7 @@ func (h *Handler) CleanDummyRedisAndDB(c echo.Context) error {
 // Dummy Validation
 
 func (h *Handler) CheckQuantity(c echo.Context) error {
-	log := logger.GetLogger()
+	log := logging.GetLogger()
 
 	policyCode := c.Param("policy_code")
 	if policyCode == "" {

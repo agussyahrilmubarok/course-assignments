@@ -1,9 +1,8 @@
-package instrument
+package tracing
 
 import (
 	"context"
 	"log"
-	"sync"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -13,7 +12,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
-	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 )
 
@@ -71,30 +69,4 @@ func NewZipkinExporter(endpoint string) sdktrace.SpanExporter {
 		log.Fatalf("failed to create zipkin exporter: %v", err)
 	}
 	return exporter
-}
-
-var (
-	Tracer   trace.Tracer
-	muTracer sync.RWMutex
-)
-
-func NewTracer(serviceName string) trace.Tracer {
-	muTracer.Lock()
-	defer muTracer.Unlock()
-
-	Tracer = otel.Tracer(serviceName)
-	return Tracer
-}
-
-func StartSpan(ctx context.Context, name string) (context.Context, trace.Span) {
-	muTracer.RLock()
-	t := Tracer
-	muTracer.RUnlock()
-
-	if t == nil {
-		t = otel.Tracer("default-tracer")
-	}
-
-	ctx, span := t.Start(ctx, name)
-	return ctx, span
 }

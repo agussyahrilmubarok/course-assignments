@@ -1,4 +1,4 @@
-basePath: /api/v3
+basePath: /api/V3
 definitions:
   coupon.CancelCouponRequest:
     properties:
@@ -63,14 +63,12 @@ definitions:
     type: object
   coupon.CouponStatus:
     enum:
-    - PENDING
     - AVAILABLE
     - USED
     - EXPIRED
     - CANCELED
     type: string
     x-enum-varnames:
-    - CouponStatusPending
     - CouponStatusAvailable
     - CouponStatusUsed
     - CouponStatusExpired

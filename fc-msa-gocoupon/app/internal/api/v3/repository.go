@@ -2,39 +2,36 @@ package v3
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"strconv"
 	"time"
 
 	"example.com/coupon-service/internal/config"
 	"example.com/coupon-service/internal/coupon"
-	"example.com/coupon-service/internal/instrument"
-	"example.com/coupon-service/internal/logger"
-	"github.com/redis/go-redis/v9"
+	"example.com/coupon-service/internal/instrument/logging"
+	"example.com/coupon-service/internal/instrument/tracing"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
 type IRepository interface {
-	FindCouponPolicyByCode(ctx context.Context, code string) (*coupon.CouponPolicy, error)
-	CountIssuedCoupons(ctx context.Context, policyID string) (int, error)
-	CreateCoupon(ctx context.Context, coupon *coupon.Coupon) (*coupon.Coupon, error)
+	FindCouponPolicyByCodeForUpdateTx(ctx context.Context, tx pgx.Tx, code string) (*coupon.CouponPolicy, error)
+	CountIssuedCouponsTx(ctx context.Context, tx pgx.Tx, policyID string) (int, error)
+	CreateCouponTx(ctx context.Context, tx pgx.Tx, c *coupon.Coupon) (*coupon.Coupon, error)
 	FindCouponByCode(ctx context.Context, code string) (*coupon.Coupon, error)
 	UpdateCoupon(ctx context.Context, coupon *coupon.Coupon) (*coupon.Coupon, error)
 	FindCouponPolicyByID(ctx context.Context, id string) (*coupon.CouponPolicy, error)
-	SetCouponPolicyCache(ctx context.Context, policy *coupon.CouponPolicy) error
-	GetCouponPolicyCache(ctx context.Context, code string) (*coupon.CouponPolicy, error)
-	SetCouponPolicyIssuedCache(ctx context.Context, code string, quantity int, endTime time.Time) error
-	GetCouponPolicyIssuedCache(ctx context.Context, code string) (int, error)
-	IncrCouponPolicyIssuedCache(ctx context.Context, code string) error
-	DecrCouponPolicyIssuedCache(ctx context.Context, code string) error
+	WithTx(ctx context.Context, fn func(pgx.Tx) error) error
+
+	SetCouponPolicyQuantity(ctx context.Context, code string, quantity int, endTime time.Time) error
+	GetCouponPolicyQuantity(ctx context.Context, code string) (int, error)
+	IncrCouponPolicyQuantity(ctx context.Context, code string) error
+	DecrCouponPolicyQuantity(ctx context.Context, code string) error
 	AcquireRedisLock(ctx context.Context, key string, ttl time.Duration) (bool, error)
 	ReleaseRedisLock(ctx context.Context, key string) error
 }
 
 var (
-	CouponPolicyKeyPrefix            = "coupon:policy:"
-	CouponPolicyIssuedCountKeyPrefix = "coupon:policy:issued:"
+	CouponPolicyQuantityKeyPrefix = "coupon:policy:quantity:"
 )
 
 type repository struct {
@@ -49,13 +46,13 @@ func NewRepository(pg *config.Postgres, rdb *config.Redis) IRepository {
 	}
 }
 
-func (r *repository) FindCouponPolicyByCode(ctx context.Context, code string) (*coupon.CouponPolicy, error) {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.FindCouponPolicyByCode")
+func (r *repository) FindCouponPolicyByCodeForUpdateTx(ctx context.Context, tx pgx.Tx, code string) (*coupon.CouponPolicy, error) {
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.FindCouponPolicyByCodeForUpdateTx")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
-	row := r.pg.Pool.QueryRow(ctx, `
+	row := tx.QueryRow(ctx, `
 		SELECT 
 			id,
 			code,
@@ -72,7 +69,7 @@ func (r *repository) FindCouponPolicyByCode(ctx context.Context, code string) (*
 			updated_at
 		FROM coupon_policies
 		WHERE code = $1
-		LIMIT 1
+		FOR UPDATE
 	`, code)
 
 	var policy coupon.CouponPolicy
@@ -102,14 +99,14 @@ func (r *repository) FindCouponPolicyByCode(ctx context.Context, code string) (*
 	return &policy, nil
 }
 
-func (r *repository) CountIssuedCoupons(ctx context.Context, policyID string) (int, error) {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.CountIssuedCoupons")
+func (r *repository) CountIssuedCouponsTx(ctx context.Context, tx pgx.Tx, policyID string) (int, error) {
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.CountIssuedCouponsTx")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
-	row := r.pg.Pool.QueryRow(ctx, `
-        SELECT COUNT(*) 
+	row := tx.QueryRow(ctx, `
+        SELECT COUNT(*)
         FROM coupons
         WHERE coupon_policy_id = $1
     `, policyID)
@@ -125,13 +122,13 @@ func (r *repository) CountIssuedCoupons(ctx context.Context, policyID string) (i
 	return count, nil
 }
 
-func (r *repository) CreateCoupon(ctx context.Context, c *coupon.Coupon) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.CreateCoupon")
+func (r *repository) CreateCouponTx(ctx context.Context, tx pgx.Tx, c *coupon.Coupon) (*coupon.Coupon, error) {
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.CreateCouponTx")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
-	row := r.pg.Pool.QueryRow(ctx, `
+	row := tx.QueryRow(ctx, `
 		INSERT INTO coupons (
 			id,
 			code,
@@ -188,10 +185,10 @@ func (r *repository) CreateCoupon(ctx context.Context, c *coupon.Coupon) (*coupo
 }
 
 func (r *repository) FindCouponByCode(ctx context.Context, code string) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.FindCouponByCode")
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.FindCouponByCode")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := r.pg.Pool.QueryRow(ctx, `
 		SELECT 
@@ -232,10 +229,10 @@ func (r *repository) FindCouponByCode(ctx context.Context, code string) (*coupon
 }
 
 func (r *repository) UpdateCoupon(ctx context.Context, c *coupon.Coupon) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.UpdateCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.UpdateCoupon")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := r.pg.Pool.QueryRow(ctx, `
 		UPDATE coupons
@@ -287,10 +284,10 @@ func (r *repository) UpdateCoupon(ctx context.Context, c *coupon.Coupon) (*coupo
 }
 
 func (r *repository) FindCouponPolicyByID(ctx context.Context, id string) (*coupon.CouponPolicy, error) {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.FindCouponPolicyByID")
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.FindCouponPolicyByID")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	row := r.pg.Pool.QueryRow(ctx, `
 		SELECT 
@@ -339,63 +336,27 @@ func (r *repository) FindCouponPolicyByID(ctx context.Context, id string) (*coup
 	return &policy, nil
 }
 
-func (r *repository) SetCouponPolicyCache(ctx context.Context, policy *coupon.CouponPolicy) error {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.SetCouponPolicyCache")
-	defer span.End()
-
-	log := logger.GetLoggerFromContext(ctx)
-
-	key := CouponPolicyKeyPrefix + policy.Code
-	ttl := time.Until(policy.EndTime)
-	if ttl <= 0 {
-		ttl = time.Millisecond
-	}
-
-	policyJSON, err := json.Marshal(policy)
+func (r *repository) WithTx(ctx context.Context, fn func(pgx.Tx) error) error {
+	tx, err := r.pg.Pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		span.RecordError(err)
-		log.Error("failed to marshal policy", zap.String("policy_code", policy.Code), zap.Error(err))
+		return err
 	}
+	defer tx.Rollback(ctx)
 
-	if err := r.rdb.Client.Set(ctx, key, policyJSON, ttl).Err(); err != nil {
-		span.RecordError(err)
-		log.Error("failed to set coupon policy", zap.String("policy_code", policy.Code), zap.Error(err))
+	if err := fn(tx); err != nil {
 		return err
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
-func (r *repository) GetCouponPolicyCache(ctx context.Context, policyCode string) (*coupon.CouponPolicy, error) {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.GetCouponPolicyCache")
+func (r *repository) SetCouponPolicyQuantity(ctx context.Context, policyCode string, quantity int, endTime time.Time) error {
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.SetCouponPolicyQuantity")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
-	key := CouponPolicyKeyPrefix + policyCode
-	val, err := r.rdb.Client.Get(ctx, key).Result()
-	if err != nil {
-		span.RecordError(err)
-		log.Error("failed to get coupon policy", zap.String("policy_code", policyCode), zap.Error(err))
-		return nil, err
-	}
-
-	var policy coupon.CouponPolicy
-	err = json.Unmarshal([]byte(val), &policy)
-	if err != nil {
-		return nil, err
-	}
-
-	return &policy, nil
-}
-
-func (r *repository) SetCouponPolicyIssuedCache(ctx context.Context, code string, quantity int, endTime time.Time) error {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.SetCouponPolicyIssuedCache")
-	defer span.End()
-
-	log := logger.GetLoggerFromContext(ctx)
-
-	key := CouponPolicyIssuedCountKeyPrefix + code
+	key := CouponPolicyQuantityKeyPrefix + policyCode
 	ttl := time.Until(endTime)
 	if ttl <= 0 {
 		ttl = time.Millisecond
@@ -403,74 +364,65 @@ func (r *repository) SetCouponPolicyIssuedCache(ctx context.Context, code string
 
 	if err := r.rdb.Client.Set(ctx, key, quantity, ttl).Err(); err != nil {
 		span.RecordError(err)
-		log.Error("failed to set issued coupon count in cache", zap.String("policy_code", code), zap.Int("quantity", quantity), zap.Error(err))
+		log.Error("failed to set coupon policy quantity", zap.String("policy_code", policyCode), zap.Error(err))
 		return err
 	}
 
-	log.Info("set issued coupon count successfully", zap.String("policy_code", code), zap.Int("quantity", quantity))
+	log.Info("coupon policy quantity set", zap.String("policy_code", policyCode), zap.Int("quantity", quantity), zap.Duration("ttl", ttl))
 	return nil
 }
 
-func (r *repository) GetCouponPolicyIssuedCache(ctx context.Context, code string) (int, error) {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.GetCouponPolicyIssuedCache")
+func (r *repository) GetCouponPolicyQuantity(ctx context.Context, policyCode string) (int, error) {
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.GetCouponPolicyQuantity")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
-	key := CouponPolicyIssuedCountKeyPrefix + code
-	val, err := r.rdb.Client.Get(ctx, key).Result()
+	key := CouponPolicyQuantityKeyPrefix + policyCode
+	quantity, err := r.rdb.Client.Get(ctx, key).Int()
 	if err != nil {
-		if err == redis.Nil {
-			return 0, nil // belum ada di cache
-		}
 		span.RecordError(err)
-		log.Error("failed to get issued coupon count from cache", zap.String("policy_code", code), zap.Error(err))
+		log.Error("failed to get coupon policy quantity", zap.String("policy_code", policyCode), zap.Error(err))
 		return 0, err
 	}
 
-	count, err := strconv.ParseInt(val, 10, 64)
-	if err != nil {
-		span.RecordError(err)
-		log.Error("failed to parse issued coupon count", zap.String("policy_code", code), zap.String("value", val), zap.Error(err))
-		return 0, err
-	}
-
-	return int(count), nil
+	log.Info("fetched coupon policy quantity", zap.String("policy_code", policyCode), zap.Int("quantity", quantity))
+	return quantity, nil
 }
 
-func (r *repository) IncrCouponPolicyIssuedCache(ctx context.Context, code string) error {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.IncrCouponPolicyIssuedCache")
+func (r *repository) IncrCouponPolicyQuantity(ctx context.Context, policyCode string) error {
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.IncrCouponPolicyQuantity")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
-	key := CouponPolicyIssuedCountKeyPrefix + code
+	key := CouponPolicyQuantityKeyPrefix + policyCode
 	newVal, err := r.rdb.Client.Incr(ctx, key).Result()
 	if err != nil {
 		span.RecordError(err)
-		log.Error("failed to increment issued coupon count", zap.String("policy_code", code), zap.Error(err))
+		log.Error("failed to increment issued coupon count", zap.String("policy_code", policyCode), zap.Error(err))
 		return err
 	}
 
-	log.Info("incremented issued coupon count", zap.String("policy_code", code), zap.Int64("new_value", newVal))
+	log.Info("incremented issued coupon count", zap.String("policy_code", policyCode), zap.Int64("new_value", newVal))
 	return nil
 }
 
-func (r *repository) DecrCouponPolicyIssuedCache(ctx context.Context, code string) error {
-	ctx, span := instrument.StartSpan(ctx, "V3.Repository.DecrCouponPolicyIssuedCache")
+func (r *repository) DecrCouponPolicyQuantity(ctx context.Context, policyCode string) error {
+	ctx, span := tracing.StartSpan(ctx, "V3.Repository.IncrCouponPolicyQuantity")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
-	key := CouponPolicyIssuedCountKeyPrefix + code
+	key := CouponPolicyQuantityKeyPrefix + policyCode
 	newVal, err := r.rdb.Client.Decr(ctx, key).Result()
 	if err != nil {
 		span.RecordError(err)
-		log.Error("failed to decrement issued coupon count", zap.String("policy_code", code), zap.Error(err))
+		log.Error("failed to increment issued coupon count", zap.String("policy_code", policyCode), zap.Error(err))
 		return err
 	}
 
-	log.Info("decremented issued coupon count", zap.String("policy_code", code), zap.Int64("new_value", newVal))
+	log.Info("incremented issued coupon count", zap.String("policy_code", policyCode), zap.Int64("new_value", newVal))
 	return nil
 }
 

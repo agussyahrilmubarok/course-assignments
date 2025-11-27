@@ -13,8 +13,8 @@ import (
 	"example.com/coupon-service/internal/api/dummy"
 	"example.com/coupon-service/internal/api/middleware"
 	"example.com/coupon-service/internal/config"
-	"example.com/coupon-service/internal/instrument"
-	"example.com/coupon-service/internal/logger"
+	"example.com/coupon-service/internal/instrument/logging"
+	"example.com/coupon-service/internal/instrument/tracing"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
@@ -33,12 +33,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := logger.InitLogger(cfg); err != nil {
+	if err := logging.InitLogging(cfg); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
-	defer logger.GetLogger().Sync()
-	log := logger.GetLogger()
+	defer logging.GetLogger().Sync()
+	log := logging.GetLogger()
 
 	ctx := context.Background()
 
@@ -56,9 +56,9 @@ func main() {
 	}
 	defer rdb.Close()
 
-	traceExporter := instrument.NewZipkinExporter(cfg.Zipkin.Url)
-	shutdownTrace := instrument.InitTraceProvider(ctx, cfg.Server.Name, traceExporter)
-	instrument.NewTracer(cfg.Server.Name)
+	traceExporter := tracing.NewZipkinExporter(cfg.Zipkin.Url)
+	shutdownTrace := tracing.InitTraceProvider(ctx, cfg.Server.Name, traceExporter)
+	tracing.NewTracer(cfg.Server.Name)
 	defer shutdownTrace(ctx)
 
 	e := echo.New()

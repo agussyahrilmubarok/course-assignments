@@ -1,4 +1,4 @@
-package logger
+package logging
 
 import (
 	"context"
@@ -16,7 +16,7 @@ var (
 	once     sync.Once
 )
 
-func InitLogger(cfg *config.Config) error {
+func InitLogging(cfg *config.Config) error {
 	var err error
 	once.Do(func() {
 		var logLevel zapcore.Level
@@ -61,7 +61,7 @@ func InitLogger(cfg *config.Config) error {
 
 func GetLogger() *zap.Logger {
 	if instance == nil {
-		panic("logger not initialized, call init logger first")
+		panic("logger not initialized, call init logging first")
 	}
 	return instance
 }

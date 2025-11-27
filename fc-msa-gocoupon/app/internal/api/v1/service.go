@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"example.com/coupon-service/internal/coupon"
-	"example.com/coupon-service/internal/instrument"
-	"example.com/coupon-service/internal/logger"
+	"example.com/coupon-service/internal/instrument/logging"
+	"example.com/coupon-service/internal/instrument/tracing"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -61,10 +61,10 @@ func NewService(repo IRepository) IService {
 //   - No retry or backoff on DB conflicts or transient errors
 //   - Potential deadlocks if DB row-level locking implemented incorrectly
 func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V1.Service.IssueCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V1.Service.IssueCoupon")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	// Retrieve Coupon Policy
 	policy, err := s.repo.FindCouponPolicyByCode(ctx, policyCode)
@@ -122,10 +122,10 @@ func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID str
 }
 
 func (s *service) UseCoupon(ctx context.Context, couponCode string, userID string, orderID string) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V1.Service.UseCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V1.Service.UseCoupon")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	// Retrieve Coupon Policy
 	c, err := s.repo.FindCouponByCode(ctx, couponCode)
@@ -166,10 +166,10 @@ func (s *service) UseCoupon(ctx context.Context, couponCode string, userID strin
 }
 
 func (s *service) CancelCoupon(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V1.Service.CancelCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V1.Service.CancelCoupon")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	// Retrieve Coupon Policy
 	c, err := s.repo.FindCouponByCode(ctx, couponCode)
@@ -207,10 +207,10 @@ func (s *service) CancelCoupon(ctx context.Context, couponCode string, userID st
 }
 
 func (s *service) FindCouponByCode(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := instrument.StartSpan(ctx, "V1.Service.FindCouponByCode")
+	ctx, span := tracing.StartSpan(ctx, "V1.Service.FindCouponByCode")
 	defer span.End()
 
-	log := logger.GetLoggerFromContext(ctx)
+	log := logging.GetLoggerFromContext(ctx)
 
 	// Retrieve Coupon Policy
 	c, err := s.repo.FindCouponByCode(ctx, couponCode)

@@ -5,6 +5,7 @@ import "time"
 type CouponStatus string
 
 const (
+	CouponStatusPending   CouponStatus = "PENDING"
 	CouponStatusAvailable CouponStatus = "AVAILABLE"
 	CouponStatusUsed      CouponStatus = "USED"
 	CouponStatusExpired   CouponStatus = "EXPIRED"
@@ -35,6 +36,9 @@ func (c *Coupon) Use(orderId string) error {
 	}
 	if c.Status == CouponStatusCanceled {
 		return ErrCouponCanceled
+	}
+	if c.Status == CouponStatusPending {
+		return ErrCouponPending
 	}
 
 	now := time.Now()
