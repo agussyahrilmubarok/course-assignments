@@ -1,12 +1,12 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "Coupon API V3",
-        "title": "Coupon API V3",
+        "description": "Coupon API V4",
+        "title": "Coupon API V4",
         "contact": {},
-        "version": "3.0"
+        "version": "4.0"
     },
-    "basePath": "/api/V3",
+    "basePath": "/api/v4",
     "paths": {
         "/coupons/cancel": {
             "post": {
@@ -376,12 +376,14 @@
         "coupon.CouponStatus": {
             "type": "string",
             "enum": [
+                "PENDING",
                 "AVAILABLE",
                 "USED",
                 "EXPIRED",
                 "CANCELED"
             ],
             "x-enum-varnames": [
+                "CouponStatusPending",
                 "CouponStatusAvailable",
                 "CouponStatusUsed",
                 "CouponStatusExpired",

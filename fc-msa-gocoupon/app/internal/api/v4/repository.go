@@ -47,7 +47,7 @@ func NewRepository(pg *config.Postgres, rdb *config.Redis) IRepository {
 }
 
 func (r *repository) FindCouponPolicyByCodeForUpdateTx(ctx context.Context, tx pgx.Tx, code string) (*coupon.CouponPolicy, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.FindCouponPolicyByCodeForUpdateTx")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.FindCouponPolicyByCodeForUpdateTx")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -100,7 +100,7 @@ func (r *repository) FindCouponPolicyByCodeForUpdateTx(ctx context.Context, tx p
 }
 
 func (r *repository) CountIssuedCouponsTx(ctx context.Context, tx pgx.Tx, policyID string) (int, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.CountIssuedCouponsTx")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.CountIssuedCouponsTx")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -123,7 +123,7 @@ func (r *repository) CountIssuedCouponsTx(ctx context.Context, tx pgx.Tx, policy
 }
 
 func (r *repository) CreateCouponTx(ctx context.Context, tx pgx.Tx, c *coupon.Coupon) (*coupon.Coupon, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.CreateCouponTx")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.CreateCouponTx")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -185,7 +185,7 @@ func (r *repository) CreateCouponTx(ctx context.Context, tx pgx.Tx, c *coupon.Co
 }
 
 func (r *repository) FindCouponByCode(ctx context.Context, code string) (*coupon.Coupon, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.FindCouponByCode")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.FindCouponByCode")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -229,7 +229,7 @@ func (r *repository) FindCouponByCode(ctx context.Context, code string) (*coupon
 }
 
 func (r *repository) UpdateCoupon(ctx context.Context, c *coupon.Coupon) (*coupon.Coupon, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.UpdateCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.UpdateCoupon")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -284,7 +284,7 @@ func (r *repository) UpdateCoupon(ctx context.Context, c *coupon.Coupon) (*coupo
 }
 
 func (r *repository) FindCouponPolicyByID(ctx context.Context, id string) (*coupon.CouponPolicy, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.FindCouponPolicyByID")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.FindCouponPolicyByID")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -351,7 +351,7 @@ func (r *repository) WithTx(ctx context.Context, fn func(pgx.Tx) error) error {
 }
 
 func (r *repository) SetCouponPolicyQuantity(ctx context.Context, policyCode string, quantity int, endTime time.Time) error {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.SetCouponPolicyQuantity")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.SetCouponPolicyQuantity")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -373,7 +373,7 @@ func (r *repository) SetCouponPolicyQuantity(ctx context.Context, policyCode str
 }
 
 func (r *repository) GetCouponPolicyQuantity(ctx context.Context, policyCode string) (int, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.GetCouponPolicyQuantity")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.GetCouponPolicyQuantity")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -391,7 +391,7 @@ func (r *repository) GetCouponPolicyQuantity(ctx context.Context, policyCode str
 }
 
 func (r *repository) IncrCouponPolicyQuantity(ctx context.Context, policyCode string) error {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.IncrCouponPolicyQuantity")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.IncrCouponPolicyQuantity")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -409,7 +409,7 @@ func (r *repository) IncrCouponPolicyQuantity(ctx context.Context, policyCode st
 }
 
 func (r *repository) DecrCouponPolicyQuantity(ctx context.Context, policyCode string) error {
-	ctx, span := tracing.StartSpan(ctx, "V3.Repository.IncrCouponPolicyQuantity")
+	ctx, span := tracing.StartSpan(ctx, "V4.Repository.IncrCouponPolicyQuantity")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)

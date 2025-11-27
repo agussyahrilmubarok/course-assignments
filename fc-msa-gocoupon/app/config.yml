@@ -21,5 +21,10 @@ redis:
   password: ""
   db: 0
 
+kafka:
+  brokers:
+    - "localhost:9092"
+  group_id: "coupon-service"
+    
 zipkin:
   url: http://localhost:9411/api/v2/spans

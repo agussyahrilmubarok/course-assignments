@@ -17,9 +17,10 @@ import (
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name X-USER-ID
-func RegisterAPIV3(group *echo.Group, pg *config.Postgres, rdb *config.Redis) {
+func RegisterAPIV4(group *echo.Group, cfg *config.Config, pg *config.Postgres, rdb *config.Redis) {
 	repository := NewRepository(pg, rdb)
-	service := NewService(repository)
+	kafkaProducer := NewKafkaProducer(cfg.Kafka.Brokers)
+	service := NewService(repository, kafkaProducer)
 	handler := NewHandler(service)
 
 	coupons := group.Group("/v4/coupons")

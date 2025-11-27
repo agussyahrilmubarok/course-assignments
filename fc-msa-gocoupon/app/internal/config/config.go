@@ -33,6 +33,11 @@ type Config struct {
 		DB       int    `mapstructure:"db"`
 	} `mapstructure:"redis"`
 
+	Kafka struct {
+		Brokers []string `mapstructure:"brokers"`
+		GroupID string   `mapstructure:"group_id"`
+	}
+
 	Zipkin struct {
 		Url string `mapstructure:"url"`
 	} `mapstructure:"zipkin"`

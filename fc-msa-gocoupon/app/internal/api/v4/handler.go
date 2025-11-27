@@ -35,7 +35,7 @@ func NewHandler(service IService) *Handler {
 // @Failure      500  {object}  map[string]string
 // @Router       /coupons/issue [post]
 func (h *Handler) IssueCoupon(c echo.Context) error {
-	ctx, span := tracing.StartSpan(c.Request().Context(), "V3.Handler.IssueCoupon")
+	ctx, span := tracing.StartSpan(c.Request().Context(), "V4.Handler.IssueCoupon")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -88,7 +88,7 @@ func (h *Handler) IssueCoupon(c echo.Context) error {
 // @Failure      500  {object}  map[string]string
 // @Router       /coupons/use [post]
 func (h *Handler) UseCoupon(c echo.Context) error {
-	ctx, span := tracing.StartSpan(c.Request().Context(), "V3.Handler.IssueCoupon")
+	ctx, span := tracing.StartSpan(c.Request().Context(), "V4.Handler.IssueCoupon")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -133,7 +133,7 @@ func (h *Handler) UseCoupon(c echo.Context) error {
 // @Failure      500  {object}  map[string]string
 // @Router       /coupons/cancel [post]
 func (h *Handler) CancelCoupon(c echo.Context) error {
-	ctx, span := tracing.StartSpan(c.Request().Context(), "V3.Handler.CancelCoupon")
+	ctx, span := tracing.StartSpan(c.Request().Context(), "V4.Handler.CancelCoupon")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -178,7 +178,7 @@ func (h *Handler) CancelCoupon(c echo.Context) error {
 // @Failure      500  {object}  map[string]string
 // @Router       /coupons/{coupon_code} [get]
 func (h *Handler) FindCouponByCode(c echo.Context) error {
-	ctx, span := tracing.StartSpan(c.Request().Context(), "V3.Handler.FindCouponByCode")
+	ctx, span := tracing.StartSpan(c.Request().Context(), "V4.Handler.FindCouponByCode")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)

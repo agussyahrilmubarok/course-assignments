@@ -15,18 +15,29 @@ import (
 )
 
 type Handler struct {
+	e   *echo.Echo
 	pg  *config.Postgres
 	rdb *config.Redis
 }
 
 func NewHandler(
+	e *echo.Echo,
 	pg *config.Postgres,
 	rdb *config.Redis,
 ) *Handler {
 	return &Handler{
+		e:   e,
 		pg:  pg,
 		rdb: rdb,
 	}
+}
+
+func (h *Handler) RegisterDummyAPI() {
+	h.e.GET("/init-dummy-db", h.InitDummyDB)
+	h.e.GET("/clean-dummy-db", h.CleanDummyDB)
+	h.e.GET("/init-dummy-redis-db", h.InitDummyRedisAndDB)
+	h.e.GET("/clean-dummy-redis-db", h.CleanDummyRedisAndDB)
+	h.e.GET("/check-quantity/:policy_code", h.CheckQuantity)
 }
 
 // Dummy save in DB

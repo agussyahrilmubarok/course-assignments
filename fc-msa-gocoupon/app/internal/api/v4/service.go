@@ -14,20 +14,24 @@ import (
 
 type IService interface {
 	IssueCoupon(ctx context.Context, policyCode string, userID string) (*coupon.Coupon, error)
+	ProcessIssueCoupon(ctx context.Context, message coupon.IssueCouponMessage) error
 	UseCoupon(ctx context.Context, couponCode string, userID string, orderID string) (*coupon.Coupon, error)
 	CancelCoupon(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error)
 	FindCouponByCode(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error)
 }
 
 type service struct {
-	repo IRepository
+	repo         IRepository
+	kafkaProcuer *KafkaProducer
 }
 
 func NewService(
 	repo IRepository,
+	kafkaProducer *KafkaProducer,
 ) IService {
 	return &service{
-		repo: repo,
+		repo:         repo,
+		kafkaProcuer: kafkaProducer,
 	}
 }
 
@@ -37,7 +41,7 @@ func NewService(
 // Fix Implemented:
 // Potential Issues / What could go wrong:
 func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Service.IssueCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V4.Service.IssueCoupon")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -91,19 +95,22 @@ func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID str
 		// TODO: Check User Eligibility
 		// TODO: Check Order / Product Requirements (optional)
 
-		// Create New Coupon
+		// Request Create New Coupon
 		tempCoupon := &coupon.Coupon{
-			ID:             uuid.New().String(),
-			Code:           uuid.New().String(),
-			Status:         coupon.CouponStatusAvailable,
-			UsedAt:         nil,
-			UserID:         userID,
-			OrderID:        nil,
-			CouponPolicyID: policy.ID,
+			ID:     uuid.New().String(),
+			Code:   uuid.New().String(),
+			Status: coupon.CouponStatusPending,
 		}
 
-		tempCoupon, err = s.repo.CreateCouponTx(ctx, tx, tempCoupon)
-		if err != nil {
+		issueCouponMsg := coupon.IssueCouponMessage{
+			PolicyID:   policy.ID,
+			PolicyCode: policy.Code,
+			CouponID:   tempCoupon.ID,
+			CouponCode: tempCoupon.Code,
+			UserID:     userID,
+		}
+
+		if err := s.kafkaProcuer.SendIssueCoupon(ctx, issueCouponMsg); err != nil {
 			span.RecordError(err)
 			_ = s.repo.IncrCouponPolicyQuantity(ctx, policy.Code)
 			log.Error("failed to issue coupon not created", zap.String("policy_code", policyCode), zap.String("user_id", userID), zap.Error(err))
@@ -123,8 +130,49 @@ func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID str
 	return createdCoupon, nil
 }
 
+func (s *service) ProcessIssueCoupon(ctx context.Context, message coupon.IssueCouponMessage) error {
+	ctx, span := tracing.StartSpan(ctx, "V4.Service.ProcessIssueCoupon")
+	defer span.End()
+
+	log := logging.GetLoggerFromContext(ctx)
+
+	var createdCoupon *coupon.Coupon
+
+	err := s.repo.WithTx(ctx, func(tx pgx.Tx) error {
+		// Create New Coupon
+		tempCoupon := &coupon.Coupon{
+			ID:             message.CouponID,
+			Code:           message.CouponCode,
+			Status:         coupon.CouponStatusAvailable,
+			UsedAt:         nil,
+			UserID:         message.UserID,
+			OrderID:        nil,
+			CouponPolicyID: message.PolicyID,
+		}
+
+		tempCoupon, err := s.repo.CreateCouponTx(ctx, tx, tempCoupon)
+		if err != nil {
+			span.RecordError(err)
+			_ = s.repo.IncrCouponPolicyQuantity(ctx, message.PolicyCode)
+			log.Error("failed to issue coupon not created", zap.String("policy_code", message.PolicyCode), zap.String("user_id", message.UserID), zap.Error(err))
+			return coupon.ErrCouponInternal
+		}
+
+		createdCoupon = tempCoupon
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	// Return New Coupon
+	log.Info("process issue coupon successfully", zap.String("policy_code", message.PolicyCode), zap.String("user_id", message.UserID), zap.String("coupon_code", createdCoupon.Code))
+	return nil
+}
+
 func (s *service) UseCoupon(ctx context.Context, couponCode string, userID string, orderID string) (*coupon.Coupon, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Service.UseCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V4.Service.UseCoupon")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -168,7 +216,7 @@ func (s *service) UseCoupon(ctx context.Context, couponCode string, userID strin
 }
 
 func (s *service) CancelCoupon(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Service.CancelCoupon")
+	ctx, span := tracing.StartSpan(ctx, "V4.Service.CancelCoupon")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
@@ -209,7 +257,7 @@ func (s *service) CancelCoupon(ctx context.Context, couponCode string, userID st
 }
 
 func (s *service) FindCouponByCode(ctx context.Context, couponCode string, userID string) (*coupon.Coupon, error) {
-	ctx, span := tracing.StartSpan(ctx, "V3.Service.FindCouponByCode")
+	ctx, span := tracing.StartSpan(ctx, "V4.Service.FindCouponByCode")
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)

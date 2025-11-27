@@ -1,5 +1,15 @@
 api/dev:
+	@echo "running API in dev mode..."
 	go run cmd/api/main.go --config config.yml
+
+api/build:
+	@echo "formatting..."
+	go fmt ./...
+	@echo "static analyzing..."
+	go vet ./...
+	@echo "building binary..."
+	go build -o bin/api cmd/api/main.go
+	@echo "build completed!"
 
 #####################################################################################
 ### migrater

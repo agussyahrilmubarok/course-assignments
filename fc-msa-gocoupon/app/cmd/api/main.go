@@ -21,6 +21,7 @@ import (
 	v1 "example.com/coupon-service/internal/api/v1"
 	v2 "example.com/coupon-service/internal/api/v2"
 	v3 "example.com/coupon-service/internal/api/v3"
+	v4 "example.com/coupon-service/internal/api/v4"
 )
 
 func main() {
@@ -62,26 +63,19 @@ func main() {
 	defer shutdownTrace(ctx)
 
 	e := echo.New()
-
 	e.Use(middleware.TraceIDMiddleware())
 
-	e.GET("/health", func(c echo.Context) error {
-		return c.String(http.StatusOK, "OK")
-	})
-
-	dummyHandler := dummy.NewHandler(pg, rdb)
-	e.GET("/init-dummy-db", dummyHandler.InitDummyDB)
-	e.GET("/clean-dummy-db", dummyHandler.CleanDummyDB)
-	e.GET("/init-dummy-redis-db", dummyHandler.InitDummyRedisAndDB)
-	e.GET("/clean-dummy-redis-db", dummyHandler.CleanDummyRedisAndDB)
-	e.GET("/check-quantity/:policy_code", dummyHandler.CheckQuantity)
+	dummyHandler := dummy.NewHandler(e, pg, rdb)
+	dummyHandler.RegisterDummyAPI()
 
 	api := e.Group("/api")
 	v1.RegisterAPIV1(api, pg)
 	v2.RegisterAPIV2(api, pg)
 	v3.RegisterAPIV3(api, pg, rdb)
+	v4.RegisterAPIV4(api, cfg, pg, rdb)
 
-	serverAddr := ":8080"
+	// START HTTP SERVER
+	serverAddr := fmt.Sprintf(":%v", cfg.Server.Port)
 	go func() {
 		log.Info("starting echo server", zap.String("addr", serverAddr))
 		if err := e.Start(serverAddr); err != nil && err != http.ErrServerClosed {
@@ -89,16 +83,32 @@ func main() {
 		}
 	}()
 
+	// START KAFKA CONSUMER
+	consumer := v4.NewKafkaConsumer(cfg, pg, rdb)
+	go func() {
+		log.Info("starting kafka consumer...")
+		if err := consumer.Start(ctx); err != nil {
+			log.Error("kafka consumer stopped with error", zap.Error(err))
+		}
+	}()
+
+	// WAIT SIGNAL
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-quit
-	log.Info("shutting down server...", zap.String("signal", sig.String()))
+	log.Info("received shutdown signal", zap.String("signal", sig.String()))
 
+	// SHUTDOWN KAFKA CONSUMER
+	log.Info("closing kafka consumer...")
+	consumer.Close()
+	log.Info("kafka consumer closed")
+
+	// SHUTDOWN HTTP SERVER
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctxShutDown); err != nil {
 		log.Error("server forced to shutdown", zap.Error(err))
 	}
 
-	log.Info("server exited gracefully")
+	log.Info("application exited gracefully")
 }

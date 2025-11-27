@@ -383,12 +383,14 @@ const docTemplate = `{
         "coupon.CouponStatus": {
             "type": "string",
             "enum": [
+                "PENDING",
                 "AVAILABLE",
                 "USED",
                 "EXPIRED",
                 "CANCELED"
             ],
             "x-enum-varnames": [
+                "CouponStatusPending",
                 "CouponStatusAvailable",
                 "CouponStatusUsed",
                 "CouponStatusExpired",
@@ -437,12 +439,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "3.0",
+	Version:          "4.0",
 	Host:             "",
-	BasePath:         "/api/V3",
+	BasePath:         "/api/v4",
 	Schemes:          []string{},
-	Title:            "Coupon API V3",
-	Description:      "Coupon API V3",
+	Title:            "Coupon API V4",
+	Description:      "Coupon API V4",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
