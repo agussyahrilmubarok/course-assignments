@@ -1,13 +1,6 @@
-compose/up:
-	docker compose up -d --build
+compose/local/up:
+	docker compose -f docker-compose-local.yml up -d
 
-compose/down:
-	docker compose down
-	docker volume prune -a
-
-compose/dev/up:
-	docker compose -f docker-compose-dev.yml up -d
-
-compose/dev/down:
-	docker compose -f docker-compose-dev.yml down
+compose/local/down:
+	docker compose -f docker-compose-local.yml down
 	docker volume prune -a

@@ -1,1 +1,1 @@
-- Make test lock_connection
+- Make test observability (log,metric,trace)
