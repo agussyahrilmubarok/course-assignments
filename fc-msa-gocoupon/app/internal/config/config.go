@@ -38,6 +38,11 @@ type Config struct {
 		GroupID string   `mapstructure:"group_id"`
 	}
 
+	Metric struct {
+		Host string `mapstructure:"host"`
+		Port int    `mapstructure:"port"`
+	} `mapstructure:"metric"`
+
 	Zipkin struct {
 		Url string `mapstructure:"url"`
 	} `mapstructure:"zipkin"`

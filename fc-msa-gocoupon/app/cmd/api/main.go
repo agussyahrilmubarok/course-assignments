@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"example.com/coupon-service/internal/api/middleware"
 	"example.com/coupon-service/internal/config"
 	"example.com/coupon-service/internal/instrument/logging"
+	"example.com/coupon-service/internal/instrument/metrics"
 	"example.com/coupon-service/internal/instrument/tracing"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -78,7 +80,7 @@ func main() {
 	serverAddr := fmt.Sprintf(":%v", cfg.Server.Port)
 	go func() {
 		log.Info("starting echo server", zap.String("addr", serverAddr))
-		if err := e.Start(serverAddr); err != nil && err != http.ErrServerClosed {
+		if err := e.Start(serverAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal("shutting down server due to error", zap.Error(err))
 		}
 	}()
@@ -89,6 +91,16 @@ func main() {
 		log.Info("starting kafka consumer...")
 		if err := consumer.Start(ctx); err != nil {
 			log.Error("kafka consumer stopped with error", zap.Error(err))
+		}
+	}()
+
+	// START METRIC SERVER
+	metricAddr := fmt.Sprintf(":%v", cfg.Metric.Port)
+	go func() {
+		log.Info("starting metric server", zap.String("addr", metricAddr))
+		metricsServer := metrics.NewMetricServer(cfg)
+		if err := metricsServer.Start(metricAddr); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal("shutting down metric server due to error", zap.Error(err))
 		}
 	}()
 

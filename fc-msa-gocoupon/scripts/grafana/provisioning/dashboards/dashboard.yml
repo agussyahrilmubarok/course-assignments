@@ -3,10 +3,10 @@ apiVersion: 1
 providers:
   - name: 'Coupon Service'
     orgId: 1
-    folder: 'coupon-service'
+    folder: 'gocoupon-service'
     type: file
     disableDeletion: false
     editable: true
     allowUiUpdates: true
     options:
-      path: /etc/grafana/provisioning/dashboards/coupon-service
+      path: /etc/grafana/provisioning/dashboards/gocoupon-service

@@ -53,12 +53,12 @@
         {
           "direction": "backward",
           "editorMode": "builder",
-          "expr": "{service_name=\"coupon-service\"} | json",
+          "expr": "{service_name=\"gocoupon-service\"} | json",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "coupon-service-logs",
+      "title": "gocoupon-service-logs",
       "type": "logs"
     },
     {
@@ -93,12 +93,12 @@
         {
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{service_name=\"coupon-service\"} | json | level=~\"ERROR|WARN\"",
+          "expr": "{service_name=\"gocoupon-service\"} | json | level=~\"ERROR|WARN\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "course-service-errors",
+      "title": "gocoupon-service-errors",
       "type": "logs"
     }
   ],
@@ -114,7 +114,7 @@
   },
   "timepicker": {},
   "timezone": "utc",
-  "title": "coupon-service-logging",
+  "title": "gocoupon-service-logging",
   "uid": "adthh4b",
   "version": 1
 }

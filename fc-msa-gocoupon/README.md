@@ -7,6 +7,8 @@
 
 ```bash
 make compose/local/up
+# OR
+make compose/up
 ```
 
 2. Run app
