@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"example.com/backend/internal/model"
-	"example.com/backend/pkg/connections"
+	"example.com/backend/pkg/config"
 	"github.com/midtrans/midtrans-go"
 	"github.com/midtrans/midtrans-go/snap"
 	"github.com/rs/zerolog"
@@ -20,11 +20,11 @@ type IMidtransService interface {
 }
 
 type midtransService struct {
-	cfg connections.Midtrans
+	cfg config.Midtrans
 	log zerolog.Logger
 }
 
-func NewMidtransService(cfg connections.Midtrans, log zerolog.Logger) IMidtransService {
+func NewMidtransService(cfg config.Midtrans, log zerolog.Logger) IMidtransService {
 	return &midtransService{
 		cfg: cfg,
 		log: log,
@@ -46,7 +46,7 @@ func NewMidtransService(cfg connections.Midtrans, log zerolog.Logger) IMidtransS
 // 5. Optionally verify the `signature_key` from the webhook payload for added security
 func (s *midtransService) CreateTransaction(request model.MidtransRequest) (string, error) {
 	// Create Snap Client
-	snapClient := connections.NewMidtransSnapClient(s.cfg)
+	snapClient := config.NewMidtransSnapClient(s.cfg)
 
 	// Initialize Snap Request
 	snapReq := &snap.Request{
@@ -64,7 +64,7 @@ func (s *midtransService) CreateTransaction(request model.MidtransRequest) (stri
 	snapRes, err := snapClient.CreateTransaction(snapReq)
 	if err != nil {
 		s.log.Error().Err(err).Msg("create midtrans transaction fail")
-		return "", errors.New("Transaction fail")
+		return "", errors.New("transaction fail")
 	}
 
 	return snapRes.RedirectURL, nil
@@ -94,7 +94,7 @@ func (s *midtransService) HandlerNotification(callback model.MidtransCallback) e
 	expectedSignature := fmt.Sprintf("%x", hash[:])
 	if !strings.EqualFold(signatureKey, expectedSignature) {
 		s.log.Error().Msgf("Signature mismatch for order_id=%s", orderID)
-		return errors.New("Invalid signature")
+		return errors.New("invalid signature")
 	}
 
 	return nil

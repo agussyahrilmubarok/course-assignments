@@ -7,6 +7,10 @@
         {
             "name": "vuejs-server",
             "path": "./vuejs-server"
+        },
+        {
+            "name": ".",
+            "path": "."
         }
     ]
 }

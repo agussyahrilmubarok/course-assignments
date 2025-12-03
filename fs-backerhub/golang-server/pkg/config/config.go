@@ -3,18 +3,17 @@ package config
 import (
 	"strings"
 
-	"example.com/backend/pkg/connections"
 	"example.com/backend/pkg/logger"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	App         App                    `json:"app" mapstructure:"app"`
-	Logging     logger.Logging         `json:"logging" mapstructure:"logging"`
-	PostgresSQL connections.PostgreSQL `json:"postgres" mapstructure:"postgres"`
-	MySQL       connections.MySQL      `json:"mysql" mapstructure:"mysql"`
-	Midtrans    connections.Midtrans   `json:"midtrans" mapstructure:"midtrans"`
+	App         App            `json:"app" mapstructure:"app"`
+	Logging     logger.Logging `json:"logging" mapstructure:"logging"`
+	PostgresSQL PostgreSQL     `json:"postgres" mapstructure:"postgres"`
+	MySQL       MySQL          `json:"mysql" mapstructure:"mysql"`
+	Midtrans    Midtrans       `json:"midtrans" mapstructure:"midtrans"`
 }
 
 func Load(path string) *Config {

@@ -1,4 +1,4 @@
-package connections
+package config
 
 import (
 	"github.com/midtrans/midtrans-go"

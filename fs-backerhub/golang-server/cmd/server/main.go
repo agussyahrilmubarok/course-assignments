@@ -18,7 +18,6 @@ import (
 	"example.com/backend/internal/repository"
 	"example.com/backend/internal/service"
 	"example.com/backend/pkg/config"
-	"example.com/backend/pkg/connections"
 	"example.com/backend/pkg/logger"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
@@ -37,7 +36,7 @@ func main() {
 	log := logger.NewZeroLogger(cfg.Logging)
 
 	// Connect Postgres Server
-	db, err := connections.NewGormPostgres(cfg.PostgresSQL)
+	db, err := config.NewGormPostgres(cfg.PostgresSQL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to connect postgres")
 	}
