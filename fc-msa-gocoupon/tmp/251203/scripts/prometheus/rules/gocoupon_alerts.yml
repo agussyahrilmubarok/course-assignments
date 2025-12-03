@@ -1,0 +1,24 @@
+groups:
+  - name: gocoupon_service_alerts
+    rules:
+      # This alert fires when all coupon-service instances have been down (UP=0) for at least 1 minutes.
+      - alert: GoCouponServiceDown
+        expr: up{job="coupon-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Coupon service is down
+          description: Service has been down for more than 1 minute
+      
+      # This alert fires when the p95 of coupon_issue_duration_seconds for the gocoupon-service stays above 1 second for at least 10 minutes.
+      - alert: GoCouponServiceCouponIssuingTooSlow
+        expr: histogram_quantile(0.95,
+                sum(rate(coupon_issue_duration_seconds_bucket{job="gocoupon-service"}[5m])) 
+                by (le)
+              ) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 issuing time > 1s"
