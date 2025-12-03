@@ -1,1 +1,1 @@
-- Add alerting observability
+- Add contact point alerting on observability tools

@@ -1,0 +1,288 @@
+basePath: /api/v2
+definitions:
+  coupon.CancelCouponRequest:
+    properties:
+      coupon_code:
+        type: string
+    type: object
+  coupon.Coupon:
+    properties:
+      code:
+        type: string
+      coupon_policy:
+        $ref: '#/definitions/coupon.CouponPolicy'
+      coupon_policy_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      order_id:
+        type: string
+      status:
+        $ref: '#/definitions/coupon.CouponStatus'
+      updated_at:
+        type: string
+      used_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  coupon.CouponPolicy:
+    properties:
+      code:
+        type: string
+      coupons:
+        items:
+          $ref: '#/definitions/coupon.Coupon'
+        type: array
+      created_at:
+        type: string
+      description:
+        type: string
+      discount_type:
+        $ref: '#/definitions/coupon.DiscountType'
+      discount_value:
+        type: integer
+      end_time:
+        type: string
+      id:
+        type: string
+      maximum_discount_amount:
+        type: integer
+      minimum_order_amount:
+        type: integer
+      name:
+        type: string
+      start_time:
+        type: string
+      total_quantity:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  coupon.CouponStatus:
+    enum:
+    - AVAILABLE
+    - USED
+    - EXPIRED
+    - CANCELED
+    type: string
+    x-enum-varnames:
+    - CouponStatusAvailable
+    - CouponStatusUsed
+    - CouponStatusExpired
+    - CouponStatusCanceled
+  coupon.DiscountType:
+    enum:
+    - FIXED_AMOUNT
+    - PERCENTAGE
+    type: string
+    x-enum-varnames:
+    - DiscountTypeFixedAmount
+    - DiscountTypePercentage
+  coupon.IssueCouponRequest:
+    properties:
+      policy_code:
+        type: string
+    type: object
+  coupon.UseCouponRequest:
+    properties:
+      coupon_code:
+        type: string
+      order_id:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Coupon API V2
+  title: Coupon API V2
+  version: "2.0"
+paths:
+  /coupons/{coupon_code}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves coupon information for the authenticated user
+      parameters:
+      - description: User ID
+        in: header
+        name: X-USER-ID
+        required: true
+        type: string
+      - description: Coupon Code
+        in: path
+        name: coupon_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coupon.Coupon'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Find coupon by code
+      tags:
+      - coupons
+  /coupons/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancels a coupon for the authenticated user
+      parameters:
+      - description: User ID
+        in: header
+        name: X-USER-ID
+        required: true
+        type: string
+      - description: Cancel coupon payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/coupon.CancelCouponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coupon.Coupon'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cancel a coupon
+      tags:
+      - coupons
+  /coupons/issue:
+    post:
+      consumes:
+      - application/json
+      description: Issues a coupon under a specific policy code for the authenticated
+        user
+      parameters:
+      - description: User ID
+        in: header
+        name: X-USER-ID
+        required: true
+        type: string
+      - description: Issue coupon payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/coupon.IssueCouponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coupon.Coupon'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Issue a coupon for a user
+      tags:
+      - coupons
+  /coupons/use:
+    post:
+      consumes:
+      - application/json
+      description: Marks a coupon as used for the given order by the authenticated
+        user
+      parameters:
+      - description: User ID
+        in: header
+        name: X-USER-ID
+        required: true
+        type: string
+      - description: Use coupon payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/coupon.UseCouponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coupon.Coupon'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Use a coupon for an order
+      tags:
+      - coupons
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-USER-ID
+    type: apiKey
+swagger: "2.0"

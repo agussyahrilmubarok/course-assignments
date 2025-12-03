@@ -1,0 +1,1 @@
+CREATE DATABASE coupon_db;
