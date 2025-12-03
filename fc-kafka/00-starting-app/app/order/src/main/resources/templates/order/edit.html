@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+        layout:decorate="~{layout}">
+    <head>
+        <title>[[#{order.edit.headline}]]</title>
+    </head>
+    <body>
+        <div layout:fragment="content">
+            <div class="d-flex flex-wrap mb-4">
+                <h1 class="flex-grow-1">[[#{order.edit.headline}]]</h1>
+                <div>
+                    <a th:href="@{/orders}" class="btn btn-secondary">[[#{order.edit.back}]]</a>
+                </div>
+            </div>
+            <div th:replace="~{fragments/forms::globalErrors('order')}" />
+            <form th:action="${requestUri}" method="post" novalidate="">
+                <div th:replace="~{fragments/forms::inputRow(object='order', field='id', disabled=true)}" />
+                <div th:replace="~{fragments/forms::inputRow(object='order', field='customerId', required=true)}" />
+                <div th:replace="~{fragments/forms::inputRow(object='order', field='productId', required=true)}" />
+                <div th:replace="~{fragments/forms::inputRow(object='order', field='quantity', required=true, type='number')}" />
+                <div th:replace="~{fragments/forms::inputRow(object='order', field='totalAmount', required=true)}" />
+                <div th:replace="~{fragments/forms::inputRow(object='order', field='status', required=true)}" />
+                <div th:replace="~{fragments/forms::inputRow(object='order', field='orderAt', required=true)}" />
+                <input type="submit" th:value="#{order.edit.headline}" class="btn btn-primary mt-4" />
+            </form>
+        </div>
+    </body>
+</html>
