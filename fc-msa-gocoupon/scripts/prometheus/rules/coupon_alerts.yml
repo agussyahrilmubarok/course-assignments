@@ -10,11 +10,13 @@ groups:
           summary: Coupon service is down
           description: Service has been down for more than 5 minute
       
-      - alert: CouponOverselling
-        expr: coupon_issued_total > coupon_policy_quota
-        for: 5m
+      - alert: CouponIssuingTooSlow
+        expr: histogram_quantile(0.95,
+                sum(rate(coupon_issue_duration_seconds_bucket{job="gocoupon-service"}[5m])) 
+                by (le)
+              ) > 1
+        for: 10m
         labels:
-          severity: critical
+          severity: warning
         annotations:
-          summary: "Overselling detected for coupon policy {{ $labels.coupon_policy_code }}"
-          description: "Issued coupons ({{ $value }}) exceeded quota for coupon policy {{ $labels.coupon_policy_code }}"
+          summary: "p95 issuing time > 1s"

@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
 
-const policyCode = __ENV.policyCode;
+const policyCode = __ENV.policyCode || "BF-C10";
 
 export const successCount = new Counter('success_count');
 export const failCount = new Counter('fail_count');

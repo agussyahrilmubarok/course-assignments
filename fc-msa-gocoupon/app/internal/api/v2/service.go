@@ -6,9 +6,11 @@ import (
 
 	"example.com/coupon-service/internal/coupon"
 	"example.com/coupon-service/internal/instrument/logging"
+	"example.com/coupon-service/internal/instrument/metrics"
 	"example.com/coupon-service/internal/instrument/tracing"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -125,6 +127,11 @@ func (s *service) IssueCoupon(ctx context.Context, policyCode string, userID str
 	defer span.End()
 
 	log := logging.GetLoggerFromContext(ctx)
+
+	couponIssueDuration := prometheus.NewTimer(
+		metrics.CouponIssueDuration.WithLabelValues(policyCode, "v2"),
+	)
+	defer couponIssueDuration.ObserveDuration()
 
 	var createdCoupon *coupon.Coupon
 

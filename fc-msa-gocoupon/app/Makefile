@@ -8,7 +8,7 @@ api/build:
 	@echo "static analyzing..."
 	go vet ./...
 	@echo "building binary..."
-	go build -o bin/api cmd/api/main.go
+	CGO_ENABLED=0 GOOS=linux go build -o bin/gocoupon-api cmd/api/main.go
 	@echo "build completed!"
 
 #####################################################################################

@@ -76,7 +76,6 @@ func main() {
 	v3.RegisterAPIV3(api, pg, rdb)
 	v4.RegisterAPIV4(api, cfg, pg, rdb)
 
-	// START HTTP SERVER
 	serverAddr := fmt.Sprintf(":%v", cfg.Server.Port)
 	go func() {
 		log.Info("starting echo server", zap.String("addr", serverAddr))
@@ -85,16 +84,14 @@ func main() {
 		}
 	}()
 
-	// START KAFKA CONSUMER
-	consumer := v4.NewKafkaConsumer(cfg, pg, rdb)
+	kafkaConsumer := v4.NewKafkaConsumer(cfg, pg, rdb)
 	go func() {
 		log.Info("starting kafka consumer...")
-		if err := consumer.Start(ctx); err != nil {
+		if err := kafkaConsumer.Start(ctx); err != nil {
 			log.Error("kafka consumer stopped with error", zap.Error(err))
 		}
 	}()
 
-	// START METRIC SERVER
 	metricAddr := fmt.Sprintf(":%v", cfg.Metric.Port)
 	go func() {
 		log.Info("starting metric server", zap.String("addr", metricAddr))
@@ -104,18 +101,15 @@ func main() {
 		}
 	}()
 
-	// WAIT SIGNAL
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-quit
 	log.Info("received shutdown signal", zap.String("signal", sig.String()))
 
-	// SHUTDOWN KAFKA CONSUMER
 	log.Info("closing kafka consumer...")
-	consumer.Close()
+	kafkaConsumer.Close()
 	log.Info("kafka consumer closed")
 
-	// SHUTDOWN HTTP SERVER
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := e.Shutdown(ctxShutDown); err != nil {

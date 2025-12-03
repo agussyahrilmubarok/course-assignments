@@ -17,6 +17,9 @@ make compose/up
 cd app && \
 make migrater/up && \
 make api/dev
+
+# Create Kafka Topic
+coupon-issue-requests
 ```
 
 3. Run Testing
