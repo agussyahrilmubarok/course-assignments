@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"example.com/backend/internal/domain"
+	"example.com.backend/internal/domain"
 	"github.com/gosimple/slug"
 	"github.com/leekchan/accounting"
 )

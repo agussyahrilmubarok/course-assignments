@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"example.com/backend/internal/domain"
-	"example.com/backend/internal/model"
-	"example.com/backend/internal/service"
+	"example.com.backend/internal/domain"
+	"example.com.backend/internal/model"
+	"example.com.backend/internal/service"
+	"example.com.backend/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
+	"go.uber.org/zap"
 )
 
 const (
@@ -21,40 +22,36 @@ type userController struct {
 	baseController
 	userService   service.IUserService
 	uploadService service.IUploadService
-	log           zerolog.Logger
 }
 
 func NewUserController(
 	userService service.IUserService,
 	uploadService service.IUploadService,
-	log zerolog.Logger,
 ) *userController {
 	return &userController{
 		userService:   userService,
 		uploadService: uploadService,
-		log:           log,
 	}
 }
 
 func (h *userController) Index(c *gin.Context) {
-	data := gin.H{
-		"title": "Users",
-	}
+	data := gin.H{"title": "Users"}
+
 	ctx := c.Request.Context()
+
 	h.showOnlyUsersIndex(c, ctx, data)
 }
 
 func (h *userController) Add(c *gin.Context) {
-	data := gin.H{
-		"title": "New User",
-	}
+	data := gin.H{"title": "New User"}
+
 	h.renderHTML(c, http.StatusOK, "user_add.html", data)
 }
 
 func (h *userController) Create(c *gin.Context) {
-	data := gin.H{
-		"title": "New User",
-	}
+	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "New User"}
 
 	var input struct {
 		Name       string `form:"name" binding:"required"`
@@ -63,17 +60,16 @@ func (h *userController) Create(c *gin.Context) {
 		Password   string `form:"password" binding:"required"`
 	}
 	if err := c.ShouldBind(&input); err != nil {
-		h.log.Warn().Err(err).Msgf("failed to bind add user input")
+		log.Warn("failed to bind add user input", zap.Error(err))
 		data["form"] = input
 		data["error"] = "Invalid input."
 		h.renderHTML(c, http.StatusBadRequest, "user_add.html", data)
 		return
 	}
 
-	ctx := c.Request.Context()
-	user, _ := h.userService.FindByEmail(ctx, input.Email)
-	if user != nil {
-		h.log.Error().Msgf("attempt to register with existing email %v", input.Email)
+	exists, _ := h.userService.ExistsByEmailIgnoreCase(ctx, input.Email)
+	if exists {
+		log.Warn("attempt to register with existing email", zap.String("user_email", input.Email))
 		data["form"] = input
 		data["error"] = "Email already used."
 		h.renderHTML(c, http.StatusBadRequest, "user_add.html", data)
@@ -86,9 +82,8 @@ func (h *userController) Create(c *gin.Context) {
 		Occupation: input.Occupation,
 		Password:   input.Password,
 	}
-	err := h.userService.Create(ctx, userDto)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("failed to create user %s", input.Email)
+	if err := h.userService.Create(ctx, userDto); err != nil {
+		log.Error("failed to create user", zap.Error(err), zap.String("user_email", input.Email))
 		data["form"] = input
 		data["error"] = "An error occurred while processing the request."
 		h.renderHTML(c, http.StatusInternalServerError, "user_add.html", data)
@@ -103,17 +98,14 @@ func (h *userController) Create(c *gin.Context) {
 }
 
 func (h *userController) Edit(c *gin.Context) {
-	data := gin.H{
-		"title": "Edit User",
-	}
-
 	ctx := c.Request.Context()
-	idStr := c.Param("id")
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Edit User"}
 
+	idStr := c.Param("id")
 	userDto, err := h.userService.FindByID(ctx, idStr)
-	if userDto == nil || err != nil {
-		h.log.Error().Err(err).Msgf("user is not found id %s", idStr)
-		data["title"] = "Users"
+	if err != nil || userDto == nil {
+		log.Error("user not found", zap.Error(err), zap.String("user_id", idStr))
 		data["error"] = "An error occurred while retrieving user details."
 		h.showOnlyUsersIndex(c, ctx, data)
 		return
@@ -125,15 +117,14 @@ func (h *userController) Edit(c *gin.Context) {
 }
 
 func (h *userController) Update(c *gin.Context) {
-	data := gin.H{
-		"title": "Edit User",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Edit User"}
+
 	idStr := c.Param("id")
 	userDto, err := h.userService.FindByID(ctx, idStr)
 	if err != nil || userDto == nil {
-		h.log.Error().Err(err).Msgf("user is not found id %s", idStr)
+		log.Error("user not found", zap.Error(err), zap.String("id", idStr))
 		data["error"] = "User not found."
 		h.showOnlyUsersIndex(c, ctx, data)
 		return
@@ -147,7 +138,7 @@ func (h *userController) Update(c *gin.Context) {
 		Password   string `form:"password" binding:"required"`
 	}
 	if err := c.ShouldBind(&input); err != nil {
-		h.log.Warn().Msgf("invalid bind user update")
+		log.Warn("invalid bind user update", zap.Error(err))
 		data["user"] = input
 		data["error"] = "Invalid input."
 		h.renderHTML(c, http.StatusBadRequest, "user_edit.html", data)
@@ -156,9 +147,9 @@ func (h *userController) Update(c *gin.Context) {
 
 	input.ID = idStr
 	if input.Email != userDto.Email {
-		existinguser, _ := h.userService.FindByEmail(ctx, input.Email)
-		if existinguser != nil {
-			h.log.Warn().Msgf("email is already used by another user %s", input.Email)
+		exists, _ := h.userService.ExistsByEmailIgnoreCase(ctx, input.Email)
+		if exists {
+			log.Warn("email already used by another user", zap.String("user_email", input.Email))
 			data["user"] = input
 			data["error"] = "Email is already in use."
 			h.renderHTML(c, http.StatusBadRequest, "user_edit.html", data)
@@ -171,9 +162,8 @@ func (h *userController) Update(c *gin.Context) {
 	userDto.Password = input.Password
 	userDto.Occupation = input.Occupation
 
-	err = h.userService.Update(ctx, *userDto)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("user update failed to id %s", userDto.ID)
+	if err := h.userService.Update(ctx, *userDto); err != nil {
+		log.Error("user update failed", zap.Error(err), zap.String("id", userDto.ID))
 		data["user"] = input
 		data["error"] = "Failed to update user."
 		h.renderHTML(c, http.StatusInternalServerError, "user_edit.html", data)
@@ -187,15 +177,14 @@ func (h *userController) Update(c *gin.Context) {
 }
 
 func (h *userController) Avatar(c *gin.Context) {
-	data := gin.H{
-		"title": "Edit Avatar User",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Edit Avatar User"}
+
 	idStr := c.Param("id")
 	userDto, err := h.userService.FindByID(ctx, idStr)
 	if err != nil || userDto == nil {
-		h.log.Error().Err(err).Msgf("user is not found id %s", idStr)
+		log.Error("user not found for avatar", zap.Error(err), zap.String("user_id", idStr))
 		data["error"] = "User not found."
 		h.showOnlyUsersIndex(c, ctx, data)
 		return
@@ -207,15 +196,14 @@ func (h *userController) Avatar(c *gin.Context) {
 }
 
 func (h *userController) Upload(c *gin.Context) {
-	data := gin.H{
-		"title": "Edit Avatar User",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Edit Avatar User"}
+
 	idStr := c.Param("id")
 	userDto, err := h.userService.FindByID(ctx, idStr)
 	if err != nil || userDto == nil {
-		h.log.Error().Err(err).Msgf("user is not found id %s", idStr)
+		log.Error("user not found for avatar upload", zap.Error(err), zap.String("user_id", idStr))
 		data["error"] = "User not found."
 		h.showOnlyUsersIndex(c, ctx, data)
 		return
@@ -223,15 +211,15 @@ func (h *userController) Upload(c *gin.Context) {
 
 	avatarFile, err := c.FormFile("avatar")
 	if err != nil {
-		h.log.Error().Err(err).Msgf("failed to retrieve avatar")
+		log.Error("failed to retrieve avatar", zap.Error(err))
 		data["error"] = "Failed to get avatar file."
 		h.renderHTML(c, http.StatusBadRequest, "user_avatar.html", data)
 		return
 	}
 
-	avatarPath, err := h.uploadService.SaveLocal(USER_UPLOAD_PATH, avatarFile, idStr)
+	avatarPath, err := h.uploadService.SaveLocal(ctx, USER_UPLOAD_PATH, avatarFile, idStr)
 	if err != nil {
-		h.log.Error().Err(err).Msgf("failed to upload avatar file %s", idStr)
+		log.Error("failed to upload avatar file", zap.Error(err), zap.String("id", idStr))
 		data["error"] = "Failed to upload avatar file."
 		h.renderHTML(c, http.StatusInternalServerError, "user_avatar.html", data)
 		return
@@ -240,10 +228,9 @@ func (h *userController) Upload(c *gin.Context) {
 	trimmedPath := strings.TrimPrefix(avatarPath, fmt.Sprintf("%v/", USER_UPLOAD_PATH))
 	userDto.ImageName = trimmedPath
 
-	err = h.userService.Update(ctx, *userDto)
-	if err != nil {
-		h.uploadService.RemoveLocal(fmt.Sprintf("%v/", USER_UPLOAD_PATH), trimmedPath)
-		h.log.Error().Err(err).Msgf("failed to save avatar user %s", idStr)
+	if err := h.userService.Update(ctx, *userDto); err != nil {
+		h.uploadService.RemoveLocal(ctx, fmt.Sprintf("%v/", USER_UPLOAD_PATH), trimmedPath)
+		log.Error("failed to save avatar user", zap.Error(err), zap.String("id", idStr))
 		data["error"] = "Failed to save avatar user."
 		h.renderHTML(c, http.StatusInternalServerError, "user_avatar.html", data)
 		return
@@ -256,31 +243,30 @@ func (h *userController) Upload(c *gin.Context) {
 }
 
 func (h *userController) Delete(c *gin.Context) {
-	data := gin.H{
-		"title": "Delete User",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Delete User"}
+
 	idStr := c.Param("id")
 	userDto, err := h.userService.FindByID(ctx, idStr)
 	if err != nil || userDto == nil {
-		h.log.Error().Err(err).Msgf("user is not found id %s", idStr)
+		log.Error("user not found for deletion", zap.Error(err), zap.String("user_id", idStr))
 		data["error"] = "User not found."
 		h.showOnlyUsersIndex(c, ctx, data)
 		return
 	}
 
 	if userDto.ImageName != "default.png" {
-		if err := h.uploadService.RemoveLocal(fmt.Sprintf("%v/", USER_UPLOAD_PATH), userDto.ImageName); err != nil {
-			h.log.Error().Err(err).Msgf("failed to remove user image for id: %v", userDto.ImageName)
+		if err := h.uploadService.RemoveLocal(ctx, fmt.Sprintf("%v/", USER_UPLOAD_PATH), userDto.ImageName); err != nil {
+			log.Warn("failed to remove user image", zap.Error(err), zap.String("image", userDto.ImageName))
 		}
 	}
 
-	err = h.userService.DeleteByID(ctx, userDto.ID)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("user delete failed %s", userDto.ID)
+	if err := h.userService.DeleteByID(ctx, userDto.ID); err != nil {
+		log.Error("user delete failed", zap.Error(err), zap.String("id", userDto.ID))
 		data["error"] = "Failed to delete a user."
 		h.showOnlyUsersIndex(c, ctx, data)
+		return
 	}
 
 	data["title"] = "Users"

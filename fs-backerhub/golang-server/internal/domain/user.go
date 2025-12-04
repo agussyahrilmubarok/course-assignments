@@ -1,7 +1,12 @@
 package domain
 
-import (
-	"time"
+import "time"
+
+type UserRole string
+
+const (
+	RoleAdmin UserRole = "ROLE_ADMIN"
+	RoleUser  UserRole = "ROLE_USER"
 )
 
 type User struct {
@@ -15,10 +20,3 @@ type User struct {
 	CreatedAt  time.Time `gorm:"type:timestamptz;not null;default:now()" json:"created_at"`
 	UpdatedAt  time.Time `gorm:"type:timestamptz;not null;default:now()" json:"updated_at"`
 }
-
-type UserRole string
-
-const (
-	RoleAdmin UserRole = "ROLE_ADMIN"
-	RoleUser  UserRole = "ROLE_USER"
-)

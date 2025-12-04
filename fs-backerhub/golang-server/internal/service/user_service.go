@@ -3,13 +3,13 @@ package service
 import (
 	"context"
 
-	"example.com/backend/internal/domain"
-	"example.com/backend/internal/model"
-	"example.com/backend/internal/repository"
-	"github.com/rs/zerolog"
+	"example.com.backend/internal/domain"
+	"example.com.backend/internal/model"
+	"example.com.backend/internal/repos"
+	"example.com.backend/pkg/logger"
+	"go.uber.org/zap"
 )
 
-//go:generate mockery --name=IUserService
 type IUserService interface {
 	FindAll(ctx context.Context) ([]model.UserDTO, error)
 	FindByID(ctx context.Context, id string) (*model.UserDTO, error)
@@ -17,67 +17,82 @@ type IUserService interface {
 	Create(ctx context.Context, userDto model.UserDTO) error
 	Update(ctx context.Context, userDto model.UserDTO) error
 	DeleteByID(ctx context.Context, id string) error
+	ExistsByEmailIgnoreCase(ctx context.Context, email string) (bool, error)
 }
 
 type userService struct {
-	userRepo repository.IUserRepository
-	log      zerolog.Logger
+	userRepo repos.IUserRepository
 }
 
-func NewUserService(
-	userRepo repository.IUserRepository,
-	log zerolog.Logger,
-) IUserService {
-	return &userService{
-		userRepo: userRepo,
-		log:      log,
-	}
+func NewUserService(userRepo repos.IUserRepository) IUserService {
+	return &userService{userRepo: userRepo}
 }
 
 func (s *userService) FindAll(ctx context.Context) ([]model.UserDTO, error) {
+	log := logger.GetLoggerFromContext(ctx)
+
 	users, err := s.userRepo.FindAll(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to find users")
+		log.Error("failed fetching users", zap.Error(err))
 		return nil, err
 	}
 
 	var userDtos []model.UserDTO
 	for _, user := range users {
-		var userDto model.UserDTO
-		userDto.FromUser(&user)
-		userDtos = append(userDtos, userDto)
+		var dto model.UserDTO
+		dto.FromUser(&user)
+		userDtos = append(userDtos, dto)
 	}
 
+	log.Info("successfully fetched users", zap.Int("count", len(users)))
 	return userDtos, nil
 }
 
 func (s *userService) FindByID(ctx context.Context, id string) (*model.UserDTO, error) {
+	log := logger.GetLoggerFromContext(ctx)
+
 	user, err := s.userRepo.FindByID(ctx, id)
-	if err != nil || user == nil {
-		s.log.Error().Err(err).Msgf("failed to find user by id %s", id)
+	if err != nil {
+		log.Error("failed fetching user by id", zap.String("user_id", id), zap.Error(err))
 		return nil, err
 	}
 
-	var userDto model.UserDTO
-	userDto.FromUser(user)
+	if user == nil {
+		log.Warn("user not found by id", zap.String("user_id", id))
+		return nil, nil
+	}
 
-	return &userDto, nil
+	var dto model.UserDTO
+	dto.FromUser(user)
+
+	log.Info("successfully fetched user by id", zap.String("user_id", id))
+	return &dto, nil
 }
 
 func (s *userService) FindByEmail(ctx context.Context, email string) (*model.UserDTO, error) {
+	log := logger.GetLoggerFromContext(ctx)
+
 	user, err := s.userRepo.FindByEmail(ctx, email)
-	if err != nil || user == nil {
-		s.log.Error().Err(err).Msgf("failed to find user by email %s", email)
+	if err != nil {
+		log.Error("failed fetching user by email", zap.String("user_email", email), zap.Error(err))
 		return nil, err
 	}
 
-	var userDto model.UserDTO
-	userDto.FromUser(user)
+	if user == nil {
+		log.Warn("user not found by email", zap.String("user_email", email))
+		return nil, nil
+	}
 
-	return &userDto, nil
+	var dto model.UserDTO
+	dto.FromUser(user)
+
+	log.Info("successfully fetched user by email", zap.String("user_email", email))
+	return &dto, nil
 }
 
 func (s *userService) Create(ctx context.Context, userDto model.UserDTO) error {
+	log := logger.GetLoggerFromContext(ctx)
+
 	userDto.HashPassword(userDto.Password)
 	defaultImage := "default.png"
 
@@ -91,20 +106,30 @@ func (s *userService) Create(ctx context.Context, userDto model.UserDTO) error {
 
 	_, err := s.userRepo.Create(ctx, user)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to save user with email %s", userDto.Email)
+		log.Error("failed creating user", zap.String("user_email", userDto.Email), zap.Error(err))
 		return err
 	}
 
+	log.Info("successfully created user",
+		zap.String("user_id", user.ID),
+		zap.String("user_email", user.Email),
+	)
 	return nil
 }
 
 func (s *userService) Update(ctx context.Context, userDto model.UserDTO) error {
+	log := logger.GetLoggerFromContext(ctx)
+
 	userDto.HashPassword(userDto.Password)
 
 	user, err := s.userRepo.FindByID(ctx, userDto.ID)
-	if err != nil || user == nil {
-		s.log.Error().Err(err).Msgf("failed to find user by id %s", userDto.ID)
+	if err != nil {
+		log.Error("failed fetching user for update", zap.String("user_id", userDto.ID), zap.Error(err))
 		return err
+	}
+	if user == nil {
+		log.Warn("user not found for update", zap.String("user_id", userDto.ID))
+		return nil
 	}
 
 	user.Name = userDto.Name
@@ -114,19 +139,36 @@ func (s *userService) Update(ctx context.Context, userDto model.UserDTO) error {
 
 	_, err = s.userRepo.Update(ctx, user)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to update user by id %s", userDto.ID)
+		log.Error("failed updating user", zap.String("user_id", userDto.ID), zap.Error(err))
 		return err
 	}
 
+	log.Info("successfully updated user", zap.String("user_id", userDto.ID))
 	return nil
 }
 
 func (s *userService) DeleteByID(ctx context.Context, id string) error {
+	log := logger.GetLoggerFromContext(ctx)
+
 	err := s.userRepo.DeleteByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to delete user by id %s", id)
+		log.Error("failed deleting user", zap.String("user_id", id), zap.Error(err))
 		return err
 	}
 
+	log.Info("successfully deleted user", zap.String("user_id", id))
 	return nil
+}
+
+func (s *userService) ExistsByEmailIgnoreCase(ctx context.Context, email string) (bool, error) {
+	log := logger.GetLoggerFromContext(ctx)
+
+	exists, err := s.userRepo.ExistsByEmailIgnoreCase(ctx, email)
+	if err != nil {
+		log.Error("failed checking existing email", zap.String("user_email", email), zap.Error(err))
+		return false, err
+	}
+
+	log.Info("checked existing email", zap.String("user_email", email), zap.Bool("exists", exists))
+	return exists, nil
 }

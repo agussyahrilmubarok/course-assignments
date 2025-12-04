@@ -1,15 +1,25 @@
-server/dev:
-	go run cmd/server/main.go --config=backerhub-dev.json
+backend/dev:
+	go run cmd/backend/main.go
 
-server/stage:
-	go run cmd/server/main.go --config=backerhub-stage.json
+backerhub/build:
+	go fmt ./...
+	go vet ./...
+	CGO_ENABLED=0 GOOS=linux go build -o bin/backerhub-backend cmd/backend/main.go
 
-migrater/run:
-	go run cmd/migrater/main.go --dsn="host=127.0.0.1 user=backeruser password=backerpass dbname=backerhub port=5432 sslmode=disable TimeZone=Asia/Jakarta"
+seeder/up:
+	go run cmd/seeder/main.go
 
-compose/up:
-	docker compose up -d --build
+swagger/install:
+	go install github.com/swaggo/swag/cmd/swag@latest
+	go get github.com/swaggo/swag@latest
+	go mod tidy
 
-compose/down:
-	docker compose down
+swagger/generate:
+	swag init -g internal/rest/$(version)/router.go -o internal/rest/$(version)/docs
+	
+compose/postgres/up:
+	docker compose -f docker-compose-postgres.yml up -d --build
+
+compose/postgres/down:
+	docker compose -f docker-compose-postgres.yml down
 	docker volume prune -a

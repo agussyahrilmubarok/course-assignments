@@ -1,0 +1,124 @@
+basePath: /api/v1
+definitions:
+  payloadV1.SignInRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  payloadV1.SignInResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  payloadV1.SignUpRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      occupation:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        maxLength: 100
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - occupation
+    - password
+    type: object
+  payloadV1.SignUpResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  response.ErrorResponse:
+    properties:
+      errors: {}
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+info:
+  contact: {}
+  description: Backerhub Backend API V1
+  title: Backerhub Backend API V1
+  version: "1.0"
+paths:
+  /auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token
+      parameters:
+      - description: Sign In Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/payloadV1.SignInRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payloadV1.SignInResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Create new user account with name, email, and password
+      parameters:
+      - description: Sign Up Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/payloadV1.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payloadV1.SignUpResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Register new user
+      tags:
+      - Auth
+swagger: "2.0"

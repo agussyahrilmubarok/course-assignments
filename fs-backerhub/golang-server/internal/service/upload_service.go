@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -9,82 +10,89 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/rs/zerolog"
+	"example.com.backend/pkg/logger"
+	"go.uber.org/zap"
 )
 
-//go:generate mockery --name=IUploadService
 type IUploadService interface {
-	SaveLocal(path string, imageFile *multipart.FileHeader, unique string) (string, error)
-	RemoveLocal(baseDir, imagePath string) error
+	SaveLocal(ctx context.Context, path string, imageFile *multipart.FileHeader, unique string) (string, error)
+	RemoveLocal(ctx context.Context, baseDir, imagePath string) error
 }
 
-type uploadService struct {
-	log zerolog.Logger
+type uploadService struct{}
+
+func NewUploadService() IUploadService {
+	return &uploadService{}
 }
 
-func NewUploadService(log zerolog.Logger) IUploadService {
-	return &uploadService{log}
-}
+func (s *uploadService) SaveLocal(ctx context.Context, path string, imageFile *multipart.FileHeader, unique string) (string, error) {
+	log := logger.GetLoggerFromContext(ctx)
 
-func (s *uploadService) SaveLocal(path string, imageFile *multipart.FileHeader, unique string) (string, error) {
 	timeUnix := time.Now().Unix()
 	fileName := fmt.Sprintf("%s-%d-%s", unique, timeUnix, imageFile.Filename)
 	filePath := filepath.Join(path, fileName)
 
-	// Open the image file
+	// Open the uploaded image file
 	src, err := imageFile.Open()
 	if err != nil {
-		s.log.Error().
-			Str("filename", imageFile.Filename).
-			Err(err).
-			Msg("open image file failed")
+		log.Error("open image file failed",
+			zap.String("upload_filename", imageFile.Filename),
+			zap.Error(err),
+		)
 		return "", errors.New("unable to open the uploaded image file")
 	}
 	defer src.Close()
 
-	// Create directory if it doesn't exist
+	// Ensure directory exists
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		s.log.Error().
-			Str("path", path).
-			Err(err).
-			Msg("create directory failed")
+		log.Error("create directory failed",
+			zap.String("upload_path", path),
+			zap.Error(err),
+		)
 		return "", errors.New("unable to create target directory")
 	}
 
-	// Create file at the target path
+	// Create destination file
 	dest, err := os.Create(filePath)
 	if err != nil {
-		s.log.Error().
-			Str("path", filePath).
-			Err(err).
-			Msg("create file failed")
+		log.Error("create file failed",
+			zap.String("path", filePath),
+			zap.Error(err),
+		)
 		return "", errors.New("unable to create file at specified path")
 	}
 	defer dest.Close()
 
-	// Copy content from source to destination file
+	// Copy content
 	if _, err := io.Copy(dest, src); err != nil {
-		s.log.Error().
-			Str("destination", filePath).
-			Err(err).
-			Msg("copy file failed")
+		log.Error("copy file failed",
+			zap.String("upload_destination", filePath),
+			zap.Error(err),
+		)
 		return "", errors.New("unable to copy file content")
 	}
 
+	log.Info("successfully saved local file",
+		zap.String("upload_path", filePath),
+		zap.String("upload_original_filename", imageFile.Filename),
+	)
 	return filePath, nil
 }
 
-func (s *uploadService) RemoveLocal(baseDir, imagePath string) error {
+func (s *uploadService) RemoveLocal(ctx context.Context, baseDir, imagePath string) error {
+	log := logger.GetLoggerFromContext(ctx)
+
 	fullPath := filepath.Join(baseDir, imagePath)
 
 	// Remove the file
 	if err := os.Remove(fullPath); err != nil {
-		s.log.Error().
-			Str("path", fullPath).
-			Err(err).
-			Msg("remove file failed")
+		log.Error("remove file failed",
+			zap.String("upload_path", fullPath),
+			zap.Error(err),
+		)
 		return errors.New("unable to remove file at specified path")
 	}
 
+	log.Info("successfully removed local file", zap.String("upload_path", fullPath))
 	return nil
 }

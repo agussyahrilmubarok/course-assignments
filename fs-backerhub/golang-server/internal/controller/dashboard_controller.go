@@ -15,9 +15,7 @@ func NewDashboardController() *dashboardController {
 }
 
 func (h *dashboardController) Index(c *gin.Context) {
-	data := gin.H{
-		"title": "Dashboard",
-	}
+	data := gin.H{"title": "Dashboard"}
 
 	h.renderHTML(c, http.StatusOK, "dashboard_index.html", data)
 }
