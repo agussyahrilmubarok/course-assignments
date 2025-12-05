@@ -7,8 +7,8 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"gopkg.in/Graylog2/go-gelf.v2/gelf"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
@@ -50,7 +50,7 @@ func NewLogger(level, filepath, gelfAddr string) error {
 
 		var gelfWriter zapcore.WriteSyncer
 		if gelfAddr != "" {
-			w, e := gelf.NewUDPWriter(gelfAddr)		// "e.g:192.168.1.10:12201"
+			w, e := gelf.NewUDPWriter(gelfAddr) // "e.g:192.168.1.10:12201"
 			if e != nil {
 				return
 			}

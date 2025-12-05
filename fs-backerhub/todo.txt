@@ -1,0 +1,2 @@
+- Fix better logging services in Graylog.
+- Fix all services in container.
