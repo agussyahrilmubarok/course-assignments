@@ -13,7 +13,7 @@
         "level": "info"
     },
     "postgres": {
-        "host": "localhost",
+        "host": "postgres",
         "port": 5432,
         "name": "backerhub",
         "username": "backeruser",

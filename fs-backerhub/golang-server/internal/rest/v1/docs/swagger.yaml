@@ -1,5 +1,119 @@
 basePath: /api/v1
 definitions:
+  domain.TransactionStatus:
+    enum:
+    - PENDING
+    - PAID
+    - FAILED
+    - EXPIRED
+    - CANCELED
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusPaid
+    - StatusFailed
+    - StatusExpired
+    - StatusCanceled
+  payloadV1.CampaignDetailResponse:
+    properties:
+      backer_count:
+        type: integer
+      campaign_images:
+        items:
+          $ref: '#/definitions/payloadV1.CampaignImageResponse'
+        type: array
+      created_at:
+        type: string
+      current_amount:
+        type: number
+      description:
+        type: string
+      goal_amount:
+        type: number
+      id:
+        type: string
+      image_name:
+        type: string
+      perks:
+        type: string
+      short_description:
+        type: string
+      slug:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  payloadV1.CampaignImageResponse:
+    properties:
+      campaign_id:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      image_name:
+        type: string
+      is_primary:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  payloadV1.CampaignRequest:
+    properties:
+      description:
+        type: string
+      goal_amount:
+        type: number
+      perks:
+        maxLength: 255
+        minLength: 3
+        type: string
+      short_description:
+        maxLength: 255
+        minLength: 10
+        type: string
+      title:
+        maxLength: 100
+        minLength: 3
+        type: string
+    required:
+    - goal_amount
+    - short_description
+    - title
+    type: object
+  payloadV1.CampaignResponse:
+    properties:
+      backer_count:
+        type: integer
+      created_at:
+        type: string
+      current_amount:
+        type: number
+      description:
+        type: string
+      goal_amount:
+        type: number
+      id:
+        type: string
+      image_name:
+        type: string
+      perks:
+        type: string
+      short_description:
+        type: string
+      slug:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
   payloadV1.SignInRequest:
     properties:
       email:
@@ -43,6 +157,60 @@ definitions:
       id:
         type: string
     type: object
+  payloadV1.TransactionRequest:
+    properties:
+      amount:
+        type: number
+      campaign_id:
+        type: string
+    required:
+    - amount
+    - campaign_id
+    type: object
+  payloadV1.TransactionResponse:
+    properties:
+      amount:
+        type: number
+      campaign_id:
+        type: string
+      campaign_image_name:
+        type: string
+      campaign_name:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      note:
+        type: string
+      reference:
+        type: string
+      status:
+        $ref: '#/definitions/domain.TransactionStatus'
+      updated_at:
+        type: string
+      user_email:
+        type: string
+      user_id:
+        type: string
+      user_name:
+        type: string
+    type: object
+  payloadV1.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      image_name:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
   response.ErrorResponse:
     properties:
       errors: {}
@@ -57,6 +225,21 @@ info:
   title: Backerhub Backend API V1
   version: "1.0"
 paths:
+  /:
+    get:
+      description: Returns a message
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: API V1
+      tags:
+      - Public
   /auth/sign-in:
     post:
       consumes:
@@ -121,4 +304,430 @@ paths:
       summary: Register new user
       tags:
       - Auth
+  /campaigns:
+    get:
+      description: Get list of campaigns
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/payloadV1.CampaignResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Get All Campaigns
+      tags:
+      - Campaigns
+    post:
+      consumes:
+      - application/json
+      description: Create a new campaign by authenticated user
+      parameters:
+      - description: Campaign Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/payloadV1.CampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/payloadV1.CampaignResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create Campaign
+      tags:
+      - Campaigns
+  /campaigns/{id}:
+    delete:
+      description: Delete campaign by ID (only owner can delete)
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete Campaign
+      tags:
+      - Campaigns
+    get:
+      description: Get campaign detail by ID
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payloadV1.CampaignDetailResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Get Campaign by ID
+      tags:
+      - Campaigns
+    put:
+      consumes:
+      - application/json
+      description: Update campaign by ID (only owner can update)
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Campaign Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/payloadV1.CampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payloadV1.CampaignResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update Campaign
+      tags:
+      - Campaigns
+  /campaigns/{id}/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload image for campaign (set primary if needed)
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Set as primary image
+        in: formData
+        name: is_primary
+        required: true
+        type: boolean
+      - description: Campaign Image
+        in: formData
+        name: campaign_image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload Campaign Image
+      tags:
+      - Campaigns
+  /campaigns/{id}/me:
+    get:
+      description: Get campaign detail by ID by User
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payloadV1.CampaignDetailResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Get Campaign by ID by User
+      tags:
+      - Campaigns
+  /campaigns/me:
+    get:
+      description: Get list of campaigns by user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/payloadV1.CampaignResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get All Campaigns By User
+      tags:
+      - Campaigns
+  /campaigns/top:
+    get:
+      description: Get top 6 campaigns ordered by current amount
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/payloadV1.CampaignResponse'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Get Top Campaigns
+      tags:
+      - Campaigns
+  /payments/midtrans/notification:
+    post:
+      consumes:
+      - application/json
+      description: Handle notification callback from Midtrans
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Midtrans payment notification callback
+      tags:
+      - Payment
+  /profiles/me:
+    get:
+      description: Get logged in user profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payloadV1.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get Profile
+      tags:
+      - Profile
+  /transactions/{id}:
+    get:
+      description: Get transaction detail by ID
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/payloadV1.TransactionResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get transaction detail
+      tags:
+      - Transaction
+  /transactions/campaign/{id}:
+    get:
+      description: Get all transactions for a campaign
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/payloadV1.TransactionResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all transactions by campaign
+      tags:
+      - Transaction
+  /transactions/donation:
+    post:
+      consumes:
+      - application/json
+      description: Create a new donation transaction
+      parameters:
+      - description: Donation Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/payloadV1.TransactionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create donation transaction
+      tags:
+      - Transaction
+  /transactions/me:
+    get:
+      description: Get all transactions for logged in user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/payloadV1.TransactionResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get all user transactions
+      tags:
+      - Transaction
 swagger: "2.0"

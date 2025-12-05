@@ -1,4 +1,4 @@
-package middleware
+package backendMiddleware
 
 import (
 	"example.com.backend/pkg/logger"

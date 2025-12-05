@@ -14,7 +14,9 @@ import (
 	"example.com.backend/internal/controller"
 	"example.com.backend/internal/domain"
 	restV1 "example.com.backend/internal/rest/v1"
+	restV2 "example.com.backend/internal/rest/v2"
 	"example.com.backend/pkg/logger"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
@@ -60,12 +62,22 @@ func main() {
 	r := gin.New()
 	r.Use(backendMiddleware.RequestIDMiddleware())
 
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.AllowClients,
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	controller.Register(r, cfg, db)
 	restV1.Register(r, cfg, db)
+	restV2.Register(r)
 
 	addr := fmt.Sprintf(":%v", cfg.Backend.Port)
 	srv := &http.Server{

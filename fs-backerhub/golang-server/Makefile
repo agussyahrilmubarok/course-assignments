@@ -1,12 +1,12 @@
 backend/dev:
 	go run cmd/backend/main.go
 
-backerhub/build:
+backend/build:
 	go fmt ./...
 	go vet ./...
 	CGO_ENABLED=0 GOOS=linux go build -o bin/backerhub-backend cmd/backend/main.go
 
-seeder/up:
+seeder/run:
 	go run cmd/seeder/main.go
 
 swagger/install:
@@ -15,6 +15,8 @@ swagger/install:
 	go mod tidy
 
 swagger/generate:
+	swag init -g internal/rest/v1/router.go -o internal/rest/v1/docs --exclude internal/rest/v2
+	swag init -g internal/rest/v1/router.go -o internal/rest/v2/docs --exclude internal/rest/v1
 	swag init -g internal/rest/$(version)/router.go -o internal/rest/$(version)/docs
 	
 compose/postgres/up:

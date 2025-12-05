@@ -295,9 +295,11 @@ func (uc *campaignUseCaseV1) DeleteByIDByUser(ctx context.Context, campaignID, u
 
 	campaignUploadPath := "public/uploads/campaigns"
 	for _, campaignImage := range campaign.CampaignImages {
-		if err := uc.uploadService.RemoveLocal(ctx, fmt.Sprintf("%v/", campaignUploadPath), campaignImage.ImageName); err != nil {
-			log.Error("failed removing campaign image", zap.String("campaign_image_id", campaignImage.ID), zap.Error(err))
-			continue
+		if campaignImage.ImageName != "default.jpeg" {
+			if err := uc.uploadService.RemoveLocal(ctx, fmt.Sprintf("%v/", campaignUploadPath), campaignImage.ImageName); err != nil {
+				log.Error("failed removing campaign image", zap.String("campaign_image_id", campaignImage.ID), zap.Error(err))
+				continue
+			}
 		}
 	}
 

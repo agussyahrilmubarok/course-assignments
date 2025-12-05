@@ -12,6 +12,8 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	backendMiddleware "example.com.backend/internal/middleware"
 )
 
 func Register(ginEngine *gin.Engine, cfg *config.Config, db *gorm.DB) {
@@ -30,7 +32,7 @@ func Register(ginEngine *gin.Engine, cfg *config.Config, db *gorm.DB) {
 	NewBaseController()
 	homeController := NewHomeController()
 	loginController := NewLoginController(userService)
-	dashboardController := NewDashboardController()
+	dashboardController := NewDashboardController(userRepo, campaignRepo, transactionRepo)
 	userController := NewUserController(userService, uploadService)
 	campaignController := NewCampaignController(campaignService, userService, uploadService)
 	transactionController := NewTransactionController(transactionService, userService, campaignService)
@@ -43,10 +45,10 @@ func Register(ginEngine *gin.Engine, cfg *config.Config, db *gorm.DB) {
 	r.StaticFile("/favicon.ico", "./public/assets/favicon.ico")
 
 	r.GET("/", homeController.Index)
-	r.GET("/login", loginController.Index)
-	r.POST("/login", loginController.Login)
+	r.GET("/login", backendMiddleware.RedirectIfAdminLoggedIn(), loginController.Index)
+	r.POST("/login", backendMiddleware.RedirectIfAdminLoggedIn(), loginController.Login)
 
-	adminDashboard := r.Group("/dashboard")
+	adminDashboard := r.Group("/dashboard", backendMiddleware.AdminAuthRequired())
 	{
 		adminDashboard.GET("/", dashboardController.Index)
 

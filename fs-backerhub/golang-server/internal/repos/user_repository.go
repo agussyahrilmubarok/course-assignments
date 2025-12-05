@@ -18,6 +18,7 @@ type IUserRepository interface {
 	Update(ctx context.Context, user *domain.User) (*domain.User, error)
 	DeleteByID(ctx context.Context, id string) error
 	ExistsByEmailIgnoreCase(ctx context.Context, email string) (bool, error)
+	CountMemberActive(ctx context.Context) (int64, error)
 }
 
 type userRepository struct {
@@ -46,6 +47,7 @@ func (r *userRepository) FindAllByRole(ctx context.Context, role domain.UserRole
 	log := logger.GetLoggerFromContext(ctx)
 
 	var users []domain.User
+
 	if err := r.db.WithContext(ctx).Where("role = ?", role).Find(&users).Error; err != nil {
 		log.Error("failed fetching users by role", zap.String("user_role", string(role)), zap.Error(err))
 		return nil, err
@@ -55,7 +57,6 @@ func (r *userRepository) FindAllByRole(ctx context.Context, role domain.UserRole
 		zap.String("role", string(role)),
 		zap.Int("count", len(users)),
 	)
-
 	return users, nil
 }
 
@@ -63,6 +64,7 @@ func (r *userRepository) FindByID(ctx context.Context, id string) (*domain.User,
 	log := logger.GetLoggerFromContext(ctx)
 
 	var user domain.User
+
 	if err := r.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
 		log.Error("failed fetching user by id", zap.String("user_id", id), zap.Error(err))
 		return nil, err
@@ -76,6 +78,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain
 	log := logger.GetLoggerFromContext(ctx)
 
 	var user domain.User
+
 	if err := r.db.WithContext(ctx).First(&user, "email = ?", email).Error; err != nil {
 		log.Error("failed fetching user by email", zap.String("user_email", email), zap.Error(err))
 		return nil, err
@@ -125,13 +128,33 @@ func (r *userRepository) ExistsByEmailIgnoreCase(ctx context.Context, email stri
 	log := logger.GetLoggerFromContext(ctx)
 
 	var count int64
+
 	if err := r.db.WithContext(ctx).
 		Model(&domain.User{}).
 		Where("LOWER(email) = LOWER(?)", email).
 		Count(&count).Error; err != nil {
-		log.Error("failed checking existing email", zap.String("email", email), zap.Error(err))
+		log.Error("failed checking existing email", zap.String("user_email", email), zap.Error(err))
 		return false, err
 	}
 
 	return count > 0, nil
+}
+
+func (r *userRepository) CountMemberActive(ctx context.Context) (int64, error) {
+	log := logger.GetLoggerFromContext(ctx)
+
+	var count int64
+
+	err := r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Where("role = ?", domain.RoleUser).
+		Count(&count).Error
+
+	if err != nil {
+		log.Error("failed counting active members", zap.Error(err))
+		return 0, err
+	}
+
+	log.Info("successfully counted active members", zap.Int64("count", count))
+	return count, nil
 }

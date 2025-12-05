@@ -101,13 +101,16 @@ func (s *midtransService) HandlerNotification(ctx context.Context, callback mode
 	expectedSignature := fmt.Sprintf("%x", hash[:])
 	if !strings.EqualFold(signatureKey, expectedSignature) {
 		log.Error("signature mismatch",
-			zap.String("order_id", orderID),
-			zap.String("expected_signature", expectedSignature),
-			zap.String("received_signature", signatureKey),
+			zap.String("midtrans_order_id", orderID),
+			zap.String("midtrans_expected_signature", expectedSignature),
+			zap.String("midtrans_received_signature", signatureKey),
 		)
 		return errors.New("invalid signature")
 	}
 
-	log.Info("midtrans webhook signature verified", zap.String("midtrans_order_id", orderID), zap.String("midtrans_status_code", statusCode))
+	log.Info("midtrans webhook signature verified",
+		zap.String("midtrans_order_id", orderID),
+		zap.String("midtrans_status_code", statusCode),
+	)
 	return nil
 }

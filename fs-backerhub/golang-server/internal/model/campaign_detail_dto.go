@@ -69,6 +69,7 @@ func (c *CampaignDetailDTO) FromCampaign(campaign *domain.Campaign) {
 			campaignImage.FromCampaignImage(&ci)
 			campaignImages = append(campaignImages, campaignImage)
 		}
+
 		c.CampaignImages = campaignImages
 	}
 }

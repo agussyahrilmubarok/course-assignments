@@ -22,8 +22,9 @@ type Config struct {
 		Level    string `mapstructure:"level"`
 	} `mapstructure:"logger"`
 
-	Postgres Postgres `mapstructure:"postgres"`
-	Midtrans Midtrans `mapstructure:"midtrans"`
+	Postgres     Postgres `mapstructure:"postgres"`
+	Midtrans     Midtrans `mapstructure:"midtrans"`
+	AllowClients []string `mapstructure:"allow_clients"`
 }
 
 func NewConfig(filepath string) (*Config, error) {

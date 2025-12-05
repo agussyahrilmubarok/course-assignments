@@ -158,7 +158,6 @@ func (s *campaignService) DeleteByID(ctx context.Context, id string) error {
 func (s *campaignService) UploadImage(ctx context.Context, campaignImageDto model.CampaignImageDTO) error {
 	log := logger.GetLoggerFromContext(ctx)
 
-	// mark all existing images as non-primary
 	err := s.campaignImageRepo.MarkAllImagesAsNonPrimary(ctx, campaignImageDto.CampaignID)
 	if err != nil {
 		log.Error("failed marking images as non-primary",

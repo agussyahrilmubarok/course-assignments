@@ -1,4 +1,4 @@
-package middleware
+package backendMiddleware
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AdminShouldLogin() gin.HandlerFunc {
+func AdminAuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		val := session.Get("profile")
@@ -38,7 +38,7 @@ func AdminShouldLogin() gin.HandlerFunc {
 	}
 }
 
-func AdminHasLogin() gin.HandlerFunc {
+func RedirectIfAdminLoggedIn() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		val := session.Get("profile")

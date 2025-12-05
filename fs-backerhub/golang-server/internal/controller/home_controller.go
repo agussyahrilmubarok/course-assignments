@@ -13,9 +13,7 @@ func NewHomeController() *homeController {
 }
 
 func (h *homeController) Index(c *gin.Context) {
-	data := gin.H{
-		"title": "Home",
-	}
+	data := gin.H{"title": "Home"}
 
 	c.HTML(http.StatusOK, "home_index.html", data)
 }

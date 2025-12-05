@@ -18,6 +18,7 @@ type ITransactionRepository interface {
 	Create(ctx context.Context, tx *domain.Transaction) (*domain.Transaction, error)
 	Update(ctx context.Context, tx *domain.Transaction) (*domain.Transaction, error)
 	DeleteByID(ctx context.Context, id string) error
+	CountPending(ctx context.Context) (int64, error)
 }
 
 type transactionRepository struct {
@@ -31,30 +32,30 @@ func NewTransactionRepository(db *gorm.DB) ITransactionRepository {
 func (r *transactionRepository) FindAll(ctx context.Context) ([]domain.Transaction, error) {
 	log := logger.GetLoggerFromContext(ctx)
 
-	var txs []domain.Transaction
+	var transactions []domain.Transaction
+
 	if err := r.db.WithContext(ctx).
 		Preload("User").
 		Preload("Campaign").
-		Find(&txs).Error; err != nil {
-
+		Find(&transactions).Error; err != nil {
 		log.Error("failed fetching all transactions", zap.Error(err))
 		return nil, err
 	}
 
-	log.Info("successfully fetched all transactions", zap.Int("count", len(txs)))
-	return txs, nil
+	log.Info("successfully fetched all transactions", zap.Int("count", len(transactions)))
+	return transactions, nil
 }
 
 func (r *transactionRepository) FindAllByCampaignID(ctx context.Context, campaignID string) ([]domain.Transaction, error) {
 	log := logger.GetLoggerFromContext(ctx)
 
-	var txs []domain.Transaction
+	var transactions []domain.Transaction
+
 	if err := r.db.WithContext(ctx).
 		Where("campaign_id = ?", campaignID).
 		Preload("User").
 		Preload("Campaign").
-		Find(&txs).Error; err != nil {
-
+		Find(&transactions).Error; err != nil {
 		log.Error("failed fetching transactions by campaign id",
 			zap.String("campaign_id", campaignID),
 			zap.Error(err),
@@ -64,22 +65,22 @@ func (r *transactionRepository) FindAllByCampaignID(ctx context.Context, campaig
 
 	log.Info("successfully fetched transactions by campaign id",
 		zap.String("campaign_id", campaignID),
-		zap.Int("count", len(txs)),
+		zap.Int("count", len(transactions)),
 	)
-	return txs, nil
+	return transactions, nil
 }
 
 func (r *transactionRepository) FindAllByUserID(ctx context.Context, userID string) ([]domain.Transaction, error) {
 	log := logger.GetLoggerFromContext(ctx)
 
-	var txs []domain.Transaction
+	var transactions []domain.Transaction
+
 	if err := r.db.WithContext(ctx).
 		Where("user_id = ?", userID).
 		Preload("User").
 		Preload("Campaign").
 		Preload("Campaign.CampaignImages").
-		Find(&txs).Error; err != nil {
-
+		Find(&transactions).Error; err != nil {
 		log.Error("failed fetching transactions by user id",
 			zap.String("user_id", userID),
 			zap.Error(err),
@@ -89,37 +90,37 @@ func (r *transactionRepository) FindAllByUserID(ctx context.Context, userID stri
 
 	log.Info("successfully fetched transactions by user id",
 		zap.String("user_id", userID),
-		zap.Int("count", len(txs)),
+		zap.Int("count", len(transactions)),
 	)
-	return txs, nil
+	return transactions, nil
 }
 
 func (r *transactionRepository) FindByID(ctx context.Context, id string) (*domain.Transaction, error) {
 	log := logger.GetLoggerFromContext(ctx)
 
-	var tx domain.Transaction
+	var transaction domain.Transaction
+
 	if err := r.db.WithContext(ctx).
 		Preload("User").
 		Preload("Campaign").
-		First(&tx, "id = ?", id).Error; err != nil {
-
+		First(&transaction, "id = ?", id).Error; err != nil {
 		log.Error("failed fetching transaction by id", zap.String("transaction_id", id), zap.Error(err))
 		return nil, err
 	}
 
 	log.Info("successfully fetched transaction by id", zap.String("transaction_id", id))
-	return &tx, nil
+	return &transaction, nil
 }
 
 func (r *transactionRepository) FindByReference(ctx context.Context, reference string) (*domain.Transaction, error) {
 	log := logger.GetLoggerFromContext(ctx)
 
-	var tx domain.Transaction
+	var transaction domain.Transaction
+
 	if err := r.db.WithContext(ctx).
 		Preload("User").
 		Preload("Campaign").
-		First(&tx, "reference = ?", reference).Error; err != nil {
-
+		First(&transaction, "reference = ?", reference).Error; err != nil {
 		log.Error("failed fetching transaction by reference",
 			zap.String("transaction_reference", reference),
 			zap.Error(err),
@@ -128,7 +129,7 @@ func (r *transactionRepository) FindByReference(ctx context.Context, reference s
 	}
 
 	log.Info("successfully fetched transaction by reference", zap.String("transaction_reference", reference))
-	return &tx, nil
+	return &transaction, nil
 }
 
 func (r *transactionRepository) Create(ctx context.Context, tx *domain.Transaction) (*domain.Transaction, error) {
@@ -176,4 +177,23 @@ func (r *transactionRepository) DeleteByID(ctx context.Context, id string) error
 
 	log.Info("successfully deleted transaction", zap.String("transaction_id", id))
 	return nil
+}
+
+func (r *transactionRepository) CountPending(ctx context.Context) (int64, error) {
+	log := logger.GetLoggerFromContext(ctx)
+
+	var count int64
+
+	err := r.db.WithContext(ctx).
+		Model(&domain.Transaction{}).
+		Where("status IN (?)", domain.StatusPending).
+		Count(&count).Error
+
+	if err != nil {
+		log.Error("failed counting active transactions", zap.Error(err))
+		return 0, err
+	}
+
+	log.Info("successfully counted active transactions", zap.Int64("count", count))
+	return count, nil
 }

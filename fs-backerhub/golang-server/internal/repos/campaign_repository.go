@@ -20,6 +20,7 @@ type ICampaignRepository interface {
 	Create(ctx context.Context, campaign *domain.Campaign) (*domain.Campaign, error)
 	Update(ctx context.Context, campaign *domain.Campaign) (*domain.Campaign, error)
 	DeleteByID(ctx context.Context, id string) error
+	CountActive(ctx context.Context) (int64, error)
 }
 
 type campaignRepository struct {
@@ -34,6 +35,7 @@ func (r *campaignRepository) FindAll(ctx context.Context) ([]domain.Campaign, er
 	log := logger.GetLoggerFromContext(ctx)
 
 	var campaigns []domain.Campaign
+
 	if err := r.db.WithContext(ctx).Find(&campaigns).Error; err != nil {
 		log.Error("failed fetching all campaigns", zap.Error(err))
 		return nil, err
@@ -47,6 +49,7 @@ func (r *campaignRepository) FindAllWithCampaignImages(ctx context.Context) ([]d
 	log := logger.GetLoggerFromContext(ctx)
 
 	var campaigns []domain.Campaign
+
 	if err := r.db.WithContext(ctx).Preload("CampaignImages").Find(&campaigns).Error; err != nil {
 		log.Error("failed fetching campaigns with images", zap.Error(err))
 		return nil, err
@@ -60,6 +63,7 @@ func (r *campaignRepository) FindAllByUserID(ctx context.Context, userID string)
 	log := logger.GetLoggerFromContext(ctx)
 
 	var campaigns []domain.Campaign
+
 	if err := r.db.WithContext(ctx).Where("user_id = ?", userID).Find(&campaigns).Error; err != nil {
 		log.Error("failed fetching campaigns by user id", zap.String("user_id", userID), zap.Error(err))
 		return nil, err
@@ -76,6 +80,7 @@ func (r *campaignRepository) FindAllWithCampaignImagesByUserID(ctx context.Conte
 	log := logger.GetLoggerFromContext(ctx)
 
 	var campaigns []domain.Campaign
+
 	if err := r.db.WithContext(ctx).
 		Preload("CampaignImages").
 		Where("user_id = ?", userID).
@@ -95,6 +100,7 @@ func (r *campaignRepository) FindByID(ctx context.Context, id string) (*domain.C
 	log := logger.GetLoggerFromContext(ctx)
 
 	var campaign domain.Campaign
+
 	if err := r.db.WithContext(ctx).First(&campaign, "id = ?", id).Error; err != nil {
 		log.Error("failed fetching campaign by id", zap.String("campaign_id", id), zap.Error(err))
 		return nil, err
@@ -108,6 +114,7 @@ func (r *campaignRepository) FindByIDWithCampaignImages(ctx context.Context, id 
 	log := logger.GetLoggerFromContext(ctx)
 
 	var campaign domain.Campaign
+
 	if err := r.db.WithContext(ctx).
 		Preload("CampaignImages").
 		First(&campaign, "id = ?", id).Error; err != nil {
@@ -123,6 +130,7 @@ func (r *campaignRepository) FindTopCampaigns(ctx context.Context, limit int) ([
 	log := logger.GetLoggerFromContext(ctx)
 
 	var campaigns []domain.Campaign
+
 	if err := r.db.WithContext(ctx).
 		Preload("CampaignImages").
 		Order("current_amount DESC").
@@ -173,4 +181,23 @@ func (r *campaignRepository) DeleteByID(ctx context.Context, id string) error {
 
 	log.Info("successfully deleted campaign", zap.String("campaign_id", id))
 	return nil
+}
+
+func (r *campaignRepository) CountActive(ctx context.Context) (int64, error) {
+	log := logger.GetLoggerFromContext(ctx)
+
+	var count int64
+
+	err := r.db.WithContext(ctx).
+		Model(&domain.Campaign{}).
+		Where("current_amount < goal_amount").
+		Count(&count).Error
+
+	if err != nil {
+		log.Error("failed counting active campaigns", zap.Error(err))
+		return 0, err
+	}
+
+	log.Info("successfully counted active campaigns", zap.Int64("count", count))
+	return count, nil
 }

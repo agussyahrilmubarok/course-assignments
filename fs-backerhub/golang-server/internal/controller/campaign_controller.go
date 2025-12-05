@@ -277,8 +277,10 @@ func (h *campaignController) Delete(c *gin.Context) {
 	}
 
 	for _, img := range campaignDto.CampaignImages {
-		if err := h.uploadService.RemoveLocal(ctx, fmt.Sprintf("%v/", CAMPAIGN_UPLOAD_PATH), img.ImageName); err != nil {
-			log.Warn("failed to remove campaign image", zap.Error(err), zap.String("image", img.ImageName))
+		if img.ImageName != "default.jpeg" {
+			if err := h.uploadService.RemoveLocal(ctx, fmt.Sprintf("%v/", CAMPAIGN_UPLOAD_PATH), img.ImageName); err != nil {
+				log.Warn("failed to remove campaign image", zap.Error(err), zap.String("image", img.ImageName))
+			}
 		}
 	}
 
