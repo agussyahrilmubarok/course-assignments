@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"gopkg.in/Graylog2/go-gelf.v2/gelf"
 )
 
 var (
@@ -15,7 +16,7 @@ var (
 	once     sync.Once
 )
 
-func NewLogger(level, filepath string) error {
+func NewLogger(level, filepath, gelfAddr string) error {
 	var err error
 	once.Do(func() {
 		var logLevel zapcore.Level
@@ -47,9 +48,19 @@ func NewLogger(level, filepath string) error {
 
 		consoleWriter := zapcore.Lock(os.Stdout)
 
+		var gelfWriter zapcore.WriteSyncer
+		if gelfAddr != "" {
+			w, e := gelf.NewUDPWriter(gelfAddr)		// "e.g:192.168.1.10:12201"
+			if e != nil {
+				return
+			}
+			gelfWriter = zapcore.AddSync(w)
+		}
+
 		core := zapcore.NewTee(
 			zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), consoleWriter, logLevel),
 			zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), fileWriter, logLevel),
+			zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), gelfWriter, logLevel),
 		)
 
 		instance = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))

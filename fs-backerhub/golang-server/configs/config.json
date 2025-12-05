@@ -10,7 +10,8 @@
     },
     "logger": {
         "filepath": "./logs/app.log",
-        "level": "info"
+        "level": "info",
+        "gelf_addr": "localhost:12201"
     },
     "postgres": {
         "host": "localhost",

@@ -33,7 +33,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := logger.NewLogger(cfg.Logger.Level, cfg.Logger.Filepath); err != nil {
+	if err := logger.NewLogger(cfg.Logger.Level, cfg.Logger.Filepath, cfg.Logger.GelfAddr); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}

@@ -20,6 +20,7 @@ type Config struct {
 	Logger struct {
 		Filepath string `mapstructure:"filepath"`
 		Level    string `mapstructure:"level"`
+		GelfAddr string `mapstructure:"gelf_addr"`
 	} `mapstructure:"logger"`
 
 	Postgres     Postgres `mapstructure:"postgres"`
