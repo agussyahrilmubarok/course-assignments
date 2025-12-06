@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	"example.com/backend/internal/domain"
-	"example.com/backend/internal/model"
-	"example.com/backend/internal/service"
+	"example.com.backend/internal/domain"
+	"example.com.backend/internal/model"
+	"example.com.backend/internal/service"
+	"example.com.backend/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
+	"go.uber.org/zap"
 )
 
 const (
@@ -21,28 +22,23 @@ type campaignController struct {
 	baseController
 	campaignService service.ICampaignService
 	userService     service.IUserService
-	uploadServie    service.IUploadService
-	log             zerolog.Logger
+	uploadService   service.IUploadService
 }
 
 func NewCampaignController(
 	campaignService service.ICampaignService,
 	userService service.IUserService,
-	uploadServie service.IUploadService,
-	log zerolog.Logger,
+	uploadService service.IUploadService,
 ) *campaignController {
 	return &campaignController{
 		campaignService: campaignService,
 		userService:     userService,
-		uploadServie:    uploadServie,
-		log:             log,
+		uploadService:   uploadService,
 	}
 }
 
 func (h *campaignController) Index(c *gin.Context) {
-	data := gin.H{
-		"title": "Campaigns",
-	}
+	data := gin.H{"title": "Campaigns"}
 
 	ctx := c.Request.Context()
 
@@ -50,29 +46,29 @@ func (h *campaignController) Index(c *gin.Context) {
 }
 
 func (h *campaignController) Add(c *gin.Context) {
-	data := gin.H{
-		"title": "New Campaign",
-	}
+	data := gin.H{"title": "New Campaign"}
+
 	ctx := c.Request.Context()
+
 	h.showNewCampaignWithData(c, ctx, data)
 }
 
 func (h *campaignController) Create(c *gin.Context) {
-	data := gin.H{
-		"title": "New Campaign",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "New Campaign"}
+
 	var input struct {
 		Title            string `form:"title" binding:"required"`
 		ShortDescription string `form:"short_description" binding:"required"`
 		Description      string `form:"description" binding:"required"`
 		GoalAmount       int    `form:"goal_amount" binding:"required,gt=0"`
 		Perks            string `form:"perks" binding:"required"`
-		UserID           string `form:"user_id" binding:"required,gt=0"`
+		UserID           string `form:"user_id" binding:"required"`
 	}
+
 	if err := c.ShouldBind(&input); err != nil {
-		h.log.Warn().Msgf("invalid bind add campaign form")
+		log.Warn("failed to bind create campaign input", zap.Error(err))
 		data["form"] = input
 		data["error"] = "Invalid input."
 		h.showNewCampaignWithData(c, ctx, data)
@@ -88,11 +84,10 @@ func (h *campaignController) Create(c *gin.Context) {
 		UserID:           input.UserID,
 	}
 
-	err := h.campaignService.Create(ctx, campaignDto)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("campaign createion failed")
+	if err := h.campaignService.Create(ctx, campaignDto); err != nil {
+		log.Error("failed to create campaign", zap.Error(err), zap.String("title", input.Title))
 		data["form"] = input
-		data["error"] = "An error occurred while processing the request."
+		data["error"] = "Failed to create campaign."
 		h.showNewCampaignWithData(c, ctx, data)
 		return
 	}
@@ -105,15 +100,14 @@ func (h *campaignController) Create(c *gin.Context) {
 }
 
 func (h *campaignController) Show(c *gin.Context) {
-	data := gin.H{
-		"title": "Campaign",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Campaign"}
+
 	idStr := c.Param("id")
 	campaignDto, err := h.campaignService.FindByID(ctx, idStr)
-	if campaignDto == nil || err != nil {
-		h.log.Error().Err(err).Msgf("campaign is not found %s", idStr)
+	if err != nil || campaignDto == nil {
+		log.Error("campaign not found", zap.Error(err), zap.String("campaign_id", idStr))
 		data["error"] = "Campaign not found."
 		h.showAllCampaigns(c, ctx, data)
 		return
@@ -125,15 +119,14 @@ func (h *campaignController) Show(c *gin.Context) {
 }
 
 func (h *campaignController) Edit(c *gin.Context) {
-	data := gin.H{
-		"title": "Edit Campaign",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Edit Campaign"}
+
 	idStr := c.Param("id")
 	campaignDto, err := h.campaignService.FindByID(ctx, idStr)
 	if err != nil || campaignDto == nil {
-		h.log.Error().Err(err).Msgf("campaign is not found %s", idStr)
+		log.Error("campaign not found", zap.Error(err), zap.String("campaign_id", idStr))
 		data["error"] = "Campaign not found."
 		h.showAllCampaigns(c, ctx, data)
 		return
@@ -145,22 +138,20 @@ func (h *campaignController) Edit(c *gin.Context) {
 }
 
 func (h *campaignController) Update(c *gin.Context) {
-	data := gin.H{
-		"title": "Edit Campaign",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Edit Campaign"}
+
 	idStr := c.Param("id")
 	campaignDto, err := h.campaignService.FindByID(ctx, idStr)
 	if err != nil || campaignDto == nil {
-		h.log.Error().Err(err).Msgf("campaign is not found %s", idStr)
+		log.Error("campaign not found", zap.Error(err), zap.String("campaign_id", idStr))
 		data["error"] = "Campaign not found."
 		h.showAllCampaigns(c, ctx, data)
 		return
 	}
 
 	var input struct {
-		ID               string
 		Title            string `form:"title" binding:"required"`
 		ShortDescription string `form:"short_description" binding:"required"`
 		Description      string `form:"description" binding:"required"`
@@ -169,26 +160,28 @@ func (h *campaignController) Update(c *gin.Context) {
 		BackerCount      int    `form:"backer_count"`
 		Perks            string `form:"perks" binding:"required"`
 	}
+
 	if err := c.ShouldBind(&input); err != nil {
-		h.log.Warn().Msgf("invalid bind edit campaign form")
+		log.Warn("invalid bind update campaign input", zap.Error(err))
 		data["campaign"] = campaignDto
 		data["error"] = "Invalid input."
 		h.renderHTML(c, http.StatusBadRequest, "campaign_edit.html", data)
 		return
 	}
 
-	var campaign model.CampaignDTO
-	campaign.ID = campaignDto.ID
-	campaign.Title = input.Title
-	campaign.ShortDescription = input.ShortDescription
-	campaign.GoalAmount = float64(input.GoalAmount)
-	campaign.CurrentAmount = float64(input.CurrentAmount)
-	campaign.BackerCount = int64(input.BackerCount)
-	campaign.Perks = input.Perks
+	campaign := model.CampaignDTO{
+		ID:               campaignDto.ID,
+		Title:            input.Title,
+		ShortDescription: input.ShortDescription,
+		Description:      input.Description,
+		GoalAmount:       float64(input.GoalAmount),
+		CurrentAmount:    float64(input.CurrentAmount),
+		BackerCount:      int64(input.BackerCount),
+		Perks:            input.Perks,
+	}
 
-	err = h.campaignService.Update(ctx, campaign)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("failed to update campaign")
+	if err := h.campaignService.Update(ctx, campaign); err != nil {
+		log.Error("failed to update campaign", zap.Error(err), zap.String("campaign_id", campaign.ID))
 		data["campaign"] = input
 		data["error"] = "Failed to update campaign."
 		h.renderHTML(c, http.StatusInternalServerError, "campaign_edit.html", data)
@@ -202,16 +195,14 @@ func (h *campaignController) Update(c *gin.Context) {
 }
 
 func (h *campaignController) Image(c *gin.Context) {
-	data := gin.H{
-		"title": "Upload Campaign Image",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Upload Campaign Image"}
 
 	idStr := c.Param("id")
 	campaignDto, err := h.campaignService.FindByID(ctx, idStr)
 	if err != nil || campaignDto == nil {
-		h.log.Error().Err(err).Msgf("campaign is not found %s", idStr)
+		log.Error("campaign not found for image upload", zap.Error(err), zap.String("campaign_id", idStr))
 		data["error"] = "Campaign not found."
 		h.showAllCampaigns(c, ctx, data)
 		return
@@ -223,15 +214,14 @@ func (h *campaignController) Image(c *gin.Context) {
 }
 
 func (h *campaignController) Upload(c *gin.Context) {
-	data := gin.H{
-		"title": "Upload Campaign Image",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Upload Campaign Image"}
+
 	idStr := c.Param("id")
 	campaignDto, err := h.campaignService.FindByID(ctx, idStr)
 	if err != nil || campaignDto == nil {
-		h.log.Error().Err(err).Msgf("campaign is not found %s", idStr)
+		log.Error("campaign not found for image upload", zap.Error(err), zap.String("campaign_id", idStr))
 		data["error"] = "Campaign not found."
 		h.showAllCampaigns(c, ctx, data)
 		return
@@ -239,29 +229,29 @@ func (h *campaignController) Upload(c *gin.Context) {
 
 	imageFile, err := c.FormFile("image")
 	if err != nil {
-		h.log.Warn().Msgf("failed to get image file")
+		log.Error("failed to retrieve campaign image", zap.Error(err))
 		data["error"] = "Failed to get image file."
 		h.renderHTML(c, http.StatusBadRequest, "campaign_edit_image.html", data)
 		return
 	}
 
-	imagePath, err := h.uploadServie.SaveLocal(CAMPAIGN_UPLOAD_PATH, imageFile, idStr)
+	imagePath, err := h.uploadService.SaveLocal(ctx, CAMPAIGN_UPLOAD_PATH, imageFile, idStr)
 	if err != nil {
-		h.log.Err(err).Msgf("failed to upload image file %s", idStr)
-		data["error"] = "Failed to upload image file."
+		log.Error("failed to upload campaign image", zap.Error(err), zap.String("campaign_id", idStr))
+		data["error"] = "Failed to upload image."
 		h.renderHTML(c, http.StatusInternalServerError, "campaign_edit_image.html", data)
 		return
 	}
 
 	trimmedPath := strings.TrimPrefix(imagePath, fmt.Sprintf("%v/", CAMPAIGN_UPLOAD_PATH))
-	err = h.campaignService.UploadImage(ctx, model.CampaignImageDTO{
+
+	if err := h.campaignService.UploadImage(ctx, model.CampaignImageDTO{
 		ImageName:  trimmedPath,
 		CampaignID: campaignDto.ID,
-	})
-	if err != nil {
-		h.log.Error().Err(err).Msgf("failed to upload image campaign")
-		h.uploadServie.RemoveLocal(fmt.Sprintf("%v/", CAMPAIGN_UPLOAD_PATH), trimmedPath)
-		data["error"] = "Failed to upload image file."
+	}); err != nil {
+		h.uploadService.RemoveLocal(ctx, fmt.Sprintf("%v/", CAMPAIGN_UPLOAD_PATH), trimmedPath)
+		log.Error("failed to save campaign image", zap.Error(err), zap.String("campaign_id", idStr))
+		data["error"] = "Failed to save campaign image."
 		h.renderHTML(c, http.StatusInternalServerError, "campaign_edit_image.html", data)
 		return
 	}
@@ -274,24 +264,31 @@ func (h *campaignController) Upload(c *gin.Context) {
 
 func (h *campaignController) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
-	data := gin.H{
-		"title": "Delete User",
-	}
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Delete Campaign"}
 
 	idStr := c.Param("id")
-	campaignDto, _ := h.campaignService.FindByID(ctx, idStr)
-	for _, campaignImage := range campaignDto.CampaignImages {
-		if err := h.uploadServie.RemoveLocal(fmt.Sprintf("%v/", CAMPAIGN_UPLOAD_PATH), campaignImage.ImageName); err != nil {
-			h.log.Error().Err(err).Msgf("failed to remove campaign image for id %s", campaignImage.ID)
-			continue
+	campaignDto, err := h.campaignService.FindByID(ctx, idStr)
+	if err != nil || campaignDto == nil {
+		log.Error("campaign not found for deletion", zap.Error(err), zap.String("campaign_id", idStr))
+		data["error"] = "Campaign not found."
+		h.showAllCampaigns(c, ctx, data)
+		return
+	}
+
+	for _, img := range campaignDto.CampaignImages {
+		if img.ImageName != "default.jpeg" {
+			if err := h.uploadService.RemoveLocal(ctx, fmt.Sprintf("%v/", CAMPAIGN_UPLOAD_PATH), img.ImageName); err != nil {
+				log.Warn("failed to remove campaign image", zap.Error(err), zap.String("image", img.ImageName))
+			}
 		}
 	}
 
-	err := h.campaignService.DeleteByID(ctx, idStr)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("campaign is not found %s", idStr)
-		data["error"] = "Failed to delete a campaign."
+	if err := h.campaignService.DeleteByID(ctx, idStr); err != nil {
+		log.Error("failed to delete campaign", zap.Error(err), zap.String("campaign_id", idStr))
+		data["error"] = "Failed to delete campaign."
 		h.showAllCampaigns(c, ctx, data)
+		return
 	}
 
 	data["title"] = "Campaigns"
@@ -309,6 +306,7 @@ func (h *campaignController) showAllCampaigns(c *gin.Context, ctx context.Contex
 	}
 
 	data["campaigns"] = campaignDtos
+
 	h.renderHTML(c, http.StatusOK, "campaign_index.html", data)
 }
 
@@ -328,5 +326,6 @@ func (h *campaignController) showNewCampaignWithData(c *gin.Context, ctx context
 	}
 
 	data["users"] = onlyUsers
+
 	h.renderHTML(c, http.StatusOK, "campaign_add.html", data)
 }

@@ -1,0 +1,23 @@
+basePath: /api/v2
+info:
+  contact: {}
+  description: Backerhub Backend API V2
+  title: Backerhub Backend API V2
+  version: "2.0"
+paths:
+  /:
+    get:
+      description: Returns a message
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: API V2
+      tags:
+      - Public
+swagger: "2.0"

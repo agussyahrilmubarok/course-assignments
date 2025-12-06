@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_DB: backerhub
+      POSTGRES_USER: backeruser
+      POSTGRES_PASSWORD: backerpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backerhub_golang_server_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backeruser -d backerhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backerhub-golang-server:
+    build:
+      context: .
+    image: backerhub-golang-server:1.0.0
+    container_name: backerhub-golang-server
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - backerhub_golang_server_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+
+networks:
+  backerhub_golang_server_net:
+    driver: bridge

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"example.com/backend/internal/domain"
+	"example.com.backend/internal/domain"
 	"github.com/gosimple/slug"
 	"github.com/leekchan/accounting"
 )
@@ -69,6 +69,7 @@ func (c *CampaignDetailDTO) FromCampaign(campaign *domain.Campaign) {
 			campaignImage.FromCampaignImage(&ci)
 			campaignImages = append(campaignImages, campaignImage)
 		}
+
 		c.CampaignImages = campaignImages
 	}
 }

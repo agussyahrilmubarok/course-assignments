@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"example.com/backend/internal/domain"
+	"example.com.backend/internal/domain"
 )
 
 type TransactionDTO struct {

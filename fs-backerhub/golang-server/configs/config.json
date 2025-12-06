@@ -1,0 +1,37 @@
+{
+    "backend": {
+        "name": "backerhub-backend",
+        "port": 8080,
+        "level": "development",
+        "token": {
+            "secret_key": "my-super-secret",
+            "expires_at": "1h"
+        }
+    },
+    "logger": {
+        "filepath": "./logs/app.log",
+        "level": "info",
+        "gelf_addr": "localhost:12201"
+    },
+    "postgres": {
+        "host": "localhost",
+        "port": 5432,
+        "name": "backerhub",
+        "username": "backeruser",
+        "password": "backerpass",
+        "ssl_mode": "disable",
+        "time_zone": "Asia/Jakarta",
+        "max_open_conns": 25,
+        "max_idle_conns": 10,
+        "conn_max_lifetime": "1h"
+    },
+    "midtrans": {
+        "server_key": "",
+        "client_key": ""
+    },
+    "allow_clients": [
+      "http://vuejs-server:3000",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ]
+}

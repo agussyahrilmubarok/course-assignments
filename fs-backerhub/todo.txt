@@ -1,0 +1,2 @@
+- Fix better logging services in Graylog.
+- Fix in container vuejs-server cannot access localhost:3000/campaigns

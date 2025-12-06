@@ -7,6 +7,14 @@
         {
             "name": "vuejs-server",
             "path": "./vuejs-server"
+        },
+        {
+            "name": "graylog-server",
+            "path": "./graylog-server"
+        },
+        {
+            "name": ".",
+            "path": "."
         }
     ]
 }

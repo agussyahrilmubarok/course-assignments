@@ -1,34 +1,30 @@
 package service
 
 import (
+	"context"
 	"crypto/sha512"
 	"errors"
 	"fmt"
 	"strings"
 
-	"example.com/backend/internal/model"
-	"example.com/backend/pkg/connections"
+	"example.com.backend/internal/config"
+	"example.com.backend/internal/model"
+	"example.com.backend/pkg/logger"
 	"github.com/midtrans/midtrans-go"
 	"github.com/midtrans/midtrans-go/snap"
-	"github.com/rs/zerolog"
+	"go.uber.org/zap"
 )
 
-//go:generate mockery --name=IMidtransService
 type IMidtransService interface {
-	CreateTransaction(request model.MidtransRequest) (string, error)
-	HandlerNotification(callback model.MidtransCallback) error
+	CreateTransaction(ctx context.Context, request model.MidtransRequest) (string, error)
+	HandlerNotification(ctx context.Context, callback model.MidtransCallback) error
 }
-
 type midtransService struct {
-	cfg connections.Midtrans
-	log zerolog.Logger
+	cfg *config.Midtrans
 }
 
-func NewMidtransService(cfg connections.Midtrans, log zerolog.Logger) IMidtransService {
-	return &midtransService{
-		cfg: cfg,
-		log: log,
-	}
+func NewMidtransService(cfg *config.Midtrans) IMidtransService {
+	return &midtransService{cfg: cfg}
 }
 
 // CreateTransaction
@@ -44,14 +40,16 @@ func NewMidtransService(cfg connections.Midtrans, log zerolog.Logger) IMidtransS
 // 3. Set the "Payment Notification URL" to your backend endpoint, e.g., https://yourdomain.com/api/v1/donations/callback
 // 4. Ensure the endpoint is publicly accessible (use ngrok or Cloudflare Tunnel during local development)
 // 5. Optionally verify the `signature_key` from the webhook payload for added security
-func (s *midtransService) CreateTransaction(request model.MidtransRequest) (string, error) {
+func (s *midtransService) CreateTransaction(ctx context.Context, request model.MidtransRequest) (string, error) {
+	log := logger.GetLoggerFromContext(ctx)
+
 	// Create Snap Client
-	snapClient := connections.NewMidtransSnapClient(s.cfg)
+	snapClient := config.NewMidtrans(s.cfg)
 
 	// Initialize Snap Request
 	snapReq := &snap.Request{
 		TransactionDetails: midtrans.TransactionDetails{
-			OrderID:  request.TransactionDetails.OrderID, // Change with code or id transaction
+			OrderID:  request.TransactionDetails.OrderID,
 			GrossAmt: request.TransactionDetails.GrossAmt,
 		},
 		CustomerDetail: &midtrans.CustomerDetails{
@@ -63,10 +61,17 @@ func (s *midtransService) CreateTransaction(request model.MidtransRequest) (stri
 	// Create Midtrans Transaction
 	snapRes, err := snapClient.CreateTransaction(snapReq)
 	if err != nil {
-		s.log.Error().Err(err).Msg("create midtrans transaction fail")
-		return "", errors.New("Transaction fail")
+		log.Error("create midtrans transaction failed",
+			zap.String("midtrans_order_id", request.TransactionDetails.OrderID),
+			zap.Error(err),
+		)
+		return "", errors.New("transaction fail")
 	}
 
+	log.Info("midtrans transaction created successfully",
+		zap.String("midtrans_order_id", request.TransactionDetails.OrderID),
+		zap.String("midtrans_redirect_url", snapRes.RedirectURL),
+	)
 	return snapRes.RedirectURL, nil
 }
 
@@ -81,7 +86,9 @@ func (s *midtransService) CreateTransaction(request model.MidtransRequest) (stri
 // 1. Parse the JSON body sent by Midtrans into a struct (e.g., midtrans.TransactionStatusResponse)
 // 2. (Optional) Verify `signature_key` using: sha512(order_id + status_code + gross_amount + server_key)
 // 3. Respond with 200 OK to acknowledge receipt, otherwise Midtrans will retry the callback
-func (s *midtransService) HandlerNotification(callback model.MidtransCallback) error {
+func (s *midtransService) HandlerNotification(ctx context.Context, callback model.MidtransCallback) error {
+	log := logger.GetLoggerFromContext(ctx)
+
 	// Verify signature
 	serverKey := s.cfg.ServerKey
 	orderID := callback.OrderID
@@ -93,9 +100,17 @@ func (s *midtransService) HandlerNotification(callback model.MidtransCallback) e
 	hash := sha512.Sum512([]byte(raw))
 	expectedSignature := fmt.Sprintf("%x", hash[:])
 	if !strings.EqualFold(signatureKey, expectedSignature) {
-		s.log.Error().Msgf("Signature mismatch for order_id=%s", orderID)
-		return errors.New("Invalid signature")
+		log.Error("signature mismatch",
+			zap.String("midtrans_order_id", orderID),
+			zap.String("midtrans_expected_signature", expectedSignature),
+			zap.String("midtrans_received_signature", signatureKey),
+		)
+		return errors.New("invalid signature")
 	}
 
+	log.Info("midtrans webhook signature verified",
+		zap.String("midtrans_order_id", orderID),
+		zap.String("midtrans_status_code", statusCode),
+	)
 	return nil
 }

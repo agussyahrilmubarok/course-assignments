@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"example.com/backend/internal/domain"
-	"example.com/backend/internal/model"
-	"example.com/backend/internal/service"
+	"example.com.backend/internal/domain"
+	"example.com.backend/internal/model"
+	"example.com.backend/internal/service"
+	"example.com.backend/pkg/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
+	"go.uber.org/zap"
 )
 
 type transactionController struct {
@@ -17,53 +18,47 @@ type transactionController struct {
 	transactionService service.ITransactionService
 	userService        service.IUserService
 	campaignService    service.ICampaignService
-	log                zerolog.Logger
 }
 
 func NewTransactionController(
 	transactionService service.ITransactionService,
 	userService service.IUserService,
 	campaignService service.ICampaignService,
-	log zerolog.Logger,
 ) *transactionController {
 	return &transactionController{
 		transactionService: transactionService,
 		userService:        userService,
 		campaignService:    campaignService,
-		log:                log,
 	}
 }
 
 func (h *transactionController) Index(c *gin.Context) {
-	data := gin.H{
-		"title": "Transactions",
-	}
+	data := gin.H{"title": "Transactions"}
 
 	ctx := c.Request.Context()
+
 	h.showAllTransactions(c, ctx, data)
 }
 
 func (h *transactionController) Add(c *gin.Context) {
-	data := gin.H{
-		"title": "New Transaction",
-	}
+	data := gin.H{"title": "New Transaction"}
+
 	ctx := c.Request.Context()
+
 	h.showNewTransactionWithData(c, ctx, data)
 }
-
 func (h *transactionController) Create(c *gin.Context) {
-	data := gin.H{
-		"title": "New Transaction",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "New Transaction"}
+
 	var input struct {
 		Amount     int    `form:"amount" binding:"required,gt=0"`
-		UserID     string `form:"user_id" binding:"required,gt=0"`
-		CampaignID string `form:"campaign_id" binding:"required,gt=0"`
+		UserID     string `form:"user_id" binding:"required"`
+		CampaignID string `form:"campaign_id" binding:"required"`
 	}
 	if err := c.ShouldBind(&input); err != nil {
-		h.log.Warn().Msgf("invalid bind add transaction")
+		log.Warn("invalid bind add transaction", zap.Error(err))
 		data["form"] = input
 		data["error"] = "Invalid input."
 		h.showNewTransactionWithData(c, ctx, data)
@@ -75,9 +70,8 @@ func (h *transactionController) Create(c *gin.Context) {
 		UserID:     input.UserID,
 		CampaignID: input.CampaignID,
 	}
-	err := h.transactionService.Create(ctx, transactionDto)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("failed create transaction")
+	if err := h.transactionService.Create(ctx, transactionDto); err != nil {
+		log.Error("failed to create transaction", zap.Error(err))
 		data["form"] = input
 		data["error"] = "An error occurred while processing the request."
 		h.showNewTransactionWithData(c, ctx, data)
@@ -92,16 +86,14 @@ func (h *transactionController) Create(c *gin.Context) {
 }
 
 func (h *transactionController) Show(c *gin.Context) {
-	data := gin.H{
-		"title": "Transaction",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Transaction"}
 
 	idStr := c.Param("id")
 	transactionDto, err := h.transactionService.FindByID(ctx, idStr)
 	if transactionDto == nil || err != nil {
-		h.log.Error().Err(err).Msgf("transaction is not found")
+		log.Error("transaction not found", zap.Error(err), zap.String("id", idStr))
 		data["error"] = "Transaction not found."
 		h.showAllTransactions(c, ctx, data)
 		return
@@ -113,36 +105,33 @@ func (h *transactionController) Show(c *gin.Context) {
 }
 
 func (h *transactionController) Edit(c *gin.Context) {
-	data := gin.H{
-		"title": "Edit Transaction",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Edit Transaction"}
 
 	idStr := c.Param("id")
 	transaction, err := h.transactionService.FindByID(ctx, idStr)
 	if transaction == nil || err != nil {
-		h.log.Error().Err(err).Msgf("transaction is not found")
+		log.Error("transaction not found", zap.Error(err), zap.String("id", idStr))
 		data["error"] = "Transaction not found."
 		h.showAllTransactions(c, ctx, data)
 		return
 	}
 
 	data["transaction"] = transaction
+
 	h.renderHTML(c, http.StatusOK, "transaction_edit.html", data)
 }
 
 func (h *transactionController) Update(c *gin.Context) {
-	data := gin.H{
-		"title": "Edit Transaction",
-	}
-
 	ctx := c.Request.Context()
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Edit Transaction"}
 
 	idStr := c.Param("id")
 	transactionDto, err := h.transactionService.FindByID(ctx, idStr)
 	if transactionDto == nil || err != nil {
-		h.log.Error().Err(err).Msgf("transaction is not found")
+		log.Error("transaction not found", zap.Error(err), zap.String("id", idStr))
 		data["error"] = "Transaction not found."
 		h.showAllTransactions(c, ctx, data)
 		return
@@ -153,7 +142,7 @@ func (h *transactionController) Update(c *gin.Context) {
 		Status string `form:"status" binding:"required"`
 	}
 	if err := c.ShouldBind(&input); err != nil {
-		h.log.Warn().Msgf("invalid bind edit transaction")
+		log.Warn("invalid bind edit transaction", zap.Error(err))
 		data["form"] = input
 		data["error"] = "Invalid input."
 		h.showNewTransactionWithData(c, ctx, data)
@@ -163,9 +152,8 @@ func (h *transactionController) Update(c *gin.Context) {
 	transactionDto.Amount = float64(input.Amount)
 	transactionDto.Status = domain.TransactionStatus(input.Status)
 
-	err = h.transactionService.Update(ctx, *transactionDto)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("failed to update transaction")
+	if err := h.transactionService.Update(ctx, *transactionDto); err != nil {
+		log.Error("failed to update transaction", zap.Error(err), zap.String("id", idStr))
 		data["transaction"] = input
 		data["error"] = "Failed to update transaction."
 		h.renderHTML(c, http.StatusInternalServerError, "transaction_edit.html", data)
@@ -180,16 +168,15 @@ func (h *transactionController) Update(c *gin.Context) {
 
 func (h *transactionController) Delete(c *gin.Context) {
 	ctx := c.Request.Context()
-	data := gin.H{
-		"title": "Delete Transaction",
-	}
+	log := logger.GetLoggerFromContext(ctx)
+	data := gin.H{"title": "Delete Transaction"}
 
 	idStr := c.Param("id")
-	err := h.transactionService.DeleteByID(ctx, idStr)
-	if err != nil {
-		h.log.Error().Err(err).Msgf("failed to delete transaction")
+	if err := h.transactionService.DeleteByID(ctx, idStr); err != nil {
+		log.Error("failed to delete transaction", zap.Error(err), zap.String("id", idStr))
 		data["error"] = "Failed to delete a transaction."
 		h.showAllTransactions(c, ctx, data)
+		return
 	}
 
 	data["title"] = "Transactions"
