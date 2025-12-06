@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - backerhub_net
+      - backerhub_golang_server_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U backeruser -d backerhub"]
       interval: 10s
@@ -21,35 +21,22 @@ services:
       start_period: 10s
 
   backerhub-golang-server:
-    build: 
-      context: ./golang-server
+    build:
+      context: .
     image: backerhub-golang-server:1.0.0
     container_name: backerhub-golang-server
     restart: always
     ports:
       - "8080:8080"
     networks:
-      - backerhub_net
+      - backerhub_golang_server_net
     depends_on:
       postgres:
         condition: service_healthy
-
-  backerhub-vuejs-server:
-    build: 
-      context: ./vuejs-server
-    image: backerhub-vuejs-server:1.0.0
-    container_name: backerhub-vuejs-server
-    restart: always
-    ports:
-      - "3000:80"
-    networks:
-      - backerhub_net
-    depends_on:
-      - backerhub-golang-server
 
 volumes:
   postgres_data:
 
 networks:
-  backerhub_net:
+  backerhub_golang_server_net:
     driver: bridge

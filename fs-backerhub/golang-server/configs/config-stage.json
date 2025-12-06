@@ -2,7 +2,7 @@
     "backend": {
         "name": "backerhub-backend",
         "port": 8080,
-        "level": "development",
+        "level": "stage",
         "token": {
             "secret_key": "my-super-secret",
             "expires_at": "1h"
@@ -30,6 +30,7 @@
     },
     "allow_clients": [
       "http://vuejs-server:3000",
+      "http://backerhub-vuejs-server:3000",
       "http://localhost:3000",
       "http://127.0.0.1:3000"
     ]

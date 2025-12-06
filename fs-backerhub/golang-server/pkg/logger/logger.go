@@ -48,21 +48,24 @@ func NewLogger(level, filepath, gelfAddr string) error {
 
 		consoleWriter := zapcore.Lock(os.Stdout)
 
-		var gelfWriter zapcore.WriteSyncer
-		if gelfAddr != "" {
-			w, e := gelf.NewUDPWriter(gelfAddr) // "e.g:192.168.1.10:12201"
-			if e != nil {
-				return
-			}
-			gelfWriter = zapcore.AddSync(w)
-		}
-
-		core := zapcore.NewTee(
+		cores := []zapcore.Core{
 			zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), consoleWriter, logLevel),
 			zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), fileWriter, logLevel),
-			zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), gelfWriter, logLevel),
-		)
+		}
 
+		if gelfAddr != "" {
+			w, e := gelf.NewUDPWriter(gelfAddr)
+			if e == nil {
+				gelfWriter := zapcore.AddSync(w)
+				cores = append(cores, zapcore.NewCore(
+					zapcore.NewJSONEncoder(encoderCfg),
+					gelfWriter,
+					logLevel,
+				))
+			}
+		}
+
+		core := zapcore.NewTee(cores...)
 		instance = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 	})
 

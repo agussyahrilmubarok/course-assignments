@@ -4,7 +4,7 @@ backend/dev:
 backend/build:
 	go fmt ./...
 	go vet ./...
-	CGO_ENABLED=0 GOOS=linux go build -o bin/backerhub-backend cmd/backend/main.go
+	CGO_ENABLED=0 GOOS=linux go build -o bin/backerhub-golang-server cmd/backend/main.go
 
 seeder/run:
 	go run cmd/seeder/main.go
@@ -24,4 +24,11 @@ compose/postgres/up:
 
 compose/postgres/down:
 	docker compose -f docker-compose-postgres.yml down
+	docker volume prune -a
+
+compose/golang/server/up:
+	docker compose -f docker-compose-golang-server.yml up -d --build
+
+compose/golang/server/down:
+	docker compose -f docker-compose-golang-server.yml down
 	docker volume prune -a

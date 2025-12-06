@@ -1,18 +1,10 @@
-FROM golang:1.25.3 AS builder
-WORKDIR /build
-COPY go.mod go.sum ./
-RUN go mod tidy
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o backerhub cmd/server/main.go
-
-FROM alpine:latest
-# ENV GIN_MODE=release
+FROM alpine:3.22
+RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
-COPY --from=builder /build /app
-COPY configs/backerhub-stage.json /app/configs/backerhub.json
+COPY bin/backerhub-golang-server /app/backerhub-golang-server
+COPY configs/config-stage.json /app/configs/config.json
 COPY public /app/public
 
 EXPOSE 8080
-
-# ENTRYPOINT ["/app/backerhub", "-config", "/app/config.prod.json"]
-ENTRYPOINT ["/app/backerhub"]
+# ENTRYPOINT ["/app/backerhub-golang-server", "-config", "/app/config.prod.json"]
+ENTRYPOINT ["/app/backerhub-golang-server"]

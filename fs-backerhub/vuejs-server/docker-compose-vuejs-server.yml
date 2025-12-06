@@ -1,0 +1,15 @@
+services:
+  backerhub-vuejs-server:
+    build:
+      context: .
+    image: backerhub-vuejs-server:1.0.0
+    container_name: backerhub-vuejs-server
+    restart: always
+    ports:
+      - "3000:80"
+    networks:
+      - backerhub_vuejs_server_net
+  
+networks:
+  backerhub_vuejs_server_net:
+    driver: bridge

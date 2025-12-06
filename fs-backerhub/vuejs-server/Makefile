@@ -61,3 +61,11 @@ endif
 	@echo "Checking for outdated packages..."
 	pnpm outdated
 	@echo "Update complete. Test your project with 'make pnpm/dev'"
+
+
+compose/vuejs/server/up:
+	docker compose -f docker-compose-vuejs-server.yml up -d --build
+
+compose/vuejs/server/down:
+	docker compose -f docker-compose-vuejs-server.yml down
+	docker volume prune -a
