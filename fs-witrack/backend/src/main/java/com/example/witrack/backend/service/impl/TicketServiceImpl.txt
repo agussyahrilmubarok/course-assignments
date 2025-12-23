@@ -1,0 +1,108 @@
+package com.example.witrack.backend.service.impl;
+
+import com.example.witrack.backend.domain.Ticket;
+import com.example.witrack.backend.domain.User;
+import com.example.witrack.backend.exception.NotFoundException;
+import com.example.witrack.backend.exception.UnauthorizedException;
+import com.example.witrack.backend.model.TicketDTO;
+import com.example.witrack.backend.repos.TicketCommentRepository;
+import com.example.witrack.backend.repos.TicketRepository;
+import com.example.witrack.backend.repos.UserRepository;
+import com.example.witrack.backend.security.user.CurrentUserDetails;
+import com.example.witrack.backend.service.TicketService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.util.UUID;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class TicketServiceImpl implements TicketService {
+
+    private final TicketRepository ticketRepository;
+    private final TicketCommentRepository ticketCommentRepository;
+    private final UserRepository userRepository;
+    private final CurrentUserDetails currentUserDetails;
+
+    @Override
+    @Transactional
+    public TicketDTO.TicketResponse create(TicketDTO.TicketRequest request, UUID userId) {
+        User currentUser = getUser(userId);
+
+        Ticket ticket = new Ticket();
+        ticket.setCode(generateTicketCode());
+        ticket.setTitle(request.getTitle());
+        ticket.setDescription(request.getDescription());
+        ticket.setStatus(Ticket.Status.valueOf(request.getStatus()));
+        ticket.setPriority(Ticket.Priority.valueOf(request.getPriority()));
+        ticket.setCompleteAt(null);
+        ticket.setUser(currentUser);
+
+        ticket = ticketRepository.save(ticket);
+
+        log.info("Ticket created successfully: code={}, userId={}, title={}",
+                ticket.getCode(), currentUser.getId(), ticket.getTitle());
+        return TicketDTO.TicketResponse.fromTicket(ticket);
+    }
+
+    @Override
+    public TicketDTO.TicketResponse update(UUID ticketId, TicketDTO.TicketRequest request, UUID userId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new NotFoundException("Ticket not found"));
+        validateUserAccess(ticket, userId);
+
+        ticket.setTitle(request.getTitle());
+        ticket.setDescription(request.getDescription());
+        ticket.setStatus(Ticket.Status.valueOf(request.getStatus()));
+        ticket.setPriority(Ticket.Priority.valueOf(request.getPriority()));
+
+        ticket = ticketRepository.save(ticket);
+
+        log.info("Ticket updated successfully: id={}, userId={}, title={}",
+                ticket.getId(), userId, ticket.getTitle());
+        return TicketDTO.TicketResponse.fromTicket(ticket);
+    }
+
+    @Override
+    public void delete(UUID ticketId, UUID userId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new NotFoundException("Ticket not found"));
+        validateUserAccess(ticket, userId);
+
+        ticketRepository.delete(ticket);
+        log.info("Ticket deleted successfully: id={}, userId={}", ticketId, userId);
+    }
+
+    private User getUser(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> {
+                    log.warn("Get user invalid id: {}", userId);
+                    return new NotFoundException("User does not exist");
+                });
+    }
+
+    private String generateTicketCode() {
+        String hex = UUID.randomUUID().toString().replace("-", "");
+        String first4 = hex.substring(0, 4);
+        String last4 = hex.substring(hex.length() - 4);
+        Clock clock = Clock.systemUTC();
+        long unixTime = Instant.now(clock).getEpochSecond();
+        return "TIC" + first4.toUpperCase() + unixTime + last4.toUpperCase();
+    }
+
+    private void validateUserAccess(Ticket ticket, UUID userId) {
+        User user = getUser(userId);
+        boolean isAdmin = user.getRoles().contains(User.Role.ROLE_ADMIN);
+        boolean isOwner = ticket.getUser().getId().equals(userId);
+
+        if (!isOwner && !isAdmin) {
+            log.warn("Unauthorized access attempt: ticketId={}, userId={}", ticket.getId(), userId);
+            throw new UnauthorizedException("User not authorized to access this ticket");
+        }
+    }
+}

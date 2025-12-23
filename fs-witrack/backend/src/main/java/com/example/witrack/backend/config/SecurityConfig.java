@@ -2,8 +2,8 @@ package com.example.witrack.backend.config;
 
 import com.example.witrack.backend.security.AuthenticationEntryPointImpl;
 import com.example.witrack.backend.security.AuthenticationTokenFilter;
-import com.example.witrack.backend.security.UserDetailsServiceImpl;
 import com.example.witrack.backend.security.jwt.JwtProvider;
+import com.example.witrack.backend.security.user.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,9 +22,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtProvider jwtProvider;
     private final AuthenticationEntryPointImpl authenticationEntryPoint;
     private final UserDetailsServiceImpl userDetailsService;
+    private final JwtProvider jwtProvider;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -45,8 +45,8 @@ public class SecurityConfig {
     public SecurityFilterChain configure(final HttpSecurity http) throws Exception {
         return http
                 .cors(cors -> {
-                }) // Can be enabled if needed
-                .csrf(csrf -> csrf.disable()) // MUST be disabled for a Stateless API
+                }) // can be enabled if needed
+                .csrf(csrf -> csrf.disable()) // must be disabled for a stateless API
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/swagger-ui.html",
@@ -59,7 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/v1/tickets/*/status").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
-                // 🔥 Filter JWT only for API
+                // filter jwt only for api
                 .addFilterBefore(authenticationTokenFilter(), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(customizer -> customizer.authenticationEntryPoint(authenticationEntryPoint))
                 .build();

@@ -1,91 +1,96 @@
 package com.example.witrack.backend.security.jwt;
 
-import com.example.witrack.backend.security.UserDetailsImpl;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
-import lombok.extern.slf4j.Slf4j;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.witrack.backend.domain.User;
+import com.example.witrack.backend.security.user.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component
-@Slf4j
 public class JwtProvider {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    @Value("${jwt.secret_key}")
+    private String jwtSecretKey;
 
-    @Value("${jwt.expiry}")
-    private int jwtExpiryInMs;
-
-    private Key getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
-
-    public String createToken(Map<String, Object> claims, String subject, int expiryInMs) {
-        Date now = new Date();
-        Date expirationDate = new Date(now.getTime() + expiryInMs);
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expirationDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
-                .compact();
-    }
+    @Value("${jwt.expiry_in}")
+    private long jwtExpiryIn;
 
     public String generateToken(Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        String id = userDetails.getId();
-
+        String userId = userDetails.getId().toString();
         List<String> roles = userDetails.getAuthorities()
                 .stream()
                 .map(auth -> auth.getAuthority())
                 .collect(Collectors.toList());
 
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("id", id);
-        claims.put("roles", roles);
-
-        return createToken(claims, userDetails.getUsername(), jwtExpiryInMs);
+        return createToken(userId, roles);
     }
 
-    public String generateToken(Map<String, Object> claims, String subject) {
-        return createToken(claims, subject, jwtExpiryInMs);
+    public String generateToken(String subject, Set<User.Role> roles) {
+        List<String> roleNames = roles.stream()
+                .map(User.Role::name)
+                .collect(Collectors.toList());
+        return createToken(subject, roleNames);
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
+            decodeToken(token);
             return true;
-        } catch (JwtException e) {
-
+        } catch (Exception e) {
+            return false;
         }
-        return false;
-    }
-
-    private Claims extractClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
     }
 
     public String extractSubject(String token) {
-        return extractClaims(token).getSubject();
+        return decodeToken(token).getSubject();
+    }
+
+    public List<String> extractRoles(String token) {
+        return decodeToken(token)
+                .getClaim("roles")
+                .asList(String.class);
+    }
+
+    private String createToken(String subject, List<String> roles) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpiryIn);
+
+        return JWT.create()
+                .withSubject(subject)
+                .withIssuedAt(now)
+                .withExpiresAt(expiryDate)
+                .withClaim("roles", roles)
+                .sign(getAlgorithm());
+    }
+
+    private DecodedJWT decodeToken(String token) {
+        if (token == null || token.isBlank()) {
+            throw new RuntimeException("JWT token is null or empty");
+        }
+
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+
+        return getVerifier().verify(token);
+    }
+
+    private Algorithm getAlgorithm() {
+        return Algorithm.HMAC512(jwtSecretKey);
+    }
+
+    private JWTVerifier getVerifier() {
+        return JWT.require(getAlgorithm()).build();
     }
 }

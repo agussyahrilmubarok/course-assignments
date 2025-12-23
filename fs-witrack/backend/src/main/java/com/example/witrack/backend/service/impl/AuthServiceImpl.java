@@ -2,8 +2,9 @@ package com.example.witrack.backend.service.impl;
 
 import com.example.witrack.backend.domain.User;
 import com.example.witrack.backend.exception.DuplicateFieldException;
-import com.example.witrack.backend.model.*;
-import com.example.witrack.backend.repository.UserRepository;
+import com.example.witrack.backend.model.AuthDTO;
+import com.example.witrack.backend.model.UserDTO;
+import com.example.witrack.backend.repos.UserRepository;
 import com.example.witrack.backend.security.jwt.JwtProvider;
 import com.example.witrack.backend.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -27,52 +27,53 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
+    private final AuthenticationManager authenticationManager;
 
     @Override
-    public SignUpResponse signUp(SignUpRequest request) {
+    public AuthDTO.AuthResponse signUp(AuthDTO.SignUpRequest request) {
         String email = request.getEmail().toLowerCase();
         if (userRepository.existsByEmailIgnoreCase(email)) {
-            log.warn("Sign Up failed: email {} is already in use", email);
+            log.warn("Sign up failed: email already exists, email={}", email);
             throw new DuplicateFieldException("email", "Email is already in use");
         }
 
         User user = new User();
-        user.setId(UUID.randomUUID().toString());
         user.setFullName(request.getFullName());
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRoles(Collections.singleton(User.Role.ROLE_USER));
 
-        User savedUser = userRepository.save(user);
-        String token = authenticateAndGenerateToken(email, request.getPassword());
+        user = userRepository.save(user);
+        String token = jwtProvider.generateToken(user.getId().toString(), user.getRoles());
 
-        log.info("User {} successfully registered with id {}", email, savedUser.getId());
-        return SignUpResponse.builder()
+        log.info("User registered successfully, userId={}, email={}", user.getId(), email);
+        return AuthDTO.AuthResponse.builder()
                 .token(token)
-                .user(UserResponse.fromUser(savedUser))
+                .user(UserDTO.UserResponse.fromUser(user))
                 .build();
     }
 
     @Override
-    public SignInResponse signIn(SignInRequest request) {
+    public AuthDTO.AuthResponse signIn(AuthDTO.SignInRequest request) {
         String email = request.getEmail().toLowerCase();
         String token = authenticateAndGenerateToken(email, request.getPassword());
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User is not found"));
+                .orElseThrow(() -> {
+                    log.warn("Sign in failed: user not found, email={}", email);
+                    return new UsernameNotFoundException("User is not found");
+                });
 
-        log.info("User {} successfully authenticated", email);
-        return SignInResponse.builder()
+        log.info("Sign in successful, userId={}, email={}", user.getId(), email);
+        return AuthDTO.AuthResponse.builder()
                 .token(token)
-                .user(UserResponse.fromUser(user))
+                .user(UserDTO.UserResponse.fromUser(user))
                 .build();
     }
 
     private String authenticateAndGenerateToken(String email, String password) {
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(email, password);
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(email, password);
 
         try {
             Authentication authentication = authenticationManager.authenticate(authToken);

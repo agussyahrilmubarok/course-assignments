@@ -1,8 +1,7 @@
 package com.example.witrack.backend.rest.v1;
 
-import com.example.witrack.backend.model.UserResponse;
-import com.example.witrack.backend.security.CurrentUserDetails;
-import com.example.witrack.backend.service.UserService;
+import com.example.witrack.backend.model.UserDTO;
+import com.example.witrack.backend.security.user.CurrentUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,13 +14,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class UserProfileResource {
 
-    private final UserService userService;
     private final CurrentUserDetails currentUserDetails;
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getMe() {
-        String id = currentUserDetails.getId();
-        UserResponse response = userService.getById(id);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<UserDTO.UserResponse> getMe() {
+        return ResponseEntity.ok(UserDTO.UserResponse.fromUser(currentUserDetails.getUser()));
     }
 }

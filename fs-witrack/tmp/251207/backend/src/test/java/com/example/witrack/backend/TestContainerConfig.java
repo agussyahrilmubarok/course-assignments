@@ -11,11 +11,11 @@ public abstract class TestContainerConfig {
 
     static MongoDBContainer MONGO_CONTAINER = new MongoDBContainer("mongo:7");
 
-    @BeforeAll
-    static void beforeAll() {
-        MONGO_CONTAINER.withReuse(true);
-        MONGO_CONTAINER.start();
-    }
+        @BeforeAll
+        static void beforeAll() {
+            MONGO_CONTAINER.withReuse(true);
+            MONGO_CONTAINER.start();
+        }
 
     @DynamicPropertySource
     static void overrideProps(DynamicPropertyRegistry registry) {

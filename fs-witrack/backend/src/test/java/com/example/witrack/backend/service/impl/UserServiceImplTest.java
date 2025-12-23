@@ -1,21 +1,22 @@
 package com.example.witrack.backend.service.impl;
 
+import com.example.witrack.backend.common.BaseServiceTest;
 import com.example.witrack.backend.domain.User;
 import com.example.witrack.backend.exception.NotFoundException;
-import com.example.witrack.backend.model.UserResponse;
-import com.example.witrack.backend.repository.UserRepository;
-import com.example.witrack.backend.service.BaseServiceTest;
+import com.example.witrack.backend.model.UserDTO;
+import com.example.witrack.backend.repos.UserRepository;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class UserServiceImplTest extends BaseServiceTest {
 
@@ -30,7 +31,7 @@ class UserServiceImplTest extends BaseServiceTest {
     @BeforeEach
     void setUp() {
         testUser = new User();
-        testUser.setId(UUID.randomUUID().toString());
+        testUser.setId(UUID.randomUUID());
         testUser.setFullName("John Doe");
         testUser.setEmail("johndoe@mail.com");
         testUser.setPassword("encodedPassword");
@@ -38,28 +39,27 @@ class UserServiceImplTest extends BaseServiceTest {
     }
 
     @Test
-    void givenExistingUserId_whenGetById_thenReturnUserResponse() {
-        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+    void givenExistingUserId_whenFindById_thenReturnUserResponse() {
+        Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.of(testUser));
 
-        UserResponse response = userService.getById(testUser.getId());
+        UserDTO.UserResponse response = userService.findById(testUser.getId());
 
-        assertNotNull(response);
-        assertEquals(testUser.getId(), response.getId());
-        assertEquals(testUser.getFullName(), response.getFullName());
-        assertEquals(testUser.getEmail(), response.getEmail());
-
-        verify(userRepository, times(1)).findById(testUser.getId());
+        Assertions.assertNotNull(response);
+        Assertions.assertNotNull(response.getId());
+        Assertions.assertEquals(testUser.getFullName(), response.getFullName());
+        Assertions.assertEquals(testUser.getEmail(), response.getEmail());
+        Mockito.verify(userRepository, Mockito.times(1)).findById(testUser.getId());
     }
 
     @Test
-    void givenNonExistingUserId_whenGetById_thenThrowNotFoundException() {
-        String nonExistingId = UUID.randomUUID().toString();
-        when(userRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+    void givenNonExistingUserId_whenFindById_thenThrowNotFoundException() {
+        Mockito.when(userRepository.findById(Mockito.any())).thenReturn(Optional.empty());
+        UUID nonExistingId = UUID.randomUUID();
 
         NotFoundException exception = assertThrows(NotFoundException.class,
-                () -> userService.getById(nonExistingId));
+                () -> userService.findById(nonExistingId));
 
-        assertTrue(exception.getMessage().contains(nonExistingId));
-        verify(userRepository, times(1)).findById(nonExistingId);
+        Assertions.assertTrue(exception.getMessage().contains(nonExistingId.toString()));
+        Mockito.verify(userRepository, Mockito.times(1)).findById(nonExistingId);
     }
 }

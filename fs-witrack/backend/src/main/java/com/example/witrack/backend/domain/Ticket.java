@@ -1,59 +1,71 @@
 package com.example.witrack.backend.domain;
 
+import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.annotation.*;
-import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.DocumentReference;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
-@Document("tickets")
+@Entity
+@Table(name = "tickets", indexes = {@Index(name = "uk_ticket_code", columnList = "code", unique = true)})
 @Getter
 @Setter
 public class Ticket {
 
     @Id
-    @NotNull
-    private String id;
+    @GeneratedValue
+    private UUID id;
 
-    @Indexed(unique = true)
     @NotNull
     @Size(max = 255)
+    @Column(nullable = false, unique = true, length = 255)
     private String code;
 
     @NotNull
     @Size(max = 255)
+    @Column(nullable = false, length = 255)
     private String title;
 
     @NotNull
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
     private Status status;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
     private Priority priority;
 
     private OffsetDateTime completeAt;
 
-    @DocumentReference(lazy = true)
-    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @DocumentReference(lazy = true, lookup = "{ 'ticket' : ?#{#self._id} }")
-    @ReadOnlyProperty
-    private Set<TicketReply> ticketReplies = new HashSet<>();
+    @OneToMany(
+            mappedBy = "ticket",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<TicketComment> ticketComments = new HashSet<>();
 
-    @CreatedDate
+    @CreationTimestamp
+    @Column(updatable = false)
     private OffsetDateTime createdAt;
 
-    @LastModifiedDate
+    @UpdateTimestamp
     private OffsetDateTime updatedAt;
 
     @Version
@@ -61,7 +73,7 @@ public class Ticket {
 
     public enum Status {
         OPEN,
-        ONPROGRESS,
+        IN_PROGRESS,
         RESOLVED,
         REJECTED
     }

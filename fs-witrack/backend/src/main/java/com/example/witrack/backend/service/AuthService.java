@@ -1,13 +1,10 @@
 package com.example.witrack.backend.service;
 
-import com.example.witrack.backend.model.SignInRequest;
-import com.example.witrack.backend.model.SignInResponse;
-import com.example.witrack.backend.model.SignUpRequest;
-import com.example.witrack.backend.model.SignUpResponse;
+import com.example.witrack.backend.model.AuthDTO;
 
 public interface AuthService {
 
-    SignUpResponse signUp(SignUpRequest request);
+    AuthDTO.AuthResponse signUp(AuthDTO.SignUpRequest request);
 
-    SignInResponse signIn(SignInRequest request);
+    AuthDTO.AuthResponse signIn(AuthDTO.SignInRequest request);
 }

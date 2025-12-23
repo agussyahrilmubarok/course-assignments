@@ -1,9 +1,6 @@
 package com.example.witrack.backend.rest.v1;
 
-import com.example.witrack.backend.model.SignInRequest;
-import com.example.witrack.backend.model.SignInResponse;
-import com.example.witrack.backend.model.SignUpRequest;
-import com.example.witrack.backend.model.SignUpResponse;
+import com.example.witrack.backend.model.AuthDTO;
 import com.example.witrack.backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,14 +19,12 @@ public class AuthResource {
     private final AuthService authService;
 
     @PostMapping("/sign-up")
-    public ResponseEntity<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
-        SignUpResponse response = authService.signUp(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<AuthDTO.AuthResponse> signUp(@Valid @RequestBody AuthDTO.SignUpRequest request) {
+        return ResponseEntity.ok(authService.signUp(request));
     }
 
     @PostMapping("/sign-in")
-    public ResponseEntity<SignInResponse> signIn(@Valid @RequestBody SignInRequest request) {
-        SignInResponse response = authService.signIn(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<AuthDTO.AuthResponse> signIn(@Valid @RequestBody AuthDTO.SignInRequest request) {
+        return ResponseEntity.ok(authService.signIn(request));
     }
 }

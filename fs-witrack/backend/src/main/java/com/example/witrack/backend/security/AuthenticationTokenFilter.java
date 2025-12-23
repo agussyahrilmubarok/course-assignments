@@ -1,12 +1,12 @@
 package com.example.witrack.backend.security;
 
 import com.example.witrack.backend.security.jwt.JwtProvider;
+import com.example.witrack.backend.security.user.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,7 +17,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Slf4j
 @RequiredArgsConstructor
 public class AuthenticationTokenFilter extends OncePerRequestFilter {
 
@@ -36,8 +35,8 @@ public class AuthenticationTokenFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
             if (jwt != null && jwtProvider.validateToken(jwt)) {
-                String email = jwtProvider.extractSubject(jwt);
-                UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                String userId = jwtProvider.extractSubject(jwt);
+                UserDetails userDetails = userDetailsService.loadUserById(userId);
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities()
                 );
@@ -47,6 +46,7 @@ public class AuthenticationTokenFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             //TODO: make better exception and logging
         }
+
         filterChain.doFilter(request, response);
     }
 
@@ -55,6 +55,7 @@ public class AuthenticationTokenFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);
         }
+
         return null;
     }
 }

@@ -1,22 +1,14 @@
 package com.example.witrack.backend.service;
 
-import com.example.witrack.backend.model.*;
+import com.example.witrack.backend.model.TicketDTO;
 
-import java.util.List;
+import java.util.UUID;
 
 public interface TicketService {
 
-    List<TicketResponse> getTickets(String keyword, String status, String priority, String date);
+    TicketDTO.TicketResponse create(TicketDTO.TicketRequest request);
 
-    List<TicketResponse> getMyTickets(String keyword, String status, String priority, String date);
+    TicketDTO.TicketResponse update(UUID id, TicketDTO.TicketRequest request);
 
-    TicketDetailResponse getTicketByCode(String code);
-
-    TicketResponse createTicket(TicketStoreRequest request);
-
-    TicketResponse updateTicket(String code, TicketStoreRequest request);
-
-    void deleteTicketByCode(String code);
-
-    TicketReplyResponse createTicketReply(String code, TicketReplyStoreRequest request);
+    void delete(UUID id);
 }

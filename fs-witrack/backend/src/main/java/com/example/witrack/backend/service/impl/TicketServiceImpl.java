@@ -1,27 +1,21 @@
 package com.example.witrack.backend.service.impl;
 
 import com.example.witrack.backend.domain.Ticket;
-import com.example.witrack.backend.domain.TicketReply;
 import com.example.witrack.backend.domain.User;
 import com.example.witrack.backend.exception.NotFoundException;
 import com.example.witrack.backend.exception.UnauthorizedException;
-import com.example.witrack.backend.model.*;
-import com.example.witrack.backend.repository.TicketCustomRepository;
-import com.example.witrack.backend.repository.TicketReplyRepository;
-import com.example.witrack.backend.repository.TicketRepository;
-import com.example.witrack.backend.repository.UserRepository;
-import com.example.witrack.backend.security.CurrentUserDetails;
+import com.example.witrack.backend.model.TicketDTO;
+import com.example.witrack.backend.repos.TicketRepository;
+import com.example.witrack.backend.security.user.CurrentUserDetails;
 import com.example.witrack.backend.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -29,128 +23,33 @@ import java.util.stream.Collectors;
 public class TicketServiceImpl implements TicketService {
 
     private final TicketRepository ticketRepository;
-    private final TicketReplyRepository ticketReplyRepository;
-    private final TicketCustomRepository ticketCustomRepository;
     private final CurrentUserDetails currentUserDetails;
-    private final UserRepository userRepository;
 
     @Override
-    public List<TicketResponse> getTickets(String keyword, String status, String priority, String date) {
-        Ticket.Status statusEnum = null;
-        if (status != null && !status.isBlank()) {
-            statusEnum = Ticket.Status.valueOf(status.toUpperCase());
-        }
-
-        Ticket.Priority priorityEnum = null;
-        if (priority != null && !priority.isBlank()) {
-            priorityEnum = Ticket.Priority.valueOf(priority.toUpperCase());
-        }
-
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime startAt = null;
-        OffsetDateTime endAt = null;
-
-        if ("TODAY".equalsIgnoreCase(date)) {
-            startAt = now.toLocalDate().atStartOfDay().atOffset(now.getOffset());
-            endAt = startAt.plusDays(1).minusNanos(1);
-        } else if ("MONTH".equalsIgnoreCase(date)) {
-            startAt = now.withDayOfMonth(1).toLocalDate().atStartOfDay().atOffset(now.getOffset());
-            endAt = startAt.plusMonths(1).minusNanos(1);
-        } else if ("YEAR".equalsIgnoreCase(date)) {
-            startAt = now.withDayOfYear(1).toLocalDate().atStartOfDay().atOffset(now.getOffset());
-            endAt = startAt.plusYears(1).minusNanos(1);
-        }
-
-        List<Ticket> tickets = ticketCustomRepository.searchTickets(
-                keyword != null ? keyword : "",
-                statusEnum,
-                priorityEnum,
-                startAt,
-                endAt
-        );
-
-        return tickets.stream()
-                .map(TicketResponse::fromTicket)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<TicketResponse> getMyTickets(String keyword, String status, String priority, String date) {
-        User user = getUserById(currentUserDetails.getId());
-
-        Ticket.Status statusEnum = null;
-        if (status != null && !status.isBlank()) {
-            statusEnum = Ticket.Status.valueOf(status.toUpperCase());
-        }
-
-        Ticket.Priority priorityEnum = null;
-        if (priority != null && !priority.isBlank()) {
-            priorityEnum = Ticket.Priority.valueOf(priority.toUpperCase());
-        }
-
-        OffsetDateTime now = OffsetDateTime.now();
-        OffsetDateTime startAt = null;
-        OffsetDateTime endAt = null;
-
-        if ("TODAY".equalsIgnoreCase(date)) {
-            startAt = now.toLocalDate().atStartOfDay().atOffset(now.getOffset());
-            endAt = startAt.plusDays(1).minusNanos(1);
-        } else if ("MONTH".equalsIgnoreCase(date)) {
-            startAt = now.withDayOfMonth(1).toLocalDate().atStartOfDay().atOffset(now.getOffset());
-            endAt = startAt.plusMonths(1).minusNanos(1);
-        } else if ("YEAR".equalsIgnoreCase(date)) {
-            startAt = now.withDayOfYear(1).toLocalDate().atStartOfDay().atOffset(now.getOffset());
-            endAt = startAt.plusYears(1).minusNanos(1);
-        }
-
-        List<Ticket> tickets = ticketCustomRepository.searchTickets(
-                keyword != null ? keyword : "",
-                statusEnum,
-                priorityEnum,
-                startAt,
-                endAt,
-                user.getId()
-        );
-
-        return tickets.stream()
-                .map(TicketResponse::fromTicket)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public TicketDetailResponse getTicketByCode(String code) {
-        Ticket ticket = ticketRepository.findByCode(code)
-                .orElseThrow(() -> new NotFoundException("Ticket code is not found: " + code));
-
-        return TicketDetailResponse.fromTicket(ticket);
-    }
-
-    @Override
-    public TicketResponse createTicket(TicketStoreRequest request) {
-        User user = getUserById(currentUserDetails.getId());
+    @Transactional
+    public TicketDTO.TicketResponse create(TicketDTO.TicketRequest request) {
+        User currentUser = currentUserDetails.getUser();
 
         Ticket ticket = new Ticket();
+        ticket.setCode(generateTicketCode());
         ticket.setTitle(request.getTitle());
         ticket.setDescription(request.getDescription());
         ticket.setStatus(Ticket.Status.valueOf(request.getStatus()));
         ticket.setPriority(Ticket.Priority.valueOf(request.getPriority()));
-        ticket.setId(UUID.randomUUID().toString());
-        ticket.setCode(generateCode());
         ticket.setCompleteAt(null);
-        ticket.setUser(user);
+        ticket.setUser(currentUser);
+        ticket = ticketRepository.save(ticket);
 
-        return TicketResponse.fromTicket(ticketRepository.save(ticket));
+        log.info("Ticket created successfully: code={}, userId={}, title={}", ticket.getCode(), currentUser.getId(), ticket.getTitle());
+        return TicketDTO.TicketResponse.fromTicket(ticket);
     }
 
     @Override
-    public TicketResponse updateTicket(String code, TicketStoreRequest request) {
-        Ticket ticket = ticketRepository.findByCode(code)
-                .orElseThrow(() -> new NotFoundException("Ticket code is not found: " + code));
-        User user = getUserById(currentUserDetails.getId());
-
-        if (!ticket.getUser().getId().equals(user.getId()) && !user.hasRole(User.Role.ROLE_ADMIN)) {
-            throw new UnauthorizedException("You are not allowed to update this ticket");
-        }
+    @Transactional
+    public TicketDTO.TicketResponse update(UUID id, TicketDTO.TicketRequest request) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Ticket not found"));
+        validateTicketAccess(ticket);
 
         if (request.getTitle() != null) {
             ticket.setTitle(request.getTitle());
@@ -165,50 +64,32 @@ public class TicketServiceImpl implements TicketService {
             ticket.setPriority(Ticket.Priority.valueOf(request.getPriority()));
         }
 
-        return TicketResponse.fromTicket(ticketRepository.save(ticket));
+        return TicketDTO.TicketResponse.fromTicket(ticketRepository.save(ticket));
     }
 
     @Override
-    public void deleteTicketByCode(String code) {
-        Ticket ticket = ticketRepository.findByCode(code)
-                .orElseThrow(() -> new NotFoundException("Ticket code is not found: " + code));
-        User user = getUserById(currentUserDetails.getId());
-
-        if (!ticket.getUser().getId().equals(user.getId()) && !user.hasRole(User.Role.ROLE_ADMIN)) {
-            throw new UnauthorizedException("You are not allowed to update this ticket");
-        }
-
+    public void delete(UUID id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Ticket not found"));
+        validateTicketAccess(ticket);
         ticketRepository.delete(ticket);
     }
 
-    @Override
-    public TicketReplyResponse createTicketReply(String code, TicketReplyStoreRequest request) {
-        Ticket ticket = ticketRepository.findByCode(code)
-                .orElseThrow(() -> new NotFoundException("Ticket code is not found: " + code));
-        User user = getUserById(currentUserDetails.getId());
-
-        TicketReply ticketReply = new TicketReply();
-        ticketReply.setId(UUID.randomUUID().toString());
-        ticketReply.setContent(request.getContent());
-        ticketReply.setTicket(ticket);
-        ticketReply.setUser(user);
-
-        return TicketReplyResponse.fromTicketReply(ticketReplyRepository.save(ticketReply));
-    }
-
-    private User getUserById(String id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("User id is not found: " + id));
-    }
-
-    private String generateCode() {
+    private String generateTicketCode() {
         String hex = UUID.randomUUID().toString().replace("-", "");
         String first4 = hex.substring(0, 4);
         String last4 = hex.substring(hex.length() - 4);
-
         Clock clock = Clock.systemUTC();
         long unixTime = Instant.now(clock).getEpochSecond();
-
         return "TIC" + first4.toUpperCase() + unixTime + last4.toUpperCase();
+    }
+
+    private void validateTicketAccess(Ticket ticket) {
+        User currentUser = currentUserDetails.getUser();
+        boolean isOwner = ticket.getUser().getId().equals(currentUser.getId());
+        boolean isAdmin = currentUser.getRoles().contains(User.Role.ROLE_ADMIN);
+        if (!isOwner && !isAdmin) {
+            throw new UnauthorizedException("You do not have permission to access this ticket");
+        }
     }
 }
