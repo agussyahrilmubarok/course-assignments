@@ -3,6 +3,7 @@ package com.example.witrack.backend.service.impl;
 import com.example.witrack.backend.common.BaseServiceTest;
 import com.example.witrack.backend.domain.Ticket;
 import com.example.witrack.backend.domain.User;
+import com.example.witrack.backend.exception.NotFoundException;
 import com.example.witrack.backend.exception.UnauthorizedException;
 import com.example.witrack.backend.model.TicketDTO;
 import com.example.witrack.backend.repos.TicketRepository;
@@ -13,8 +14,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 class TicketServiceImplTest extends BaseServiceTest {
@@ -169,5 +172,119 @@ class TicketServiceImplTest extends BaseServiceTest {
                 () -> ticketService.delete(testTicket1.getId()));
 
         Assertions.assertEquals("You do not have permission to access this ticket", exception.getMessage());
+    }
+
+    @Test
+    void givenExistingTicket_whenFindById_thenReturnTicketResponse() {
+        Mockito.when(ticketRepository.findById(testTicket1.getId()))
+                .thenReturn(java.util.Optional.of(testTicket1));
+
+        TicketDTO.TicketResponse response = ticketService.findById(testTicket1.getId());
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(testTicket1.getId().toString(), response.getId());
+        Assertions.assertEquals(testTicket1.getTitle(), response.getTitle());
+        Assertions.assertEquals(testTicket1.getDescription(), response.getDescription());
+        Assertions.assertEquals(testTicket1.getStatus().name(), response.getStatus());
+        Assertions.assertEquals(testTicket1.getPriority().name(), response.getPriority());
+        Assertions.assertNotNull(response.getUser());
+        Mockito.verify(ticketRepository, Mockito.times(1)).findById(testTicket1.getId());
+    }
+
+    @Test
+    void givenNonExistingTicket_whenFindById_thenThrowNotFoundException() {
+        UUID ticketId = UUID.randomUUID();
+        Mockito.when(ticketRepository.findById(ticketId)).thenReturn(java.util.Optional.empty());
+
+        NotFoundException exception = Assertions.assertThrows(
+                NotFoundException.class,
+                () -> ticketService.findById(ticketId)
+        );
+
+        Assertions.assertEquals("Ticket not found", exception.getMessage());
+        Mockito.verify(ticketRepository, Mockito.times(1)).findById(ticketId);
+    }
+
+    @Test
+    void givenExistingTicket_whenFindByCode_thenReturnTicketResponse() {
+        Mockito.when(ticketRepository.findByCode(testTicket1.getCode()))
+                .thenReturn(java.util.Optional.of(testTicket1));
+
+        TicketDTO.TicketResponse response = ticketService.findByCode(testTicket1.getCode());
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(testTicket1.getId().toString(), response.getId());
+        Assertions.assertEquals(testTicket1.getCode(), response.getCode());
+        Assertions.assertEquals(testTicket1.getTitle(), response.getTitle());
+        Assertions.assertEquals(testTicket1.getDescription(), response.getDescription());
+        Assertions.assertEquals(testTicket1.getStatus().name(), response.getStatus());
+        Assertions.assertEquals(testTicket1.getPriority().name(), response.getPriority());
+        Assertions.assertNotNull(response.getUser());
+        Mockito.verify(ticketRepository, Mockito.times(1)).findByCode(testTicket1.getCode());
+    }
+
+    @Test
+    void givenNonExistingTicketCode_whenFindByCode_thenThrowNotFoundException() {
+        String code = "TIC-NOT-EXIST";
+        Mockito.when(ticketRepository.findByCode(code)).thenReturn(java.util.Optional.empty());
+
+        NotFoundException exception = Assertions.assertThrows(
+                NotFoundException.class,
+                () -> ticketService.findByCode(code)
+        );
+
+        Assertions.assertEquals("Ticket not found", exception.getMessage());
+        Mockito.verify(ticketRepository, Mockito.times(1)).findByCode(code);
+    }
+
+    @Test
+    void givenUserRole_whenSearchTicket_thenReturnOwnTicketsOnly() {
+        Mockito.when(currentUserDetails.getUser()).thenReturn(testUser1);
+        Mockito.when(ticketRepository.findAll(Mockito.any(Specification.class))).thenReturn(List.of(testTicket1));
+
+        List<TicketDTO.TicketResponse> result = ticketService.searchTicket("Network", "OPEN", "LOW", null);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.size());
+        Assertions.assertEquals(testTicket1.getTitle(), result.get(0).getTitle());
+        Mockito.verify(ticketRepository, Mockito.times(1)).findAll(Mockito.any(Specification.class));
+    }
+
+    @Test
+    void givenAdminRole_whenSearchTicket_thenReturnAllTickets() {
+        Mockito.when(currentUserDetails.getUser()).thenReturn(testAdmin);
+        Mockito.when(ticketRepository.findAll(Mockito.any(Specification.class))).thenReturn(List.of(testTicket1));
+
+        List<TicketDTO.TicketResponse> result = ticketService.searchTicket(null, null, null, null);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.size());
+        Assertions.assertEquals(testTicket1.getCode(), result.get(0).getCode());
+        Mockito.verify(ticketRepository, Mockito.times(1)).findAll(Mockito.any(Specification.class));
+    }
+
+    @Test
+    void givenUser_whenSearchMyTicket_thenReturnOnlyUserTickets() {
+        Mockito.when(currentUserDetails.getUser()).thenReturn(testUser1);
+        Mockito.when(ticketRepository.findAll(Mockito.any(Specification.class))).thenReturn(List.of(testTicket1));
+
+        List<TicketDTO.TicketResponse> result = ticketService.searchMyTicket("Network", null, null, null);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals(1, result.size());
+        Assertions.assertEquals(testUser1.getId().toString(), result.get(0).getUser().getId());
+        Mockito.verify(ticketRepository, Mockito.times(1)).findAll(Mockito.any(Specification.class));
+    }
+
+    @Test
+    void givenUser_whenSearchMyTicketAndNoData_thenReturnEmptyList() {
+        Mockito.when(currentUserDetails.getUser()).thenReturn(testUser1);
+        Mockito.when(ticketRepository.findAll(Mockito.any(Specification.class))).thenReturn(Collections.emptyList());
+
+        List<TicketDTO.TicketResponse> result = ticketService.searchMyTicket(null, "OPEN", null, null);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertTrue(result.isEmpty());
+        Mockito.verify(ticketRepository, Mockito.times(1)).findAll(Mockito.any(Specification.class));
     }
 }

@@ -77,3 +77,70 @@ curl -X DELETE http://localhost:8081/api/v1/tickets/ID \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer token"
 ```
+
+## Get Ticket By ID
+
+```bash
+curl -X GET http://localhost:8081/api/v1/tickets/ID \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token"
+```
+
+## Get Ticket By Code
+
+```bash
+curl -X GET http://localhost:8081/api/v1/tickets/code/CODE \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token"
+```
+
+## Search Ticket
+
+```bash
+curl -X GET "http://localhost:8081/api/v1/tickets?search=1" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token"
+```
+
+```bash
+curl -X GET "http://localhost:8081/api/v1/tickets?status=OPEN" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token"
+```
+
+```bash
+curl -X GET "http://localhost:8081/api/v1/tickets?priority=HIGH" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token"
+```
+
+```bash
+curl -X GET "http://localhost:8081/api/v1/tickets?date=2024-01-10" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token"
+```
+
+```bash
+curl -X GET "http://localhost:8081/api/v1/tickets?search=login&status=OPEN&priority=HIGH&date=2024-01-10" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token"
+```
+
+## Search My Ticket
+
+```bash
+curl -X GET http://localhost:8081/api/v1/tickets/me \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token"
+```
+
+## Comment Ticket
+
+```bash
+curl -X POST http://localhost:8081/api/v1/tickets/CODE/comments \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer token" \
+  -d '{
+        "content": "This is my comment"
+      }'
+```

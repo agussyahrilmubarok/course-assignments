@@ -34,3 +34,8 @@ management:
 jwt:
   secret_key: ${JWT_SECRET_KEY:YXV0aGVudGljYXRlVGhpczM2Qnl0ZXNLZXkYXV0aGVudGljYXRlVGhpczM2Qnl0ZXNLZXk}
   expiry_in: ${JWT_EXPIRY_IN:86400000}
+springdoc:
+  paths-to-match: /api/**
+clients:
+  cors:
+    allowed-origins: ${CLIENTS_ALLOWED:http://localhost:8080,https://example.com}

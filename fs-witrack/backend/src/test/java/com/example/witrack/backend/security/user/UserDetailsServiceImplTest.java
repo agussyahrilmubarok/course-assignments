@@ -38,10 +38,35 @@ class UserDetailsServiceImplTest extends BaseServiceTest {
     }
 
     @Test
-    void givenExistingUserId_whenLoadUserByUsername_thenReturnUserDetails() {
+    void givenExistingEmail_whenLoadUserByUsername_thenReturnUserDetails() {
+        Mockito.when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.of(testUser));
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(testUser.getEmail());
+
+        Assertions.assertNotNull(userDetails);
+        Assertions.assertEquals(testUser.getId(), ((UserDetailsImpl) userDetails).getId());
+        Assertions.assertEquals(testUser.getEmail(), userDetails.getUsername());
+        Assertions.assertEquals(testUser.getPassword(), userDetails.getPassword());
+        Assertions.assertEquals(testUser.getRoles().size(), userDetails.getAuthorities().size());
+        Mockito.verify(userRepository, Mockito.times(1)).findByEmail(testUser.getEmail());
+    }
+
+    @Test
+    void givenNonExistingEmail_whenLoadUserByUsername_thenThrowUsernameNotFoundException() {
+        Mockito.when(userRepository.findByEmail(testUser.getEmail())).thenReturn(Optional.empty());
+
+        UsernameNotFoundException exception = Assertions.assertThrows(UsernameNotFoundException.class,
+                () -> userDetailsService.loadUserByUsername(testUser.getEmail()));
+
+        Assertions.assertEquals("User not found", exception.getMessage());
+        Mockito.verify(userRepository, Mockito.times(1)).findByEmail(testUser.getEmail());
+    }
+
+    @Test
+    void givenExistingUserId_whenLoadUserById_thenReturnUserDetails() {
         Mockito.when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(testUserId.toString());
+        UserDetails userDetails = userDetailsService.loadUserById(testUserId.toString());
 
         Assertions.assertNotNull(userDetails);
         Assertions.assertEquals(testUser.getId(), ((UserDetailsImpl) userDetails).getId());
@@ -52,22 +77,22 @@ class UserDetailsServiceImplTest extends BaseServiceTest {
     }
 
     @Test
-    void givenNonExistingUserId_whenLoadUserByUsername_thenThrowUsernameNotFoundException() {
+    void givenNonExistingUserId_whenLoadUserById_thenThrowUsernameNotFoundException() {
         Mockito.when(userRepository.findById(testUserId)).thenReturn(Optional.empty());
 
         UsernameNotFoundException exception = Assertions.assertThrows(UsernameNotFoundException.class,
-                () -> userDetailsService.loadUserByUsername(testUserId.toString()));
+                () -> userDetailsService.loadUserById(testUserId.toString()));
 
         Assertions.assertEquals("User not found", exception.getMessage());
         Mockito.verify(userRepository, Mockito.times(1)).findById(testUserId);
     }
 
     @Test
-    void givenInvalidUUID_whenLoadUserByUsername_thenThrowIllegalArgumentException() {
+    void givenInvalidUUID_whenLoadUserById_thenThrowIllegalArgumentException() {
         String invalidId = "invalid-uuid";
 
         Assertions.assertThrows(IllegalArgumentException.class,
-                () -> userDetailsService.loadUserByUsername(invalidId));
+                () -> userDetailsService.loadUserById(invalidId));
 
         Mockito.verifyNoInteractions(userRepository);
     }

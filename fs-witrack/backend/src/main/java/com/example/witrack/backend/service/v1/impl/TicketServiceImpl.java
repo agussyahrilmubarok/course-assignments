@@ -10,11 +10,12 @@ import com.example.witrack.backend.security.user.CurrentUserDetails;
 import com.example.witrack.backend.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
-import java.time.Instant;
+import java.time.*;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -68,11 +69,60 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    @Transactional
     public void delete(UUID id) {
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Ticket not found"));
         validateTicketAccess(ticket);
         ticketRepository.delete(ticket);
+    }
+
+    @Override
+    @Transactional
+    public TicketDTO.TicketResponse findById(UUID id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Ticket not found"));
+        return TicketDTO.TicketResponse.fromTicket(ticket);
+    }
+
+    @Override
+    @Transactional
+    public TicketDTO.TicketResponse findByCode(String code) {
+        Ticket ticket = ticketRepository.findByCode(code)
+                .orElseThrow(() -> new NotFoundException("Ticket not found"));
+        return TicketDTO.TicketResponse.fromTicket(ticket);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TicketDTO.TicketResponse> searchTicket(String search, String status, String priority, String date) {
+        User currentUser = currentUserDetails.getUser();
+        boolean isAdmin = currentUser.getRoles().contains(User.Role.ROLE_ADMIN);
+
+        Specification<Ticket> spec = buildSearchSpecification(search, status, priority, date);
+
+        if (!isAdmin) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("user").get("id"), currentUser.getId()));
+        }
+
+        return ticketRepository.findAll(spec)
+                .stream()
+                .map(TicketDTO.TicketResponse::fromTicket)
+                .toList();
+    }
+
+    @Override
+    public List<TicketDTO.TicketResponse> searchMyTicket(String search, String status, String priority, String date) {
+        User currentUser = currentUserDetails.getUser();
+
+        Specification<Ticket> spec = buildSearchSpecification(search, status, priority, date)
+                .and((root, query, cb) -> cb.equal(root.get("user").get("id"), currentUser.getId()));
+
+        return ticketRepository.findAll(spec)
+                .stream()
+                .map(TicketDTO.TicketResponse::fromTicket)
+                .toList();
     }
 
     private String generateTicketCode() {
@@ -91,5 +141,41 @@ public class TicketServiceImpl implements TicketService {
         if (!isOwner && !isAdmin) {
             throw new UnauthorizedException("You do not have permission to access this ticket");
         }
+    }
+
+    private Specification<Ticket> buildSearchSpecification(String search, String status,
+                                                           String priority, String date) {
+        return (root, query, cb) -> {
+            var predicates = cb.conjunction();
+
+            if (search != null && !search.isBlank()) {
+                String like = "%" + search.toLowerCase() + "%";
+                predicates = cb.and(predicates,
+                        cb.or(
+                                cb.like(cb.lower(root.get("title")), like),
+                                cb.like(cb.lower(root.get("description")), like),
+                                cb.like(cb.lower(root.get("code")), like)
+                        )
+                );
+            }
+
+            if (status != null) {
+                predicates = cb.and(predicates, cb.equal(root.get("status"), Ticket.Status.valueOf(status)));
+            }
+
+            if (priority != null) {
+                predicates = cb.and(predicates, cb.equal(root.get("priority"), Ticket.Priority.valueOf(priority)));
+            }
+
+            if (date != null) {
+                LocalDate localDate = LocalDate.parse(date);
+                OffsetDateTime start = localDate.atStartOfDay().atOffset(ZoneOffset.UTC);
+                OffsetDateTime end = start.plusDays(1);
+
+                predicates = cb.and(predicates, cb.between(root.get("createdAt"), start, end));
+            }
+
+            return predicates;
+        };
     }
 }
