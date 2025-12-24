@@ -1,10 +1,10 @@
-package com.example.witrack.backend.service.impl;
+package com.example.witrack.backend.service.v1.impl;
 
 import com.example.witrack.backend.domain.User;
 import com.example.witrack.backend.exception.NotFoundException;
 import com.example.witrack.backend.model.UserDTO;
 import com.example.witrack.backend.repos.UserRepository;
-import com.example.witrack.backend.service.UserService;
+import com.example.witrack.backend.service.v1.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.example.witrack.backend.service.impl;
+package com.example.witrack.backend.service.v1.impl;
 
 import com.example.witrack.backend.domain.Ticket;
 import com.example.witrack.backend.domain.User;
@@ -7,7 +7,7 @@ import com.example.witrack.backend.exception.UnauthorizedException;
 import com.example.witrack.backend.model.TicketDTO;
 import com.example.witrack.backend.repos.TicketRepository;
 import com.example.witrack.backend.security.user.CurrentUserDetails;
-import com.example.witrack.backend.service.TicketService;
+import com.example.witrack.backend.service.v1.TicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;

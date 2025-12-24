@@ -1,4 +1,4 @@
-package com.example.witrack.backend.service.impl;
+package com.example.witrack.backend.service.v1.impl;
 
 import com.example.witrack.backend.domain.Ticket;
 import com.example.witrack.backend.domain.TicketComment;
@@ -8,7 +8,7 @@ import com.example.witrack.backend.model.TicketCommentDTO;
 import com.example.witrack.backend.repos.TicketCommentRepository;
 import com.example.witrack.backend.repos.TicketRepository;
 import com.example.witrack.backend.security.user.CurrentUserDetails;
-import com.example.witrack.backend.service.TicketCommentService;
+import com.example.witrack.backend.service.v1.TicketCommentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

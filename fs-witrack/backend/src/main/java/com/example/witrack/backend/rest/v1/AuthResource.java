@@ -1,7 +1,7 @@
 package com.example.witrack.backend.rest.v1;
 
 import com.example.witrack.backend.model.AuthDTO;
-import com.example.witrack.backend.service.AuthService;
+import com.example.witrack.backend.service.v1.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;

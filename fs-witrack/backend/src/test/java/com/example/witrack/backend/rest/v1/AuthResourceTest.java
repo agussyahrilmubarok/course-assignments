@@ -4,7 +4,7 @@ import com.example.witrack.backend.common.BaseResourceTest;
 import com.example.witrack.backend.domain.User;
 import com.example.witrack.backend.model.AuthDTO;
 import com.example.witrack.backend.model.UserDTO;
-import com.example.witrack.backend.service.impl.AuthServiceImpl;
+import com.example.witrack.backend.service.v1.impl.AuthServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.MediaType;

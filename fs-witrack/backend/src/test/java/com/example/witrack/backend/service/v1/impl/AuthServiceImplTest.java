@@ -1,4 +1,4 @@
-package com.example.witrack.backend.service.impl;
+package com.example.witrack.backend.service.v1.impl;
 
 import com.example.witrack.backend.common.BaseServiceTest;
 import com.example.witrack.backend.domain.User;

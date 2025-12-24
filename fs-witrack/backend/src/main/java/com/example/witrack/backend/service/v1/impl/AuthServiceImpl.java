@@ -1,4 +1,4 @@
-package com.example.witrack.backend.service.impl;
+package com.example.witrack.backend.service.v1.impl;
 
 import com.example.witrack.backend.domain.User;
 import com.example.witrack.backend.exception.DuplicateFieldException;
@@ -6,7 +6,7 @@ import com.example.witrack.backend.model.AuthDTO;
 import com.example.witrack.backend.model.UserDTO;
 import com.example.witrack.backend.repos.UserRepository;
 import com.example.witrack.backend.security.jwt.JwtProvider;
-import com.example.witrack.backend.service.AuthService;
+import com.example.witrack.backend.service.v1.AuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;

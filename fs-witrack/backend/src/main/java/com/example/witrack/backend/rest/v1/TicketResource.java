@@ -2,8 +2,8 @@ package com.example.witrack.backend.rest.v1;
 
 import com.example.witrack.backend.model.TicketCommentDTO;
 import com.example.witrack.backend.model.TicketDTO;
-import com.example.witrack.backend.service.TicketCommentService;
-import com.example.witrack.backend.service.TicketService;
+import com.example.witrack.backend.service.v1.TicketCommentService;
+import com.example.witrack.backend.service.v1.TicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
