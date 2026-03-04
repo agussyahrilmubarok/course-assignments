@@ -4,9 +4,6 @@ backend/dev:
 backend/package:
 	mvn clean package
 
-backend/build:
-	mvn -Pnative native:compile
-
 compose/postgres/up:
 	docker compose -f docker-compose-postgres.yml up -d --build
 

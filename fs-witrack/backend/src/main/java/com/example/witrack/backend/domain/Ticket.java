@@ -1,87 +1,71 @@
 package com.example.witrack.backend.domain;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.UuidGenerator;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 
 @Entity
-@Table(name = "tickets", indexes = {@Index(name = "uk_ticket_code", columnList = "code", unique = true)})
+@Table(name = "Tickets")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 public class Ticket {
 
     @Id
+    @Column(nullable = false, updatable = false)
     @GeneratedValue
+    @UuidGenerator
     private UUID id;
 
-    @NotNull
-    @Size(max = 255)
-    @Column(nullable = false, unique = true, length = 255)
+    @Column(nullable = false, unique = true)
     private String code;
 
-    @NotNull
-    @Size(max = 255)
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String title;
 
-    @NotNull
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "text")
     private String description;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private Status status;
+    @Column(nullable = false)
+    private String status;
 
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private Priority priority;
+    @Column(nullable = false)
+    private String priority;
 
+    @Column
     private OffsetDateTime completeAt;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToMany(mappedBy = "ticket")
+    private Set<Comment> comments = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @OneToMany(
-            mappedBy = "ticket",
-            fetch = FetchType.LAZY,
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private Set<TicketComment> ticketComments = new HashSet<>();
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private OffsetDateTime dateCreated;
 
-    @CreationTimestamp
-    @Column(updatable = false)
-    private OffsetDateTime createdAt;
+    @LastModifiedDate
+    @Column(nullable = false)
+    private OffsetDateTime lastUpdated;
 
-    @UpdateTimestamp
-    private OffsetDateTime updatedAt;
-
-    @Version
-    private Integer version;
-
-    public enum Status {
-        OPEN,
-        IN_PROGRESS,
-        RESOLVED,
-        REJECTED
-    }
-
-    public enum Priority {
-        LOW,
-        MEDIUM,
-        HIGH,
-        CRITICAL
-    }
 }
