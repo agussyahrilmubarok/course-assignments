@@ -1,29 +1,42 @@
 package com.example.witrack.backend.model;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import java.util.UUID;
-import lombok.Getter;
-import lombok.Setter;
+import com.example.witrack.backend.domain.User;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.*;
 
+import java.util.List;
+import java.util.stream.Collectors;
 
-@Getter
-@Setter
 public class UserDTO {
 
-    private UUID id;
+    @Data
+    @Builder
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
+    @AllArgsConstructor(access = AccessLevel.PRIVATE)
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public static class UserResponse {
 
-    @NotNull
-    @Size(max = 255)
-    private String fullName;
+        private String id;
+        private String fullName;
+        private String email;
+        private List<String> roles;
 
-    @NotNull
-    @Size(max = 255)
-    @UserEmailUnique
-    private String email;
+        public static UserDTO.UserResponse fromUser(User user) {
+            if (user == null) {
+                return null;
+            }
 
-    @NotNull
-    @Size(max = 255)
-    private String password;
+            return UserDTO.UserResponse.builder()
+                    .id(user.getId().toString())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .roles(user.getRoles() != null
+                            ? user.getRoles().stream()
+                            .map(Enum::name)
+                            .collect(Collectors.toList())
+                            : null)
+                    .build();
+        }
+    }
 
 }

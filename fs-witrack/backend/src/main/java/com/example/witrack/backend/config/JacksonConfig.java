@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.MapperFeature;
 
-
 @Configuration
 public class JacksonConfig {
 
@@ -17,5 +16,4 @@ public class JacksonConfig {
                 .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
                 .disable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY);
     }
-
 }
