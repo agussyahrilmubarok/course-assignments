@@ -1,0 +1,251 @@
+services:
+  postgres:
+    image: postgres:17.6
+    container_name: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my-secret-pw
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./scripts/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - blackfriday_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  redis:
+    image: redis:8.0.3
+    container_name: redis
+    restart: on-failure
+    ports:
+      - "6379:6379" 
+    volumes:
+      - redis_data:/data
+    networks:
+      - blackfriday_net
+  
+  cassandra:
+    image: cassandra:5.0
+    container_name: cassandra
+    restart: on-failure
+    environment:
+      CASSANDRA_SEEDS: cassandra  # one node
+      CASSANDRA_CLUSTER_NAME: my-cluster
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      CASSANDRA_DC: dc1
+      CASSANDRA_RACK: rack1
+      HEAP_NEWSIZE: 128M
+      MAX_HEAP_SIZE: 1024M
+    ports:
+      - "9042:9042"   # CQL client communication (used by apps/drivers)
+      - "7000:7000"   # Intra-node communication (cluster internode traffic)
+      - "7001:7001"   # Secure internode communication (SSL-enabled)
+      - "7199:7199"   # JMX monitoring (used for metrics/tools)
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - blackfriday_net
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces" ]
+      interval: 10s
+      timeout: 10s
+      retries: 50
+  
+  cassandra-init:
+    image: cassandra:5.0
+    container_name: cassandra-init
+    networks:
+      - blackfriday_net
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    entrypoint: [ "sh", "-c", "cqlsh cassandra -e \"CREATE KEYSPACE IF NOT EXISTS catalog WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};\"" ]
+    
+  kafka:
+    image: confluentinc/cp-kafka:8.0.0 
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      CLUSTER_ID: "EpwKlK0lR6qKZW0cGwZz8w"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://:29092,PLAINTEXT_EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT_EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+      - kafka_secrets:/etc/kafka/secrets
+    networks:
+      - blackfriday_net
+  
+  registry:
+    build:
+      context: ./registry
+    container_name: registry
+    restart: on-failure
+    environment:
+      SERVER_PORT: 8761
+    ports:
+      - "8761:8761"
+    networks:
+      - blackfriday_net
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      cassandra:
+        condition: service_healthy
+  
+  member:
+    build:
+      context: ./member
+    container_name: member
+    restart: on-failure
+    environment:
+      SERVER_PORT: 8081
+      SERVER_NAME: member-service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/member_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: my-secret-pw
+      EUREKA_CLIENT_URL: http://registry:8761/eureka/
+      SERVER_METRIC_PORT: 7071
+      JWT_SECRET_KEY: promotionTestSecretKey2025PromotionTestSecretKey2025
+      JWT_EXPIRES: 3600000
+    ports:
+      - "8081:8081"
+    networks:
+      - blackfriday_net
+    depends_on:
+      - registry
+  
+  catalog:
+    build:
+      context: ./catalog
+    container_name: catalog
+    restart: on-failure
+    environment:
+      SERVER_PORT: 8082
+      SERVER_NAME: catalog-service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/catalog_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: my-secret-pw
+      SPRING_CASSANDRA_CONTACT_POINTS: cassandra
+      SPRING_CASSANDRA_PORT: 9042
+      SPRING_CASSANDRA_KEYSPACE_NAME: catalog
+      SPRING_CASSANDRA_LOCAL_DATACENTER: dc1
+      SPRING_KAFKA_BOOTSTRAP: kafka:9092
+      EUREKA_CLIENT_URL: http://registry:8761/eureka/
+      SERVER_METRIC_PORT: 7072
+    ports:
+      - "8082:8082"
+    networks:
+      - blackfriday_net
+    depends_on:
+      - registry
+  
+  search:
+    build:
+      context: ./search
+    container_name: search
+    restart: on-failure
+    environment:
+      SERVER_PORT: 8083
+      SERVER_NAME: search-service
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP: kafka:9092
+      EUREKA_CLIENT_URL: http://registry:8761/eureka/
+      SERVER_METRIC_PORT: 7073
+    ports:
+      - "8083:8083"
+    networks:
+      - blackfriday_net
+    depends_on:
+      - registry
+  
+  order:
+    build:
+      context: ./order
+    container_name: order
+    restart: on-failure
+    environment:
+      SERVER_PORT: 8084
+      SERVER_NAME: order-service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: my-secret-pw
+      EUREKA_CLIENT_URL: http://registry:8761/eureka/
+      SERVER_METRIC_PORT: 7074
+    ports:
+      - "8084:8084"
+    networks:
+      - blackfriday_net
+    depends_on:
+      - registry
+  
+  payment:
+    build:
+      context: ./payment
+    container_name: payment
+    restart: on-failure
+    environment:
+      SERVER_PORT: 8085
+      SERVER_NAME: payment-service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: my-secret-pw
+      EUREKA_CLIENT_URL: http://registry:8761/eureka/
+      SERVER_METRIC_PORT: 7075
+      MIDTRANS_SERVER_KEY: ""
+      MIDTRANS_CLIENT_KEY: ""
+      MIDTRANS_IS_PRODUCTION: false
+    ports:
+      - "8085:8085"
+    networks:
+      - blackfriday_net
+    depends_on:
+      - registry
+  
+  gateway:
+    build:
+      context: ./gateway
+    container_name: gateway
+    restart: on-failure
+    environment:
+      SERVER_PORT: 8080
+      SERVER_NAME: order-service
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      EUREKA_CLIENT_URL: http://registry:8761/eureka/
+    ports:
+      - "8080:8080"
+    networks:
+      - blackfriday_net
+    depends_on:
+      - registry
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+  redis_insight_data:
+  cassandra_data:
+  kafka_data:
+  kafka_secrets:
+
+networks:
+  blackfriday_net:

@@ -1,0 +1,34 @@
+app:
+  name: "order-service"
+  host: "order-service"
+  port: 8083
+  env: "production"
+
+postgres:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  password: "my-secret-pw"
+  dbname: "order_db"
+  sslmode: "disable"
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: "1h"
+
+mysql:
+  host: "mysql"
+  port: 3306
+  user: "mysqluser"
+  password: "my-secret-pw"
+  dbname: "order_db"
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: "1h"
+
+logger:
+  level: "info"
+  filepath: "logs/app.log"
+
+consul:
+  address: "consul:8500"
+  wait_time: "15s"

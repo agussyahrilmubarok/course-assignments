@@ -1,0 +1,19 @@
+package com.example.coupon.service.v0;
+
+import com.example.coupon.domain.Coupon;
+import com.example.coupon.model.CouponDTO;
+
+import java.util.List;
+
+public interface CouponService {
+
+    List<CouponDTO.Response> findCoupons(CouponDTO.ListRequest request);
+
+    CouponDTO.Response findCoupon(String couponId);
+
+    Coupon issueCoupon(CouponDTO.IssueRequest request);
+
+    Coupon useCoupon(String couponId, String orderId);
+
+    Coupon cancelCoupon(String couponId);
+}

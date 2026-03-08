@@ -1,0 +1,17 @@
+version: '2.19'
+
+services:
+  postgres:
+    container_name: eds-postgres
+    image: postgres:15.3
+    restart: on-failure
+    environment:
+      - POSTGRES_PORT=${DB_PORT}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - ./initdb:/docker-entrypoint-initdb.d
+      - ./postgres-data:/var/lib/postgresql/data
+    ports:
+      - ${DB_PORT}:${DB_PORT}

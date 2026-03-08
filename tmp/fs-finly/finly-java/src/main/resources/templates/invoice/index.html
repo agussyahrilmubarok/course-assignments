@@ -1,0 +1,58 @@
+<!DOCTYPE HTML>
+<html layout:decorate="~{layout}" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>[[#{invoice.index.headline}]]</title>
+</head>
+<body class="bg-gray-100" layout:fragment="content">
+<div class="flex h-screen overflow-hidden">
+
+    <div th:replace="~{fragments/navbar :: sidebar}"></div>
+
+    <div class="ml-56 flex-grow p-10 overflow-y-auto" th:switch="${typePage}">
+        <div th:case="'data'">
+            <div th:replace="~{invoice/fragments/invoiceData :: invoiceData}"></div>
+        </div>
+        <div th:case="'form'">
+            <div th:replace="~{invoice/fragments/invoiceForm :: invoiceForm}"></div>
+        </div>
+    </div>
+</div>
+
+<dialog class="modal" id="delete-modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">[[#{invoice.index.sure}]]</h3>
+        <p class="py-4">[[#{invoice.index.suremessage}]]</p>
+        <div class="modal-action">
+            <form id="delete-form" method="post">
+                <button class="btn btn-danger">[[#{invoice.index.yes}]]</button>
+            </form>
+            <form method="dialog">
+                <button class="btn">[[#{invoice.index.cancel}]]</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+<script>
+    function deleteInvoiceModal(invoiceId) {
+        var modal = document.querySelector('#delete-modal');
+        var deleteForm = document.querySelector('#delete-form');
+        deleteForm.setAttribute('action', '/dashboard/invoices/' + invoiceId + '/delete');
+        modal.showModal();
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.3.4/dist/js/datepicker-full.min.js"></script>
+<script>
+    const elem = document.querySelector('#dueDate');
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('en-US');
+    elem.value = formattedDate;
+    const datepicker = new Datepicker(elem, {
+        autohide: true,
+        format: 'mm/dd/yyyy'
+    });
+</script>
+
+</body>
+</html>

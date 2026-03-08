@@ -1,0 +1,10 @@
+<resources>
+    <!-- Base application theme. -->
+    <style name="Base.Theme.FootballLovers" parent="Theme.Material3.DayNight">
+        <item name="colorPrimary">@color/black</item>
+    </style>
+
+    <style name="Theme.FootballLovers" parent="Base.Theme.FootballLovers" />
+
+    <style name="Theme.SplashTheme" parent="Theme.Material3.DayNight.NoActionBar" />
+</resources>

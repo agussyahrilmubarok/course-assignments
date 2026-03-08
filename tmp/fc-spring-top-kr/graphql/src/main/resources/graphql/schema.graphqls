@@ -1,0 +1,72 @@
+scalar Date
+scalar DateTime
+scalar Long
+
+type Author {
+    id: ID!
+    name: String!
+    dateCreated: DateTime
+    lastUpdated: DateTime
+}
+
+input AuthorRequest {
+    name: String!
+}
+
+type Book {
+    id: ID!
+    title: String!
+    publisher: String
+    publishedDate: DateTime
+    authors: [Author!]
+    reviews: [Review!]
+    dateCreated: DateTime
+    lastUpdated: DateTime
+}
+
+input BookRequest {
+    title: String
+    publisher: String
+    publishedDate: DateTime
+    authorIds: [ID!]
+}
+
+type Review {
+    id: ID!
+    content: String!
+    rating: Float!
+    bookId: ID!
+    dateCreated: DateTime
+    lastUpdated: DateTime
+}
+
+input ReviewRequest {
+    content: String!
+    rating: Float!
+    bookId: ID!
+}
+
+type Query {
+    findAllAuthors: [Author!]!
+    getAuthor(id: ID!): Author
+
+    findAllBooks: [Book!]!
+    getBook(id: ID!): Book
+
+    findAllReviews: [Review!]!
+    getReview(id: ID!): Review
+}
+
+type Mutation {
+    createAuthor(input: AuthorRequest!): Author!
+    updateAuthor(id: ID!, input: AuthorRequest!): Author!
+    deleteAuthor(id: ID!): Boolean!
+
+    createBook(input: BookRequest!): Book!
+    updateBook(id: ID!, input: BookRequest!): Book!
+    deleteBook(id: ID!): Boolean!
+
+    createReview(input: ReviewRequest!): Review!
+    updateReview(id: ID!, input: ReviewRequest!): Review!
+    deleteReview(id: ID!): Boolean!
+}

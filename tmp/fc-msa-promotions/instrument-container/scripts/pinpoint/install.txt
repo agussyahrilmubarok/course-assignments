@@ -1,0 +1,5 @@
+# How to install Pinpoint
+git clone https://github.com/pinpoint-apm/pinpoint-docker.git
+cd pinpoint-docker
+docker-compose pull && docker-compose up -d
+

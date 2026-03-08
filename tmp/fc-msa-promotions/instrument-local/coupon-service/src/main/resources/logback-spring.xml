@@ -1,0 +1,62 @@
+<configuration>
+
+    <!-- 
+        This appender sends logs to the console (stdout).
+        Useful during local development or when running in containers (e.g., Docker, Kubernetes),
+        because container logs are usually collected from stdout.
+    -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- 
+                Log format pattern:
+                %d = date/time
+                %-5level = log level padded to 5 characters (INFO, WARN, etc.)
+                %logger{36} = logger name truncated to 36 characters
+                %msg = actual log message
+                %n = newline
+            -->
+           <pattern>
+                %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [trace_id=%X{traceId:-} span_id=%X{spanId:-}] %-5level %logger{36} - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- 
+        This appender writes logs to a file on disk: logs/app.log.
+        It also supports log rotation based on time (daily).
+    -->
+    <appender name="File" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <!-- The main log file path -->
+        <file>logs/app.log</file>
+
+        <!-- 
+            Rolling policy:
+            Creates a new file every day, e.g.:
+                logs/app.2025-10-23.log
+            Keeps only the last 10 days of logs (maxHistory = 10).
+            Old files will be automatically deleted.
+        -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/app.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>10</maxHistory>
+        </rollingPolicy>
+
+        <!-- The same text format used for the console output -->
+        <encoder>
+            <pattern>
+                %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [trace_id=%X{traceId:-} span_id=%X{spanId:-}] %-5level %logger{36} - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <!-- 
+        Root logger:
+        Defines the default logging level (INFO).
+        Sends logs to both the console and file appenders.
+    -->
+    <root level="INFO">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="File"/>
+    </root>
+</configuration>

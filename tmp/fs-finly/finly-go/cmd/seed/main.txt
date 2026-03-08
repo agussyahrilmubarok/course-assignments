@@ -1,0 +1,176 @@
+package main
+
+import (
+	"context"
+	"finly-go/pkg/mongodb"
+	"finly-go/pkg/password"
+	"log"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+const (
+	mongoDbName = "finly"
+)
+
+func main() {
+	log.Println("Seeding data into MongoDB")
+	
+	ctx := context.Background()
+
+	mongoURI := "mongodb://admin:securepassword123@103.127.139.170:27017"
+
+	mongoClient, err := mongodb.Connect(ctx, mongoURI)
+	if err != nil {
+		log.Fatalf("Failed to connect to MongoDB: %v", err)
+	}
+	defer mongoClient.Disconnect(ctx)
+
+	// Seed data
+	user, err := seedUsers(mongoClient.Database(mongoDbName))
+	if err != nil {
+		log.Fatalf("Failed to seed users: %v", err)
+	}
+
+	customer, err := seedCustomers(mongoClient.Database(mongoDbName), user)
+	if err != nil {
+		log.Fatalf("Failed to seed customers: %v", err)
+	}
+
+	if err := seedInvoices(mongoClient.Database(mongoDbName), user, customer); err != nil {
+		log.Fatalf("Failed to seed invoices: %v", err)
+	}
+
+	log.Println("Seeding completed successfully!")
+}
+
+// seedUsers seeds initial user data into the Users collection
+func seedUsers(db *mongo.Database) (models.User, error) {
+	collection := db.Collection("users")
+
+	// Check if data already exists
+	count, err := collection.CountDocuments(context.Background(), bson.M{})
+	if err != nil {
+		return models.User{}, err
+	}
+
+	if count > 0 {
+		log.Println("Users collection already seeded. Skipping...")
+		var existingUser models.User
+		err = collection.FindOne(context.Background(), bson.M{}).Decode(&existingUser)
+		if err != nil {
+			return models.User{}, err
+		}
+		return existingUser, nil
+	}
+
+	// Sample user data
+	user := models.User{
+		ID:        primitive.NewObjectID(),
+		Email:     "user1@example.com",
+		Password:  password.Encrypt("password1"),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	_, err = collection.InsertOne(context.Background(), user)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	log.Println("Seeded users data successfully.")
+	return user, nil
+}
+
+// seedCustomers seeds initial customer data into the Customers collection
+func seedCustomers(db *mongo.Database, owner models.User) (models.Customer, error) {
+	collection := db.Collection("customers")
+
+	// Check if data already exists
+	count, err := collection.CountDocuments(context.Background(), bson.M{})
+	if err != nil {
+		return models.Customer{}, err
+	}
+
+	if count > 0 {
+		log.Println("Customers collection already seeded. Skipping...")
+		var existingCustomer models.Customer
+		err = collection.FindOne(context.Background(), bson.M{}).Decode(&existingCustomer)
+		if err != nil {
+			return models.Customer{}, err
+		}
+		return existingCustomer, nil
+	}
+
+	// Sample customer data
+	customer := models.Customer{
+		ID:        primitive.NewObjectID(),
+		Name:      "Customer A",
+		Email:     "customer.a@example.com",
+		Phone:     "123-456-7890",
+		Address:   "123 Elm Street",
+		OwnerID:   owner.ID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	_, err = collection.InsertOne(context.Background(), customer)
+	if err != nil {
+		return models.Customer{}, err
+	}
+
+	log.Println("Seeded customers data successfully.")
+	return customer, nil
+}
+
+// seedInvoices seeds initial invoice data into the Invoices collection
+func seedInvoices(db *mongo.Database, owner models.User, customer models.Customer) error {
+	collection := db.Collection("invoices")
+
+	// Check if data already exists
+	count, err := collection.CountDocuments(context.Background(), bson.M{})
+	if err != nil {
+		return err
+	}
+
+	if count > 0 {
+		log.Println("Invoices collection already seeded. Skipping...")
+		return nil
+	}
+
+	// Sample invoice data
+	invoices := []interface{}{
+		models.Invoice{
+			ID:         primitive.NewObjectID(),
+			Amount:     100000,
+			DueDate:    time.Date(2024, 12, 31, 23, 59, 59, 0, time.UTC),
+			Status:     "Pending",
+			OwnerID:    owner.ID,
+			CustomerID: customer.ID,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+		models.Invoice{
+			ID:         primitive.NewObjectID(),
+			Amount:     200000,
+			DueDate:    time.Date(2024, 12, 30, 23, 59, 59, 0, time.UTC),
+			Status:     "Paid",
+			OwnerID:    owner.ID,
+			CustomerID: customer.ID,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		},
+	}
+
+	// Insert data
+	_, err = collection.InsertMany(context.Background(), invoices)
+	if err != nil {
+		return err
+	}
+
+	log.Println("Seeded invoices data successfully.")
+	return nil
+}

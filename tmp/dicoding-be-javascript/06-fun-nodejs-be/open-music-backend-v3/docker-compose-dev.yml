@@ -1,0 +1,52 @@
+version: '2.8'
+
+services:
+  db:
+    container_name: open-music-postgres
+    image: postgres:15.2
+    restart: always
+    env_file: ./.env
+    environment:
+      POSTGRES_DB: ${PGDATABASE}
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    networks:
+      - pw-bridge
+    expose:
+      - 5432
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '100m'
+        max-file: '5'
+  
+  mq:
+    container_name: open-music-rabbitmq
+    image: rabbitmq:management
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - pw-bridge
+  
+  redis:
+    container_name: open-music-redis
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    networks:
+      - pw-bridge
+    volumes:
+    - ./cache:/data
+
+networks:
+  pw-bridge:
+    driver: bridge

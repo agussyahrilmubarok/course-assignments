@@ -1,0 +1,16 @@
+spring:
+  config:
+    active:
+      on-profile: "qa"
+  datasource:
+    url: ${LOANS_JDBC_DATABASE_URL:jdbc:mysql://localhost:3306/ebank_loans_db?serverTimezone=Asia/Jakarta}
+    username: ${LOANS_JDBC_DATABASE_USERNAME:loans_user}
+    password: ${LOANS_JDBC_DATABASE_PASSWORD:loans_pass}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: true

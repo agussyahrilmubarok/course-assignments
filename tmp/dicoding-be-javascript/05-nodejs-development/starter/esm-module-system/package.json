@@ -1,0 +1,13 @@
+{
+  "name": "04-1-esm-module-system",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "main-new.js",
+  "scripts": {
+    "start": "node main-new.js",
+    "test": "node main.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

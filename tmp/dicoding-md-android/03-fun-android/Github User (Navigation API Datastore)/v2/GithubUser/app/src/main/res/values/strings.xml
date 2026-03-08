@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Github User</string>
+    <string name="search">Search</string>
+    <string name="searchbar_hint">Masukkan username</string>
+    <string name="favorite">Favorite</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="setting">Setting</string>
+    <string name="name">Name</string>
+    <string name="username_not_found">Username is not found!</string>
+    <string name="username">Username</string>
+    <string name="followers">%s followers</string>
+    <string name="following">%s following</string>
+    <string name="tab_followers">Followers</string>
+    <string name="tab_following">Following</string>
+    <string name="favorite_user_empty">Favorite user is empty!</string>
+    <string name="dark_mode">Dark Mode</string>
+</resources>
