@@ -1,6 +1,0 @@
-.idea
-node_modules
-.env
-.prod.env
-package-lock.json
-storage-with-local-storage/src/api/uploads/file

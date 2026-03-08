@@ -1,3 +1,0 @@
-curl -X POST -H "Content-Type: application/json" \
-  http://localhost:9411/api/v2/spans \
-  -d '[]'
