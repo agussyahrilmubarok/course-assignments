@@ -1,0 +1,106 @@
+services:
+  loki:
+    image: grafana/loki:3.5.7
+    container_name: loki
+    restart: on-failure
+    command: -config.file=/etc/loki/config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./scripts/loki:/etc/loki
+    networks:
+      - promotion_obs_net
+
+  fluentbit:
+    image: fluent/fluent-bit:4.0
+    container_name: fluentbit
+    restart: on-failure
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    volumes:
+      - ./service-registry/logs:/app/service-registry/logs
+      - ./user-service/logs:/app/user-service/logs
+      - ./coupon-service/logs:/app/coupon-service/logs
+      - ./point-service/logs:/app/point-service/logs
+      - ./timesale-service/logs:/app/timesale-service/logs
+      - ./api-gateway/logs:/app/api-gateway/logs
+      - ./scripts/fluentbit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+    networks:
+      - promotion_obs_net
+    depends_on:
+      - loki
+  
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: alertmanager
+    restart: on-failure
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./scripts/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    networks:
+      - promotion_obs_net
+
+  prometheus:
+    image: prom/prometheus:v3.7.2
+    container_name: prometheus
+    restart: on-failure
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.listen-address=:9090'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./scripts/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./scripts/prometheus/rules:/etc/prometheus/rules
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - promotion_obs_net
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: zipkin
+    restart: on-failure
+    ports:
+      - "9411:9411"  # Zipkin HTTP API
+    networks:
+      - promotion_obs_net
+
+  grafana:
+    image: grafana/grafana:12.2
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./scripts/grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+    networks:
+      - promotion_obs_net
+    depends_on:
+      - loki
+      - alertmanager
+      - prometheus
+      - zipkin
+
+volumes:
+  grafana_data:
+  alertmanager_data:
+  prometheus_data:
+
+networks:
+  promotion_obs_net:
+    driver: bridge

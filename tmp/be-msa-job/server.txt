@@ -1,0 +1,12 @@
+eurekaserver:8070
+configserver:8071
+gatewayserver:8072
+
+accounts:8080
+loans:8090
+cards:9000
+
+keycloak:7080
+mysql:3306
+rabbitmq:5672
+rabbitmqui:15672

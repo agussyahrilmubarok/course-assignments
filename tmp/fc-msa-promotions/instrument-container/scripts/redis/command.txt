@@ -1,0 +1,115 @@
+====================================
+ Redis CLI Cheat Sheet
+====================================
+
+# --- Connect to Redis ---
+redis-cli
+redis-cli -h 127.0.0.1 -p 6379
+redis-cli -a password
+
+# --- Basic Commands ---
+PING                          # Test connection
+ECHO "Hello"                  # Print message
+AUTH password                 # Authenticate
+SELECT 0                      # Select DB index (0-15 by default)
+DBSIZE                        # Show number of keys
+KEYS *                        # List all keys (not recommended in prod)
+SCAN 0                        # Safer key scan
+
+# --- String Commands ---
+SET key "value"
+GET key
+DEL key
+EXISTS key
+APPEND key "more"
+INCR counter
+DECR counter
+MSET k1 v1 k2 v2
+MGET k1 k2
+GETRANGE key 0 3
+SETRANGE key 0 "Hi"
+
+# --- Hash Commands ---
+HSET user:1 name "Alice" email "alice@example.com"
+HGET user:1 name
+HGETALL user:1
+HDEL user:1 email
+HKEYS user:1
+HVALS user:1
+HINCRBY user:1 age 1
+
+# --- List Commands ---
+LPUSH mylist a b c
+RPUSH mylist x y z
+LPOP mylist
+RPOP mylist
+LRANGE mylist 0 -1
+LLEN mylist
+
+# --- Set Commands ---
+SADD myset a b c
+SMEMBERS myset
+SISMEMBER myset a
+SREM myset b
+SUNION set1 set2
+SINTER set1 set2
+SDIFF set1 set2
+
+# --- Sorted Set (ZSET) Commands ---
+ZADD scores 100 "Alice" 200 "Bob"
+ZRANGE scores 0 -1 WITHSCORES
+ZREVRANGE scores 0 -1 WITHSCORES
+ZSCORE scores "Alice"
+ZREM scores "Bob"
+ZINCRBY scores 50 "Alice"
+ZRANK scores "Alice"
+
+# --- Key Management ---
+EXPIRE key 60                 # Expire in 60s
+TTL key                       # Time to live
+PERSIST key                   # Remove expiration
+RENAME oldkey newkey
+TYPE key
+
+# --- Transactions ---
+MULTI
+SET a 1
+SET b 2
+EXEC
+DISCARD
+
+# --- Pub/Sub ---
+PUBLISH channel "Hello World"
+SUBSCRIBE channel
+UNSUBSCRIBE channel
+
+# --- Server Info & Admin ---
+INFO
+INFO memory
+CLIENT LIST
+CONFIG GET *
+CONFIG SET maxmemory 256mb
+MONITOR                       # Stream all commands (debugging)
+FLUSHDB                       # Delete all keys in current DB
+FLUSHALL                      # Delete all keys in all DBs
+SAVE                          # Manual save (RDB)
+BGSAVE                        # Async save
+BGREWRITEAOF                  # Rewrite AOF file
+LASTSAVE                      # Show last save timestamp
+
+# --- Persistence Files ---
+appendonly yes
+appendfilename "appendonly.aof"
+save 900 1
+save 300 10
+
+# --- Security (Redis >= 6) ---
+ACL LIST
+ACL SETUSER myuser on >password ~* +@all
+ACL DELUSER myuser
+
+# --- Cluster Commands ---
+CLUSTER INFO
+CLUSTER NODES
+CLUSTER MEET ip port
+CLUSTER SLOTS

@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Github User</string>
+
+    <string name="name">Name</string>
+    <string name="username">Username</string>
+    <string name="link">Link</string>
+    <string name="bio">Bio</string>
+    <string name="strip"> — </string>
+    <string name="search">Search</string>
+    <string name="favorite">Favorite</string>
+    <string name="share">Share</string>
+    <string name="search_hint">Search by username</string>
+    <string name="followers">%s Followers</string>
+    <string name="following">%s Following</string>
+    <string name="tab_followers">Followers</string>
+    <string name="tab_following">Following</string>
+    <string name="not_found">Not Found</string>
+</resources>

@@ -1,0 +1,35 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Backerhub Backend API V2",
+        "title": "Backerhub Backend API V2",
+        "contact": {},
+        "version": "2.0"
+    },
+    "basePath": "/api/v2",
+    "paths": {
+        "/": {
+            "get": {
+                "description": "Returns a message",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "API V2",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

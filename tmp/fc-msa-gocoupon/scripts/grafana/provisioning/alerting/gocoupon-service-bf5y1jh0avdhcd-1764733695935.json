@@ -1,0 +1,106 @@
+{
+    "apiVersion": 1,
+    "groups": [
+        {
+            "orgId": 1,
+            "name": "gocoupon-service",
+            "folder": "gocoupon-service",
+            "interval": "1m",
+            "rules": [
+                {
+                    "uid": "bf5y1jh0avdhcd",
+                    "title": "gocoupon-service-status",
+                    "condition": "C",
+                    "data": [
+                        {
+                            "refId": "A",
+                            "relativeTimeRange": {
+                                "from": 3600,
+                                "to": 0
+                            },
+                            "datasourceUid": "PBFA97CFB590B2093",
+                            "model": {
+                                "adhocFilters": [],
+                                "datasource": {
+                                    "type": "prometheus",
+                                    "uid": "PBFA97CFB590B2093"
+                                },
+                                "editorMode": "builder",
+                                "expr": "up{job=\"gocoupon-service\"}",
+                                "instant": true,
+                                "interval": "",
+                                "intervalMs": 15000,
+                                "legendFormat": "__auto",
+                                "maxDataPoints": 43200,
+                                "range": false,
+                                "refId": "A"
+                            }
+                        },
+                        {
+                            "refId": "C",
+                            "relativeTimeRange": {
+                                "from": 0,
+                                "to": 0
+                            },
+                            "datasourceUid": "__expr__",
+                            "model": {
+                                "conditions": [
+                                    {
+                                        "evaluator": {
+                                            "params": [
+                                                0
+                                            ],
+                                            "type": "eq"
+                                        },
+                                        "operator": {
+                                            "type": "and"
+                                        },
+                                        "query": {
+                                            "params": [
+                                                "C"
+                                            ]
+                                        },
+                                        "reducer": {
+                                            "params": [],
+                                            "type": "last"
+                                        },
+                                        "type": "query"
+                                    }
+                                ],
+                                "datasource": {
+                                    "type": "__expr__",
+                                    "uid": "__expr__"
+                                },
+                                "expression": "A",
+                                "intervalMs": 1000,
+                                "maxDataPoints": 43200,
+                                "refId": "C",
+                                "type": "threshold"
+                            }
+                        }
+                    ],
+                    "dashboardUid": "addt9fq",
+                    "panelId": 2,
+                    "noDataState": "Alerting",
+                    "execErrState": "Alerting",
+                    "for": "1m",
+                    "annotations": {
+                        "__dashboardUid__": "addt9fq",
+                        "__panelId__": "2",
+                        "description": "The gocoupon-service is reported as DOWN by Prometheus (up=0). The service has likely stopped, crashed, or is unreachable.",
+                        "summary": "gocoupon-service is not responding"
+                    },
+                    "labels": {
+                        "job": "gocoupon-service",
+                        "severity": "critical"
+                    },
+                    "isPaused": false,
+                    "notification_settings": {
+                        "receiver": "grafana-default-email"
+                    },
+                    "missing_series_evals_to_resolve": 2
+                }
+            ]
+        }
+    ]
+}

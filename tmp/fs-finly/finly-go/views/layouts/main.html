@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{ .Title }}</title>
+
+    <link href="/css/style.css" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.3.4/dist/css/datepicker.min.css"
+    />
+  </head>
+
+  <body>
+    {{embed}}
+  </body>
+
+  <script
+    type="text/javascript"
+    src="https://cdn.jsdelivr.net/npm/toastify-js"
+  ></script>
+  {{if .Info}}
+  <script>
+    const bgColors = {
+      error: "#EF4B53",
+      success: "#00B5FF",
+    };
+    Toastify({
+      text: "{{.Info.Message}}",
+      duration: 3000,
+      gravity: "bottom",
+      position: "right",
+      offset: {
+        x: 50,
+        y: 10,
+      },
+      style: {
+        background: bgColors["{{.Info.Type}}"],
+      },
+    }).showToast();
+  </script>
+  {{end}}
+</html>

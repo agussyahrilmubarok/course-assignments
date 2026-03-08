@@ -1,0 +1,78 @@
+{{ define "content" }}
+
+<div class="page-breadcrumb">
+  <div class="row">
+    <div class="col-6">
+      <h4 class="page-title">List of users</h4>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="/">Home</a></li>
+          <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+          <li class="breadcrumb-item active" aria-current="page">User</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="col-6">
+      <div class="text-right">
+        <a href="/dashboard/users/add" class="btn btn-primary mb-3">
+          <i class="fa fa-plus"></i> Add User
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="card mb-4">
+    <div class="card-body">
+      <table id="userTable" class="table mb-0">
+        <thead class="thead-light">
+          <tr>
+            <th></th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Occupation</th>
+            <th></th>
+            <th></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {{ range .users }}
+          <tr>
+            <td>
+              <img src="/uploads/users/{{ .ImageName }}" class="img-thumbnail" width="60" />
+            </td>
+            <td>{{ .Name }}</td>
+            <td>{{ .Email }}</td>
+            <td>{{ .Occupation }}</td>
+            <td>
+              <a href="/dashboard/users/{{ .ID }}/edit"
+                ><i class="fa fa-edit"></i
+              ></a>
+            </td>
+            <td>
+              <a href="/dashboard/users/{{ .ID }}/avatar"
+                ><i class="fa fa-camera"></i
+              ></a>
+            </td>
+            <td>
+              <a href="/dashboard/users/{{ .ID }}/delete"
+                ><i class="fa fa-trash"></i
+              ></a>
+            </td>
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function () {
+      $('#userTable').DataTable();
+  });
+</script>
+
+{{ end }}

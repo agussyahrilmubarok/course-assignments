@@ -1,0 +1,2 @@
+FEAT:
+- add auth2 filter in gateway in redirect to other services.

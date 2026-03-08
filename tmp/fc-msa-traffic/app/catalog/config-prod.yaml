@@ -1,0 +1,28 @@
+app:
+  name: "catalog-service"
+  host: "catalog-service"
+  port: 8082
+  env: "production"
+
+postgres:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  password: "my-secret-pw"
+  dbname: "catalog_db"
+  sslmode: "disable"
+  max_open_conns: 10
+  max_idle_conns: 5
+  conn_max_lifetime: "1h"
+
+redis:
+  host: "redis"
+  port: 6379
+
+logger:
+  level: "info"
+  filepath: "logs/app.log"
+
+consul:
+  address: "consul:8500"
+  wait_time: "15s"

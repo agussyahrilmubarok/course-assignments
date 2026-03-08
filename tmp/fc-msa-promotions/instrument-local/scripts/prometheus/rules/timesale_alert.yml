@@ -1,0 +1,57 @@
+groups:
+  - name: timesale_service_alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job="timesale-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Timesale service is down
+          description: Service has been down for more than 1 minute
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="timesale-service"} > 1.5e9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High memory usage in timesale service
+          description: Memory usage is {{ $value | humanize }}B
+
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_usage{job="timesale-service"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High CPU usage in timesale service
+          description: CPU usage is {{ $value }}%
+
+      - alert: HighGCTime
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: High GC time in timesale service
+          description: GC is taking {{ $value }}s per second on average
+      
+      - alert: HighErrorRate
+        expr: rate(timesale_operation_failure[5m]) / rate(timesale_operation_success[5m]) * 100 > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: High error rate in timesale operations
+          description: Error rate is {{ $value }}% for the last 5 minutes
+
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(timesale_operation_duration_seconds_bucket[5m])) > 0.5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Slow response time in timesale operations
+          description: 95th percentile response time is {{ $value }}s
+

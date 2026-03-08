@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div class="w-full" th:fragment="invoiceData">
+    <div class="flex w-full items-center justify-between">
+        <h1 class="text-2xl">[[#{invoice.index.title}]]</h1>
+    </div>
+
+    <form method="get" th:action="@{/dashboard/invoices}">
+        <div class="mt-4 flex items-center justify-between gap-2 md:mt-8">
+            <div class="relative flex flex-1 flex-shrink-0">
+                <label class="input input-bordered flex items-center gap-2 w-full" for="search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input class="grow" id="search" name="search" th:placeholder="#{invoice.index.search}" type="text"/>
+                </label>
+            </div>
+            <a class="btn btn-primary" th:href="@{/dashboard/invoices/create}">
+                <i class="fa-solid fa-plus fa-lg mr-2"></i>
+                [[#{invoice.index.new}]]
+            </a>
+        </div>
+    </form>
+
+    <div class="mt-6 overflow-x-auto bg-white rounded-lg p-2">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>[[#{invoice.index.name}]]</th>
+                <th>[[#{invoice.index.amount}]]</th>
+                <th>[[#{invoice.index.duedate}]]</th>
+                <th>[[#{invoice.index.status}]]</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${invoices.size() == 0}">
+                <td class="text-center text-gray-500" colspan="5">[[#{invoice.index.notfound}]]</td>
+            </tr>
+            <tr th:each="invoice : ${invoices}">
+                <td th:text="${invoice.customer.name}"></td>
+                <td th:text="${invoice.amount}"></td>
+                <td th:text="${invoice.dueDate}"></td>
+                <td>
+                        <span class="ml-2 badge badge-sm p-3 gap-3"
+                              th:classappend="${invoice.status == 'paid' ? 'badge-success' : 'badge-ghost'}"
+                              th:text="${invoice.status == 'paid' ? 'Paid' : 'Pending'}">
+                            <i th:class="${invoice.status == 'paid' ? 'fa-regular fa-circle-check' : 'fa-regular fa-clock'}"></i>
+                        </span>
+                </td>
+                <td>
+                    <div class="flex justify-end gap-3">
+                        <a class="rounded-md border p-2 hover:bg-gray-100"
+                           th:href="@{/dashboard/invoices/{id}/edit(id=${invoice.id})}">
+                            <i class="fa-solid fa-pen-to-square fa-lg"></i>
+                        </a>
+                        <button class="rounded-md border p-2 hover:bg-gray-100"
+                                th:onclick="deleteInvoiceModal([[${invoice.id}]])">
+                            <span class="sr-only">[[#{invoice.index.delete}]]</span>
+                            <i class="fa-solid fa-trash fa-lg"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>

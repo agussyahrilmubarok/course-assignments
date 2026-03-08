@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">StoryApp</string>
+    <string name="title_welcome_page">Selamat Datang di StoryApp!</string>
+    <string name="message_welcome_page">Tuliskan cerita dan bagikan pengalamanmu belajar bersama Dicoding.</string>
+    <string name="login">Masuk</string>
+    <string name="signup">Daftar</string>
+    <string name="title_login_page">Masuk Akun StoryApp</string>
+    <string name="message_login_page">Gunakan email dan password kamu!</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="title_signup_page">Daftar Akun StoryApp</string>
+    <string name="name">Name</string>
+    <string name="name_profile">Name</string>
+    <string name="text">Text</string>
+    <string name="addStory">Add Story</string>
+    <string name="description">Description</string>
+    <string name="camera">Kamera</string>
+    <string name="gallery">Galeri</string>
+    <string name="upload">Upload</string>
+    <string name="story">Story</string>
+</resources>

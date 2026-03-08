@@ -1,0 +1,110 @@
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: gateway
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+  cloud:
+    consul:
+      host: ${SPRING_CLOUD_CONSUL_HOST:localhost}
+      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      discovery:
+        register: true
+        prefer-ip-address: true
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          default-filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@accountKeyResolver}"
+          routes:
+            - id: account-service-public
+              uri: lb://account-service
+              predicates:
+                - Path=/api/v1/accounts/sign-up, /api/v1/accounts/sign-in, /api/v1/accounts/validate
+            - id: account-service
+              uri: lb://account-service
+              predicates:
+                - Path=/api/v1/accounts/me
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: accountServiceBreaker
+                    fallbackUri: forward:/fallback/accounts
+                - name: JwtAuthenticationFilter
+            - id: catalog-service
+              uri: lb://catalog-service
+              predicates:
+                - Path=/api/v1/catalogs, /api/v1/catalogs/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: accountServiceBreaker
+                    fallbackUri: forward:/fallback/catalogs
+                - name: JwtAuthenticationFilter
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/api/v1/orders, /api/v1/orders/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: accountServiceBreaker
+                    fallbackUri: forward:/fallback/orders
+                - name: JwtAuthenticationFilter
+            - id: pricing-service
+              uri: lb://pricing-service
+              predicates:
+                - Path=/api/v1/pricings, /api/v1/pricings/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: accountServiceBreaker
+                    fallbackUri: forward:/fallback/pricings
+                - name: JwtAuthenticationFilter
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      authCircuitBreaker:
+        registerHealthIndicator: true
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 10
+        permittedNumberOfCallsInHalfOpenState: 10
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5000
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        record-exceptions:
+          - java.util.concurrent.TimeoutException
+          - org.springframework.cloud.gateway.support.NotFoundException
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.consul: INFO

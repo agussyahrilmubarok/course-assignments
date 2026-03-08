@@ -1,0 +1,70 @@
+{{ define "content" }}
+
+<div class="page-breadcrumb">
+  <div class="row">
+    <div class="col-6">
+      <h4 class="page-title">Dashboard</h4>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="/">Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+        </ol>
+      </nav>
+    </div>
+    <div class="col-6">
+      <div class="text-right">
+        <small>Members</small>
+        <h5 class="text-info">{{ .totalMember }}</h5>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <!-- Total Members column -->
+    <div class="col-sm-12 col-lg-4">
+      <div class="card card-hover bg-blue">
+        <div class="card-body">
+          <div class="d-flex">
+            <div class="mr-4">
+              <small>Total Members</small>
+              <h4 class="mb-0">{{ .totalMemberActive }}</h4>
+            </div>
+            <div class="chart ml-auto">active</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Total Campaigns column -->
+    <div class="col-sm-12 col-lg-4">
+      <div class="card card-hover bg-green">
+        <div class="card-body">
+          <div class="d-flex">
+            <div class="mr-4">
+              <small>Total Campaigns</small>
+              <h4 class="mb-0">{{ .totalCampaignActive }}</h4>
+            </div>
+            <div class="chart ml-auto">active</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- column -->
+    <div class="col-sm-12 col-lg-4">
+      <div class="card card-hover bg-yellow">
+        <div class="card-body">
+          <div class="d-flex">
+            <div class="mr-4">
+              <small>Total Transaction</small>
+              <h4 class="mb-0">{{ .totalTransactionActive }}</h4>
+            </div>
+            <div class="chart ml-auto">pending</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ end }}
